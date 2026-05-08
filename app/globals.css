@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Akubrecah Design System - Merged with Dev Cave Aesthetic */
+:root {
+  /* Primary Colors - Deep Emerald Green */
+  --primary: 165 56% 28%; /* #1F6F5B */
+  --primary-foreground: 0 0% 95%;
+  
+  /* Secondary Colors - Muted Teal Green */
+  --secondary: 166 50% 36%; /* #2E8B75 */
+  --secondary-foreground: 0 0% 95%;
+  
+  /* Accent Colors - Bright Yellow */
+  --accent: 57 100% 47%; /* #F2E600 */
+  --accent-foreground: 0 0% 17%;
+
+  /* Background Colors - Monochromatic Green Base for "Cave" feel */
+  --background: 165 40% 6%; 
+  --foreground: 0 0% 95%;
+
+  /* Muted Colors */
+  --muted: 165 30% 10%;
+  --muted-foreground: 159 29% 56%;
+
+  /* Card Colors */
+  --card: 165 40% 4%;
+  --card-foreground: 0 0% 95%;
+
+  /* Border Colors */
+  --border: 0 0% 17%;
+  --input: 165 20% 15%;
+  --ring: 57 100% 47%;
+
+  --radius: 1rem;
+}
+
+.dark {
+  --background: 0 0% 18%; /* Charcoal Grey Base (#2E2E2E) */
+  --foreground: 0 0% 98%;
+  --card: 0 0% 15%;
+  --card-foreground: 0 0% 98%;
+  --border: 0 0% 28%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism Utilities from Dev Cave */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    @apply shadow-2xl;
+  }
+
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .glass-panel {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    @apply rounded-[2rem];
+  }
+
+  /* Gradient Text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#1F6F5B] to-[#F2E600];
+  }
+
+  /* Animations */
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-bounce-slow {
+    animation: bounce-slow 3s ease-in-out infinite;
+  }
+
+  .animation-delay-2000 { animation-delay: 2s; }
+  .animation-delay-4000 { animation-delay: 4s; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(166 50% 36% / 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 95% / 0.5);
+}
+
+/* KRA Custom Brand Utilities */
+.btn-primary {
+  background: linear-gradient(135deg, #1F6F5B 0%, #145A47 100%);
+  box-shadow: 0 4px 14px rgba(31, 111, 91, 0.39);
+  @apply rounded-xl text-white font-bold transition-all hover:scale-105 active:scale-95;
+}

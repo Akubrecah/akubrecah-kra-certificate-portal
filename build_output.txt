@@ -1,0 +1,127 @@
+
+> akubrecah-entertainment@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 4 errors:
+./components/site-header.tsx:11:1
+Export SignedIn doesn't exist in target module
+[0m [90m  9 |[39m [36mimport[39m { useTheme } [36mfrom[39m [32m"next-themes"[39m
+ [90m 10 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m"@/components/ui/button"[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mSignedIn[39m[33m,[39m [33mSignedOut[39m[33m,[39m [33mSignInButton[39m[33m,[39m [33mUserButton[39m } [36mfrom[39m [32m"@clerk/nextjs"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mScheduleCallButton[39m } [36mfrom[39m [32m"@/components/schedule-call-button"[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36mconst[39m navItems [33m=[39m [[0m
+
+The export SignedIn was not found in module [project]/node_modules/@clerk/nextjs/dist/esm/index.js [app-client] (ecmascript).
+Did you mean to import SignIn?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/site-header.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/site-header.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+
+./components/site-header.tsx:11:1
+Export SignedIn doesn't exist in target module
+[0m [90m  9 |[39m [36mimport[39m { useTheme } [36mfrom[39m [32m"next-themes"[39m
+ [90m 10 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m"@/components/ui/button"[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mSignedIn[39m[33m,[39m [33mSignedOut[39m[33m,[39m [33mSignInButton[39m[33m,[39m [33mUserButton[39m } [36mfrom[39m [32m"@clerk/nextjs"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mScheduleCallButton[39m } [36mfrom[39m [32m"@/components/schedule-call-button"[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36mconst[39m navItems [33m=[39m [[0m
+
+The export SignedIn was not found in module [project]/node_modules/@clerk/nextjs/dist/esm/index.js [app-ssr] (ecmascript).
+Did you mean to import SignIn?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/site-header.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/site-header.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+
+./components/site-header.tsx:11:1
+Export SignedOut doesn't exist in target module
+[0m [90m  9 |[39m [36mimport[39m { useTheme } [36mfrom[39m [32m"next-themes"[39m
+ [90m 10 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m"@/components/ui/button"[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mSignedIn[39m[33m,[39m [33mSignedOut[39m[33m,[39m [33mSignInButton[39m[33m,[39m [33mUserButton[39m } [36mfrom[39m [32m"@clerk/nextjs"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mScheduleCallButton[39m } [36mfrom[39m [32m"@/components/schedule-call-button"[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36mconst[39m navItems [33m=[39m [[0m
+
+The export SignedOut was not found in module [project]/node_modules/@clerk/nextjs/dist/esm/index.js [app-client] (ecmascript).
+Did you mean to import SignOutButton?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/site-header.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/site-header.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+
+./components/site-header.tsx:11:1
+Export SignedOut doesn't exist in target module
+[0m [90m  9 |[39m [36mimport[39m { useTheme } [36mfrom[39m [32m"next-themes"[39m
+ [90m 10 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m"@/components/ui/button"[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mSignedIn[39m[33m,[39m [33mSignedOut[39m[33m,[39m [33mSignInButton[39m[33m,[39m [33mUserButton[39m } [36mfrom[39m [32m"@clerk/nextjs"[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mScheduleCallButton[39m } [36mfrom[39m [32m"@/components/schedule-call-button"[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36mconst[39m navItems [33m=[39m [[0m
+
+The export SignedOut was not found in module [project]/node_modules/@clerk/nextjs/dist/esm/index.js [app-ssr] (ecmascript).
+Did you mean to import SignOutButton?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/site-header.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Client Component Browser]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/site-header.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Client Component SSR]
+    ./components/admin-layout-wrapper.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+
+    at <unknown> (./components/site-header.tsx:11:1)
+    at <unknown> (./components/site-header.tsx:11:1)
+    at <unknown> (./components/site-header.tsx:11:1)
+    at <unknown> (./components/site-header.tsx:11:1)
