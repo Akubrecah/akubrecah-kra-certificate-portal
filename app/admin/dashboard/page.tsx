@@ -12,136 +12,121 @@ import {
   FileText, 
   Users, 
   Activity,
-  CalendarDays
+  CalendarDays,
+  Loader2
 } from 'lucide-react'
-import AnalyticsService from '@/lib/analyticsService'
+import { toast } from 'react-hot-toast'
 
-// Mock data - replace with actual data fetching
-const mockData = {
+// Initial state - will be replaced by API data
+const initialState = {
+  totals: {
+    users: 0,
+    revenue: 0,
+    returns: 0,
+    successRate: 0
+  },
   userMetrics: [
-    { name: 'Apr 6', users: 400 },
-    { name: 'Apr 7', users: 450 },
-    { name: 'Apr 8', users: 550 },
-    { name: 'Apr 9', users: 700 },
-    { name: 'Apr 10', users: 900 },
-    { name: 'Apr 11', users: 1200 },
+    { name: 'Loading...', users: 0 }
   ],
   pinBreakdown: [
     { name: 'Business', value: 430 },
     { name: 'Individual', value: 720 }
   ],
   transactionData: [
-    { name: 'Apr 6', amount: 24000 },
-    { name: 'Apr 7', amount: 31000 },
-    { name: 'Apr 8', amount: 28000 },
-    { name: 'Apr 9', amount: 45000 },
-    { name: 'Apr 10', amount: 52000 },
-    { name: 'Apr 11', amount: 68000 },
+    { name: 'Week 1', amount: 24000 },
+    { name: 'Week 2', amount: 31000 },
   ],
   returnsData: [
-    { name: 'Apr 6', completed: 230, pending: 45, failed: 12 },
-    { name: 'Apr 7', completed: 280, pending: 50, failed: 15 },
-    { name: 'Apr 8', completed: 310, pending: 60, failed: 20 },
-    { name: 'Apr 9', completed: 350, pending: 70, failed: 15 },
-    { name: 'Apr 10', completed: 390, pending: 65, failed: 10 },
-    { name: 'Apr 11', completed: 450, pending: 80, failed: 25 },
+    { name: 'Today', completed: 0, pending: 0, failed: 0 },
   ],
-  recentActivity: [
-    { id: 1, type: 'return', user: 'John Doe', time: '10 minutes ago', status: 'completed' },
-    { id: 2, type: 'payment', user: 'Mary Smith', time: '25 minutes ago', status: 'completed' },
-    { id: 3, type: 'return', user: 'Peter Kamau', time: '45 minutes ago', status: 'pending' },
-    { id: 4, type: 'registration', user: 'Jane Wanjiku', time: '1 hour ago', status: 'completed' },
-    { id: 5, type: 'payment', user: 'David Omondi', time: '2 hours ago', status: 'failed' },
-  ]
+  recentActivity: []
 }
 
 export default function DashboardPage() {
-  const [dashboardData, setDashboardData] = useState(mockData)
-  const [errors, setErrors] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<any>(initialState)
+  const [loading, setLoading] = useState(true)
   
-  // In a real implementation, use useEffect to fetch actual data from Supabase
   useEffect(() => {
     async function fetchData() {
       try {
-        const analyticsService = new AnalyticsService()
-        const response = await analyticsService.getDashboardMetrics()
+        setLoading(true)
+        const response = await fetch('/api/admin/dashboard')
+        if (!response.ok) throw new Error('Failed to fetch dashboard data')
+        const data = await response.json()
         
-        // Check if we received an error response
-        if (response && 'error' in response && response.success === false) {
-          console.error('Error in analytics service:', response.error)
-          return // Keep using mock data
-        }
-        
-        // Make sure we have valid data before proceeding
-        const data = response as {
-          userMetrics?: any[],
-          transactionMetrics?: any[],
-          pinBreakdown?: any[],
-          returnsData?: any[],
-          errors?: Record<string, any>
-        }
-        
-        if (data) {
-          // Merge with mock data for any missing properties
-          const mergedData = {
-            ...mockData,
-            userMetrics: data.userMetrics || mockData.userMetrics,
-            pinBreakdown: data.pinBreakdown || mockData.pinBreakdown,
-            transactionData: data.transactionMetrics || mockData.transactionData,
-            returnsData: data.returnsData || mockData.returnsData,
-            recentActivity: (data as any).recentActivity?.length ? (data as any).recentActivity : mockData.recentActivity,
-            totals: (data as any).totals
-          }
-          
-          setDashboardData(mergedData)
-          
-          // Only set errors if they exist in the response
-          if (data.errors) {
-            setErrors(data.errors)
-          }
+        if (data.success) {
+          setDashboardData({
+            ...initialState,
+            ...data,
+            // Keep some mock data for charts that don't have real data yet
+            pinBreakdown: data.pinBreakdown || initialState.pinBreakdown,
+            transactionData: data.transactionData || initialState.transactionData,
+            returnsData: data.returnsData || initialState.returnsData,
+          })
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
+        toast.error('Could not load dashboard metrics')
+      } finally {
+        setLoading(false)
       }
     }
     
     fetchData()
-    
-    // Set up interval to refresh data every 5 minutes
-    const interval = setInterval(() => {
-      fetchData()
-    }, 30000) // 30 seconds for testing, change back to 300000 for production
-    
+    const interval = setInterval(fetchData, 60000) // Refresh every minute
     return () => clearInterval(interval)
   }, [])
+
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffInMins = Math.floor((now.getTime() - date.getTime()) / 60000)
+      if (diffInMins < 60) return `${diffInMins} mins ago`
+      const diffInHours = Math.floor(diffInMins / 60)
+      if (diffInHours < 24) return `${diffInHours} hours ago`
+      return `${Math.floor(diffInHours / 24)} days ago`
+    } catch (e) {
+      return 'Recently'
+    }
+  }
+
+  if (loading && dashboardData.totals.users === 0) {
+    return (
+      <div className="flex h-[400px] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Syncing realtime data...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 space-y-4 p-6 lg:p-2">
 
       {/* Top stats row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-card hover:bg-card/80 transition-colors">
+        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(dashboardData as any).totals?.users?.toLocaleString() || "0"}</div>
+            <div className="text-2xl font-bold">{dashboardData.totals.users.toLocaleString()}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">Live</span>
-              <span className="ml-1">from database</span>
+              <span className="text-emerald-500 font-medium">Real-time</span>
+              <span className="ml-1">from Clerk</span>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-card hover:bg-card/80 transition-colors">
+        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KES {((dashboardData as any).totals?.revenue || 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold">KES {dashboardData.totals.revenue.toLocaleString()}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-medium">Live</span>
@@ -150,13 +135,13 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card className="bg-card hover:bg-card/80 transition-colors">
+        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Returns Filed</CardTitle>
             <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(dashboardData as any).totals?.returns || "0"}</div>
+            <div className="text-2xl font-bold">{dashboardData.totals.returns.toLocaleString()}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-medium">Live</span>
@@ -165,13 +150,13 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card className="bg-card hover:bg-card/80 transition-colors">
+        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
             <CheckCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{((dashboardData as any).totals?.successRate || 0).toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{dashboardData.totals.successRate.toFixed(1)}%</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-medium">Live</span>
@@ -183,33 +168,35 @@ export default function DashboardPage() {
       
       {/* Charts section */}
       <div className="grid gap-6 md:grid-cols-7">
-        {/* User growth chart */}
-        <Card className="md:col-span-4">
+        <Card className="md:col-span-4 border-primary/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>User Growth</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dashboardData?.userMetrics || []}>
+              <LineChart data={dashboardData.userMetrics}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.1} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                <YAxis stroke="#888" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
+                  itemStyle={{ color: '#06b6d4' }}
+                />
                 <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="users" 
-                  stroke="#8884d8" 
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }} 
+                  stroke="#06b6d4" 
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#06b6d4' }}
+                  activeDot={{ r: 8, strokeWidth: 0 }} 
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
         
-        {/* PIN distribution pie chart */}
-        <Card className="md:col-span-3">
+        <Card className="md:col-span-3 border-primary/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>PIN Type Distribution</CardTitle>
           </CardHeader>
@@ -217,99 +204,94 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={dashboardData?.pinBreakdown || []}
+                  data={dashboardData.pinBreakdown}
                   cx="50%"
                   cy="50%"
+                  innerRadius={60}
                   outerRadius={80}
-                  fill="#8884d8"
+                  paddingAngle={5}
                   dataKey="value"
-                  label={({name, percent}: {name: string, percent: number}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                />
+                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            {errors?.pinMetrics && (
-              <div className="mt-2 text-xs text-red-500">
-                Table not ready: {errors.pinMetrics}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
       
       {/* Recent activity and table data */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Recent activity feed */}
-        <Card>
+        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(dashboardData?.recentActivity || []).map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4 rounded-lg border p-3">
-                  <div className="rounded-full p-2 bg-primary/10">
-                    {activity.type === 'return' && <FileText className="h-4 w-4 text-primary" />}
-                    {activity.type === 'payment' && <DollarSign className="h-4 w-4 text-primary" />}
-                    {activity.type === 'registration' && <Users className="h-4 w-4 text-primary" />}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {activity.user}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.type === 'return' && 'Filed a tax return'}
-                      {activity.type === 'payment' && 'Made a payment'}
-                      {activity.type === 'registration' && 'Registered an account'}
-                    </p>
-                    <div className="flex items-center pt-1">
-                      <CalendarDays className="mr-1 h-3 w-3 text-muted-foreground opacity-70" />
-                      <span className="text-xs text-muted-foreground">{activity.time}</span>
-                      <span className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" 
-                        style={{
-                          backgroundColor: activity.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 
-                                        activity.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' : 
-                                        'rgba(239, 68, 68, 0.1)',
-                          color: activity.status === 'completed' ? 'rgb(16, 185, 129)' : 
-                                activity.status === 'pending' ? 'rgb(245, 158, 11)' : 
-                                'rgb(239, 68, 68)'
-                        }}>
-                        {activity.status}
-                      </span>
+              {dashboardData.recentActivity.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground italic text-sm">
+                  No recent activity found in database.
+                </div>
+              ) : (
+                dashboardData.recentActivity.map((activity: any) => (
+                  <div key={activity.id} className="flex items-start gap-4 rounded-lg border border-primary/5 p-3 bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <div className="rounded-full p-2 bg-primary/10">
+                      {activity.type === 'return' && <FileText className="h-4 w-4 text-primary" />}
+                      {activity.type === 'payment' && <DollarSign className="h-4 w-4 text-primary" />}
+                      {activity.type === 'registration' && <Users className="h-4 w-4 text-primary" />}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {activity.user}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {activity.type === 'return' ? 'Filed a tax return' : 
+                         activity.type === 'payment' ? 'Made a payment' : 
+                         'Active session detected'}
+                      </p>
+                      <div className="flex items-center pt-1">
+                        <CalendarDays className="mr-1 h-3 w-3 text-muted-foreground opacity-70" />
+                        <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</span>
+                        <span className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          activity.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                          activity.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
+                          'bg-red-500/10 text-red-500'
+                        }`}>
+                          {activity.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
         
-        {/* Returns chart */}
-        <Card>
+        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Returns Status</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dashboardData?.returnsData || []}>
+              <BarChart data={dashboardData.returnsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.1} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                <YAxis stroke="#888" fontSize={12} />
+                <Tooltip 
+                   contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
+                />
                 <Legend />
-                <Bar dataKey="completed" stackId="a" fill="#8884d8" />
-                <Bar dataKey="pending" stackId="a" fill="#82ca9d" />
-                <Bar dataKey="failed" stackId="a" fill="#ffc658" />
+                <Bar dataKey="completed" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="pending" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="failed" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            {errors?.returnMetrics && (
-              <div className="mt-2 text-xs text-red-500">
-                Table not ready: {errors.returnMetrics}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
     </div>
   )
 }
+
