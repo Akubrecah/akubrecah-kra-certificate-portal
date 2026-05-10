@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 "use client"
 
 import React, { useState } from "react"
@@ -9,14 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, BookmarkPlus, Share2 } from "lucide-react"
+import { X, BookmarkPlus, Share2, Briefcase, MapPin, Clock, ArrowRight } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-// Interfaces remain the same
-interface JobDetail {
-  label: string
-  value: string
-}
+import { PageBackground } from "@/components/ui/page-background"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface JobPosition {
   id: string
@@ -39,15 +33,6 @@ interface JobPosition {
   preferredQualifications: string[]
   additionalRequirements: string[]
   compensation: string
-}
-
-interface ApplicationForm {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  linkedIn: string
-  coverLetter: string
 }
 
 const jobPositions: JobPosition[] = [
@@ -190,348 +175,313 @@ export default function CareersPage() {
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(null)
   const [showApplicationDialog, setShowApplicationDialog] = useState(false)
   const [filter, setFilter] = useState({
-    department: "",
-    type: "",
-    location: ""
+    department: "all",
+    type: "all",
+    location: "all"
   })
-
-  const handleOpen = (position: JobPosition) => {
-    setSelectedPosition(position)
-  }
 
   const filteredPositions = jobPositions.filter(position => {
     return (
-      (!filter.department || position.department === filter.department) &&
-      (!filter.type || position.type === filter.type) &&
-      (!filter.location || position.location === filter.location)
+      (filter.department === "all" || position.department === filter.department) &&
+      (filter.type === "all" || position.type === filter.type) &&
+      (filter.location === "all" || position.location === filter.location)
     )
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50">
-      <div className="h-screen flex flex-col md:flex-row">
-        {/* Job Listings Section */}
-        <ScrollArea className={`${selectedPosition ? 'hidden md:block md:w-1/2' : 'w-full'} transition-all duration-300`}>
-          <div className="p-4 md:p-8 space-y-4 md:space-y-8">
-            {/* Header */}
-            <div className="text-center space-y-2 md:space-y-3">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-indigo-900">
-                Careers at Akubrecah Entertainment
-              </h1>
-              <p className="text-sm md:text-base text-indigo-600">
-                Join our team and help revolutionize tax compliance in Kenya.
-              </p>
-            </div>
-  
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-2 md:justify-center">
-              <Select onValueChange={(value) => setFilter({ ...filter, department: value === "all" ? "" : value })}>
-                <SelectTrigger className="w-full md:w-[140px] text-xs bg-white/80 border-emerald-200">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="Research">Research</SelectItem>
-                  <SelectItem value="Engineering">Engineering</SelectItem>
-                </SelectContent>
-              </Select>
-  
-              <Select onValueChange={(value) => setFilter({ ...filter, type: value === "all" ? "" : value })}>
-                <SelectTrigger className="w-full md:w-[140px] text-xs bg-white/80 border-emerald-200">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Full-Time">Full-Time</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
-                </SelectContent>
-              </Select>
-  
-              <Select onValueChange={(value) => setFilter({ ...filter, location: value === "all" ? "" : value })}>
-                <SelectTrigger className="w-full md:w-[140px] text-xs bg-white/80 border-emerald-200">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="Nairobi, Kenya">Nairobi, Kenya</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-  
-            {/* Job Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredPositions.map((position) => (
-                <Card
-                  key={position.id}
-                  className={`cursor-pointer transition-all duration-300 backdrop-blur-md bg-white/80 border-emerald-200 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100/50 ${
-                    selectedPosition?.id === position.id ? 'border-emerald-500' : ''
-                  }`}
-                  onClick={() => handleOpen(position)}
+    <PageBackground className="pt-24 pb-20">
+      <div className="container mx-auto px-6 max-w-5xl space-y-12">
+        {/* Header */}
+        <div className="text-center space-y-4 max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 mb-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Open Positions</span>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground leading-tight uppercase">
+            Join the <span className="text-primary">Future</span> of Compliance.
+          </h1>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-60 font-bold max-w-md mx-auto">
+            We're looking for precision-driven individuals to help revolutionize tax technology across the continent.
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Select value={filter.department} onValueChange={(v) => setFilter(f => ({ ...f, department: v }))}>
+            <SelectTrigger className="w-[160px] h-9 glass rounded-full text-[10px] font-bold uppercase tracking-widest border-border">
+              <SelectValue placeholder="Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              <SelectItem value="Research">Research</SelectItem>
+              <SelectItem value="Engineering">Engineering</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filter.type} onValueChange={(v) => setFilter(f => ({ ...f, type: v }))}>
+            <SelectTrigger className="w-[160px] h-9 glass rounded-full text-[10px] font-bold uppercase tracking-widest border-border">
+              <SelectValue placeholder="Job Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Full-Time">Full-Time</SelectItem>
+              <SelectItem value="Internship">Internship</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Job Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredPositions.map((position, i) => (
+              <motion.div
+                layout
+                key={position.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Card 
+                  className="glass-card group cursor-pointer hover:border-primary/30 transition-all duration-500 overflow-hidden h-full flex flex-col"
+                  onClick={() => setSelectedPosition(position)}
                 >
-                  <CardHeader className="p-3">
-                    <div className="flex flex-col space-y-2">
-                      <div>
-                        <CardTitle className="text-sm font-semibold text-indigo-900 line-clamp-2">
-                          {position.title}
-                        </CardTitle>
-                        <CardDescription className="text-xs mt-0.5 text-indigo-600">
-                          {position.location}
-                        </CardDescription>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-[10px]">
-                          {position.type}
-                        </Badge>
-                        <Badge variant="outline" className="border-emerald-200 text-indigo-600 text-[10px]">
-                          {position.department}
-                        </Badge>
-                      </div>
+                  <CardHeader className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-[0.2em] border-primary/20 text-primary px-2 py-0.5 rounded-full">
+                        {position.type}
+                      </Badge>
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">
+                        {position.id.padStart(2, '0')}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-base font-black tracking-tight uppercase leading-tight group-hover:text-primary transition-colors">
+                        {position.title}
+                      </CardTitle>
+                      <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60 flex items-center gap-1.5">
+                        <MapPin size={10} className="text-primary" />
+                        {position.location}
+                      </CardDescription>
                     </div>
                   </CardHeader>
+                  <CardContent className="p-6 pt-0 mt-auto">
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                        {position.department}
+                      </span>
+                      <div className="h-8 w-8 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                        <ArrowRight size={14} />
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
-              ))}
-            </div>
-          </div>
-        </ScrollArea>
-  
-        {/* Job Details Section */}
-        {selectedPosition && (
-          <div className={`w-full md:w-1/2 transition-all duration-300 ${selectedPosition ? 'block' : 'hidden'}`}>
-            <div className="h-screen flex flex-col bg-white/95 border-l border-emerald-100">
-              {/* Header */}
-              <div className="sticky top-0 z-10 border-b border-emerald-100 bg-white/95 backdrop-blur-sm p-4 md:p-6">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <h2 className="text-lg md:text-xl font-bold text-indigo-900">{selectedPosition.title}</h2>
-                    <p className="text-sm text-indigo-600">{selectedPosition.location}</p>
-                  </div>
-                  <div className="flex flex-col-reverse md:flex-row items-start md:items-center gap-3">
-                    <Button 
-                      size="sm" 
-                      className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={() => setShowApplicationDialog(true)}
-                    >
-                      Apply Now
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="border-emerald-200 text-indigo-600 hover:bg-emerald-50">
-                        <BookmarkPlus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="border-emerald-200 text-indigo-600 hover:bg-emerald-50">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-emerald-200 text-indigo-600 hover:bg-emerald-50 md:hidden" 
-                        onClick={() => setSelectedPosition(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-  
-                {/* Job Details Grid */}
-                <div className="mt-4 md:mt-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-8 gap-y-2 text-sm">
-                  {[
-                    { label: "Date posted", value: selectedPosition.datePosted },
-                    { label: "Job number", value: selectedPosition.jobNumber },
-                    { label: "Work site", value: selectedPosition.worksite },
-                    { label: "Travel", value: selectedPosition.travel },
-                    { label: "Role type", value: selectedPosition.roleType },
-                    { label: "Profession", value: selectedPosition.profession },
-                    { label: "Discipline", value: selectedPosition.discipline },
-                    { label: "Employment type", value: selectedPosition.employmentType },
-                  ].map((detail, index) => (
-                    <div key={index} className="flex flex-col">
-                      <span className="text-xs md:text-sm text-indigo-600">{detail.label}</span>
-                      <span className="text-xs md:text-sm text-indigo-900">{detail.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-  
-              {/* Job Content */}
-              <ScrollArea className="flex-1">
-                <div className="space-y-6 md:space-y-8 p-4 md:p-6 pb-24">
-                  {[
-                    {
-                      title: "Overview",
-                      content: selectedPosition.overview.map((p, i) => (
-                        <p key={i} className="text-sm text-indigo-800 leading-relaxed mb-4">{p}</p>
-                      ))
-                    },
-                    {
-                      title: "Responsibilities",
-                      content: (
-                        <ul className="list-disc pl-5 space-y-2">
-                          {selectedPosition.responsibilities.map((r, i) => (
-                            <li key={i} className="text-sm text-indigo-800">{r}</li>
-                          ))}
-                        </ul>
-                      )
-                    },
-                    {
-                      title: "Required Qualifications",
-                      content: (
-                        <ul className="list-disc pl-5 space-y-2">
-                          {selectedPosition.requiredQualifications.map((q, i) => (
-                            <li key={i} className="text-sm text-indigo-800">{q}</li>
-                          ))}
-                        </ul>
-                      )
-                    },
-                    {
-                      title: "Preferred Qualifications",
-                      content: (
-                        <ul className="list-disc pl-5 space-y-2">
-                          {selectedPosition.preferredQualifications.map((q, i) => (
-                            <li key={i} className="text-sm text-indigo-800">{q}</li>
-                          ))}
-                        </ul>
-                      )
-                    },
-                    {
-                      title: "Additional Requirements",
-                      content: (
-                        <ul className="list-disc pl-5 space-y-2">
-                          {selectedPosition.additionalRequirements.map((r, i) => (
-                            <li key={i} className="text-sm text-indigo-800">{r}</li>
-                          ))}
-                        </ul>
-                      )
-                    },
-                    {
-                      title: "Compensation",
-                      content: (
-                        <p className="text-sm text-indigo-800">{selectedPosition.compensation}</p>
-                      )
-                    }
-                  ].map((section, index) => (
-                    <section key={index} className="space-y-3 md:space-y-4">
-                      <h3 className="text-base md:text-lg font-semibold text-indigo-900">
-                        {section.title}
-                      </h3>
-                      {section.content}
-                    </section>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Empty State */}
+        {filteredPositions.length === 0 && (
+          <div className="text-center py-20 glass rounded-[2rem] border-dashed border-border">
+            <Briefcase className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">No matching positions found</h3>
+            <p className="text-[9px] uppercase tracking-widest opacity-40 mt-1">Try adjusting your filters to find more opportunities.</p>
           </div>
         )}
-  
-        {/* Application Dialog */}
-        {showApplicationDialog && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-[500px] h-[85vh] flex flex-col bg-white/95 border-emerald-200">
-              <CardHeader className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-emerald-100 p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg md:text-xl font-bold text-indigo-900">
-                      Apply for Position
-                    </CardTitle>
-                    <CardDescription className="text-xs md:text-sm mt-1 text-indigo-600">
-                      {selectedPosition?.title}
-                    </CardDescription>
+      </div>
+
+      {/* Detail Dialog / Overlay */}
+      <AnimatePresence>
+        {selectedPosition && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPosition(null)}
+              className="absolute inset-0 bg-background/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl max-h-[85vh] glass-panel overflow-hidden flex flex-col shadow-2xl border-primary/10"
+            >
+              {/* Modal Header */}
+              <div className="p-6 md:p-10 border-b border-border bg-muted/20 flex items-start justify-between">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                      {selectedPosition.jobNumber}
+                    </Badge>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border-border">
+                      {selectedPosition.department}
+                    </Badge>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-emerald-200 text-indigo-600 hover:bg-emerald-50"
-                    onClick={() => setShowApplicationDialog(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase leading-none">
+                    {selectedPosition.title}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                    <span className="flex items-center gap-1.5"><MapPin size={12} className="text-primary" /> {selectedPosition.location}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={12} className="text-primary" /> {selectedPosition.type}</span>
+                    <span className="flex items-center gap-1.5"><Briefcase size={12} className="text-primary" /> {selectedPosition.roleType}</span>
+                  </div>
                 </div>
-              </CardHeader>
-  
-              <ScrollArea className="flex-1">
-                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { id: "firstName", label: "First Name", type: "text", placeholder: "Enter first name" },
-                      { id: "lastName", label: "Last Name", type: "text", placeholder: "Enter last name" },
-                    ].map((field) => (
-                      <div key={field.id} className="space-y-2">
-                        <Label htmlFor={field.id} className="text-sm text-indigo-900">
-                          {field.label}
-                        </Label>
-                        <Input 
-                          id={field.id} 
-                          type={field.type} 
-                          placeholder={field.placeholder} 
-                          className="text-sm bg-white/80 border-emerald-200 focus:border-emerald-300 focus:ring-emerald-200" 
-                        />
-                      </div>
-                    ))}
-                  </div>
-  
-                  {[
-                    { id: "email", label: "Email", type: "email", placeholder: "Enter email address" },
-                    { id: "phone", label: "Phone Number", type: "tel", placeholder: "Enter phone number" },
-                    { id: "linkedin", label: "LinkedIn Profile", type: "url", placeholder: "Enter LinkedIn URL" },
-                  ].map((field) => (
-                    <div key={field.id} className="space-y-2">
-                      <Label htmlFor={field.id} className="text-sm text-indigo-900">
-                        {field.label}
-                      </Label>
-                      <Input 
-                        id={field.id} 
-                        type={field.type} 
-                        placeholder={field.placeholder} 
-                        className="text-sm bg-white/80 border-emerald-200 focus:border-emerald-300 focus:ring-emerald-200" 
-                      />
-                    </div>
-                  ))}
-  
-                  {[
-                    { id: "cv", label: "CV/Resume" },
-                    { id: "coverLetter", label: "Cover Letter" },
-                  ].map((field) => (
-                    <div key={field.id} className="space-y-2">
-                      <Label htmlFor={field.id} className="text-sm text-indigo-900">
-                        {field.label}
-                      </Label>
-                      <div className="space-y-1">
-                        <Input 
-                          id={field.id} 
-                          type="file" 
-                          accept=".pdf,.doc,.docx" 
-                          className="text-sm bg-white/80 border-emerald-200 focus:border-emerald-300 focus:ring-emerald-200" 
-                        />
-                        <p className="text-xs text-indigo-600">
-                          Accepted formats: PDF, DOC, DOCX (Max size: 5MB)
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </ScrollArea>
-  
-              <div className="sticky bottom-0 p-4 md:p-6 bg-white/95 border-t border-emerald-100">
-                <div className="flex flex-col md:flex-row justify-end gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full md:w-auto border-emerald-200 text-indigo-600 hover:bg-emerald-50"
-                  onClick={() => setShowApplicationDialog(false)}
-                >
-                  Cancel
-                </Button>
                 <Button 
-                  size="sm"
-                  className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setSelectedPosition(null)}
+                  className="rounded-full hover:bg-muted/50"
                 >
-                  Submit Application
+                  <X size={20} />
                 </Button>
               </div>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
-  </div>
-)
+
+              {/* Modal Content */}
+              <ScrollArea className="flex-1">
+                <div className="p-6 md:p-10 space-y-12">
+                  {/* Overview */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Mission Overview</h4>
+                    <div className="space-y-4">
+                      {selectedPosition.overview.map((p, i) => (
+                        <p key={i} className="text-sm text-foreground/80 leading-relaxed font-medium">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Two Column Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Core Responsibilities</h4>
+                      <ul className="space-y-3">
+                        {selectedPosition.responsibilities.map((r, i) => (
+                          <li key={i} className="text-[11px] font-bold uppercase tracking-wide text-foreground/70 flex items-start gap-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Technical Specs</h4>
+                      <ul className="space-y-3">
+                        {selectedPosition.requiredQualifications.map((q, i) => (
+                          <li key={i} className="text-[11px] font-bold uppercase tracking-wide text-foreground/70 flex items-start gap-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Compensation */}
+                  <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10">
+                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-2">Compensation Bracket</h4>
+                    <p className="text-lg font-black tracking-tight text-foreground uppercase">{selectedPosition.compensation}</p>
+                  </div>
+                </div>
+              </ScrollArea>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-border bg-background/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="rounded-full border-border text-[9px] font-black uppercase tracking-widest px-4">
+                    <BookmarkPlus size={14} className="mr-2" /> Save Protocol
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-full border-border text-[9px] font-black uppercase tracking-widest px-4">
+                    <Share2 size={14} className="mr-2" /> Share Intel
+                  </Button>
+                </div>
+                <Button 
+                  className="w-full md:w-auto bg-primary text-white rounded-full font-black uppercase tracking-widest text-[10px] h-10 px-8 shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform"
+                  onClick={() => setShowApplicationDialog(true)}
+                >
+                  Initiate Application <ArrowRight size={16} className="ml-2" />
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Application Dialog - Matching Style */}
+      <AnimatePresence>
+        {showApplicationDialog && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowApplicationDialog(false)}
+              className="absolute inset-0 bg-background/90 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-xl glass-panel shadow-3xl border-primary/20 overflow-hidden"
+            >
+              <div className="p-8 border-b border-border bg-muted/20">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                    Personnel Onboarding
+                  </Badge>
+                  <Button variant="ghost" size="icon" onClick={() => setShowApplicationDialog(false)} className="rounded-full">
+                    <X size={18} />
+                  </Button>
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-tight">Onboarding Intel Request</h3>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60 mt-1">
+                  Applying for: {selectedPosition?.title}
+                </p>
+              </div>
+
+              <ScrollArea className="max-h-[60vh]">
+                <div className="p-8 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">First Name</Label>
+                      <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="VAULT_ID" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Last Name</Label>
+                      <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="ACCESS_CODE" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Professional Email</Label>
+                    <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="PROTOCOL@COMPANY.COM" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Resume Intel (.PDF)</Label>
+                    <Input type="file" className="glass h-12 text-[10px] font-bold uppercase tracking-widest border-border bg-background/40 pt-3" />
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <div className="p-8 border-t border-border bg-muted/20 flex gap-3">
+                <Button 
+                  variant="ghost" 
+                  className="flex-1 h-12 rounded-full font-black uppercase tracking-widest text-[10px] border border-border"
+                  onClick={() => setShowApplicationDialog(false)}
+                >
+                  Abort
+                </Button>
+                <Button 
+                  className="flex-[2] h-12 rounded-full bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20"
+                >
+                  Submit Credentials
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </PageBackground>
+  )
 }

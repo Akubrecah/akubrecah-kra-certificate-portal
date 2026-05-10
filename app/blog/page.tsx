@@ -49,8 +49,8 @@ export default function BlogPage() {
 
   return (
     <PageBackground>
-      <div className="w-full max-w-3xl mx-auto py-6 space-y-8">
-        <div className="text-center space-y-2">
+      <div className="w-full max-w-5xl mx-auto py-6 space-y-8">
+        <div className="text-center space-y-6 max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold tracking-tighter uppercase">Insights <span className="text-primary">&</span> Updates.</h1>
           <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-60">
             Latest news and guides from Akubrecah • 2026 Edition

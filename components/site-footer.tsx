@@ -16,10 +16,11 @@ export function SiteFooter(): JSX.Element {
 
   const navigation = [
     {
-      title: "Product",
+      title: "Services",
       links: [
-        { label: "Features", href: "/features" },
-        { label: "FAQ", href: "/faq" },
+        { label: "Home", href: "/" },
+        { label: "Retrieval", href: "/portal" },
+        { label: "Security", href: "/security" },
       ],
     },
     {
@@ -32,18 +33,18 @@ export function SiteFooter(): JSX.Element {
       ],
     },
     {
-      title: "Legal",
+      title: "Support",
       links: [
+        { label: "FAQ", href: "/faq" },
         { label: "Privacy", href: "/privacy" },
         { label: "Terms", href: "/terms" },
-        { label: "Security", href: "/security" },
       ],
     },
   ]
 
   return (
-    <footer className="w-full border-t border-white/5 bg-black/20 pt-10 pb-8" role="contentinfo">
-      <div className="container mx-auto px-6 max-w-3xl text-center">
+    <footer className="w-full border-t border-border bg-muted/20 pt-10 pb-8" role="contentinfo">
+      <div className="container mx-auto px-6 max-w-5xl text-center">
         <div className="flex flex-col items-center gap-8 mb-10">
           <div className="flex flex-col items-center gap-4">
             <Link className="group transition-opacity hover:opacity-80" aria-label="Akubrecah" href="/">
@@ -56,16 +57,16 @@ export function SiteFooter(): JSX.Element {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6 w-full max-w-xl mx-auto border-t border-white/5 pt-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6 w-full max-w-xl mx-auto border-t border-border pt-8">
             {navigation.map((group) => (
               <div key={group.title} className="flex flex-col items-center gap-3">
-                <h3 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{group.title}</h3>
+                <h3 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{group.title}</h3>
                 <ul className="flex flex-col items-center gap-2.5">
                   {group.links.map((link) => (
                     <li key={link.label}>
                       <Link 
                         href={link.href} 
-                        className="text-[11px] text-muted-foreground hover:text-white transition-all uppercase tracking-wide opacity-60 hover:opacity-100"
+                        className="text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-60 hover:opacity-100"
                       >
                         {link.label}
                       </Link>
@@ -77,20 +78,20 @@ export function SiteFooter(): JSX.Element {
           </div>
         </div>
         
-        <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-6">
+        <div className="pt-8 border-t border-border flex flex-col items-center gap-6">
           <p className="text-[8px] font-bold text-muted-foreground/20 uppercase tracking-[0.3em]">
             &copy; {new Date().getFullYear()} AKUBRECAH. ALL RIGHTS RESERVED.
           </p>
 
-          <div className="flex items-center gap-6 p-1 px-4 rounded-full bg-white/[0.02] border border-white/5">
+          <div className="flex items-center gap-6 p-1 px-4 rounded-full bg-muted/30 border border-border">
             <div className="flex items-center gap-2">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">VAULT</span>
-              <span className="text-[9px] font-bold text-white tracking-widest uppercase opacity-60">SECURE</span>
+              <span className="text-[9px] font-bold text-foreground tracking-widest uppercase opacity-60">SECURE</span>
             </div>
-            <div className="h-3 w-px bg-white/5" />
+            <div className="h-3 w-px bg-border" />
             <div className="flex items-center gap-2">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">STATUS</span>
-              <span className="text-[9px] font-bold text-white tracking-widest uppercase opacity-60">ACTIVE</span>
+              <span className="text-[9px] font-bold text-foreground tracking-widest uppercase opacity-60">ACTIVE</span>
             </div>
           </div>
         </div>

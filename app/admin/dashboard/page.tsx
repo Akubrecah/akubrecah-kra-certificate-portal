@@ -101,7 +101,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-12">
+    <div className="max-w-5xl mx-auto space-y-12">
       {/* Top stats row - High density minimal cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[

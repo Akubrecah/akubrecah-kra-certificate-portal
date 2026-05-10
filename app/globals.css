@@ -84,15 +84,15 @@
 @layer utilities {
   /* Glassmorphism Utilities - Premium Rounded */
   .glass {
-    @apply bg-background/40 backdrop-blur-md border border-white/5 shadow-none rounded-2xl;
+    @apply bg-background/60 backdrop-blur-md border border-border shadow-sm rounded-2xl;
   }
  
   .glass-card {
-    @apply bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl;
+    @apply bg-card/60 backdrop-blur-sm border border-border rounded-2xl;
   }
  
   .glass-panel {
-    @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl;
+    @apply bg-background/80 backdrop-blur-xl border border-border rounded-2xl;
   }
 
   /* Precision Outline Utilities */

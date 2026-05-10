@@ -42,7 +42,7 @@ export default function Home() {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="w-full flex flex-col space-y-0 py-0 max-w-3xl mx-auto"
+          className="w-full flex flex-col space-y-0 py-0 max-w-5xl mx-auto"
         >
           {/* 01. Hero */}
           <section id="about" className="relative flex flex-col items-center justify-center text-center overflow-visible pt-0">

@@ -910,7 +910,7 @@ export default function FilePage() {
 
         {/* Success Card (shown when filing is complete) */}
         {isComplete ? (
-          <Card className="border-green-200 bg-background/95 shadow-lg max-w-3xl w-full">
+          <Card className="border-green-200 bg-background/95 shadow-lg max-w-5xl w-full">
             <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg pb-8">
               <div className="absolute left-1/2 -translate-x-1/2 -bottom-8">
                 <div className="bg-background rounded-full p-1 shadow-lg">
@@ -980,7 +980,7 @@ export default function FilePage() {
         ) : (
           /* Main Card (shown during filing process) */
           <Card className={cn(
-            "w-full max-w-3xl relative",
+            "w-full max-w-5xl relative",
             showWarning && "border-yellow-500"
           )}>
             <CardHeader>

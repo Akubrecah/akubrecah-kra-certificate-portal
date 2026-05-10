@@ -20,6 +20,7 @@ const navItems = [
   { name: "SECURITY", href: "/security" },
   { name: "BLOGS", href: "/blog" },
   { name: "FAQS", href: "/faq" },
+  { name: "CAREERS", href: "/careers" },
   { name: "ABOUT", href: "/about" },
 ]
 
@@ -32,8 +33,8 @@ export function SiteHeader() {
   const isAdmin = isAdminUser(user)
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 py-3">
-      <div className="container mx-auto max-w-3xl px-4 flex flex-col items-center gap-3">
+    <header className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border py-3">
+      <div className="container mx-auto max-w-5xl px-4 flex flex-col items-center gap-3">
         {/* Row 1: Logo */}
         <Link href="/" className="group">
           <Logo width={280} height={84} className="transition-transform group-hover:scale-105" />
@@ -49,7 +50,7 @@ export function SiteHeader() {
                   "h-7 px-3 text-[9px] font-bold tracking-[0.15em] uppercase rounded-full transition-all",
                   pathname === item.href 
                     ? "bg-primary/10 text-primary" 
-                    : "text-foreground/60 hover:text-foreground hover:bg-white/5"
+                    : "text-foreground/60 hover:text-foreground hover:bg-muted/50"
                 )}
               >
                 {item.name}
@@ -58,7 +59,7 @@ export function SiteHeader() {
           ))}
 
           {/* User / Auth Actions */}
-          <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-white/10">
+          <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-border">
             <ThemeToggle />
             
             {isLoaded && user ? (
