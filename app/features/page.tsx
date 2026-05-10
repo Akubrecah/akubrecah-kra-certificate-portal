@@ -45,7 +45,7 @@ export default function FeaturesPage() {
             Everything you need to file your tax returns accurately and efficiently
           </p>
         </div>
-        <div className="mx-auto mt-16 max-w-5xl">
+        <div className="mx-auto mt-16 max-w-7xl">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {features.map((feature) => (
               <div key={feature.title} className="relative border border-emerald-200 bg-white/80 p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">

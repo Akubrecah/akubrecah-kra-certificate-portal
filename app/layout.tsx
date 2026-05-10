@@ -42,7 +42,7 @@ export default async function RootLayout({
             <TooltipProviderWrapper>
               <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
                 {/* Design Background Glows */}
-                <div className="pointer-events-none fixed left-[-10%] top-[-10%] h-[60%] w-[60%] animate-float bg-glow-teal opacity-50 blur-[100px]" />
+                <div className="pointer-events-none fixed left-[-10%] top-[-10%] h-[60%] w-[60%] animate-float bg-glow-teal opacity-80 blur-[100px]" />
                 <div className="pointer-events-none fixed right-[-10%] bottom-[-10%] h-[60%] w-[60%] animate-float bg-glow-red opacity-30 blur-[100px] [animation-delay:2s]" />
                 
                 <KRAAnnouncementBanner />

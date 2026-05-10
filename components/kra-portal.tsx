@@ -173,7 +173,7 @@ export function KRAPortal() {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-4 max-w-lg mx-auto"
+      className="w-full flex flex-col space-y-0 py-0 max-w-7xl mx-auto"
     >
       <AnimatePresence mode="wait">
         <motion.div 
@@ -194,7 +194,7 @@ export function KRAPortal() {
                       </div>
                       <div className="text-center space-y-1">
                         <CardTitle className="text-sm font-bold uppercase tracking-widest">IDENTITY</CardTitle>
-                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-60">ID or PIN verification.</CardDescription>
+                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">ID or PIN verification.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -221,7 +221,7 @@ export function KRAPortal() {
                                   variant="outline" 
                                   className={cn(
                                     "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-40"
+                                    formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
                                   )} 
                                   onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); }}
                                 >
@@ -231,7 +231,7 @@ export function KRAPortal() {
                                   variant="outline" 
                                   className={cn(
                                     "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-40"
+                                    formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
                                   )} 
                                   onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); }}
                                 >
@@ -239,7 +239,7 @@ export function KRAPortal() {
                                 </Button>
                               </div>
                             </div>
-                            <div className="space-y-2 max-w-xs mx-auto">
+                            <div className="space-y-2 max-w-2xl mx-auto">
                               <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formData.pin ? 'KRA PIN' : 'ID NUMBER'}</Label>
                               <Input 
                                 value={formData.pin || formData.idNumber} 
@@ -257,7 +257,7 @@ export function KRAPortal() {
                           )}
                           <div className="flex flex-col items-center gap-3">
                             <Button 
-                              className="h-9 px-10 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-full max-w-xs" 
+                              className="h-9 px-10 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-full max-w-2xl" 
                               onClick={handleIdSearch} 
                               disabled={idSearchStatus === "searching"}
                             >
@@ -295,12 +295,12 @@ export function KRAPortal() {
                       </div>
                       <div className="text-center space-y-0.5">
                         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">DETAILS</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-50">Your contact info.</CardDescription>
+                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Your contact info.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="grid grid-cols-1 gap-4 max-w-xs mx-auto">
+                    <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
                       <div className="space-y-1.5 text-center">
                         <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Full Name</Label>
                         <Input value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} placeholder="AS SHOWN ON ID" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
@@ -330,12 +330,12 @@ export function KRAPortal() {
                       </div>
                       <div className="text-center space-y-0.5">
                         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">ADDRESS</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-50">Physical location.</CardDescription>
+                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Physical location.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                       <div className="space-y-2 text-center">
                         <Label className="text-xs font-bold uppercase tracking-widest">County</Label>
                         <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
@@ -407,12 +407,12 @@ export function KRAPortal() {
                       </div>
                       <div className="text-center space-y-1">
                         <CardTitle className="text-sm font-bold uppercase tracking-widest">SUMMARY</CardTitle>
-                        <CardDescription className="text-xs uppercase tracking-wide opacity-60">Review details.</CardDescription>
+                        <CardDescription className="text-xs uppercase tracking-wide opacity-90">Review details.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="bg-black/10 p-6 rounded-2xl border border-white/5 space-y-4 max-w-sm mx-auto">
+                    <div className="bg-black/10 p-6 rounded-2xl border border-white/5 space-y-4 max-w-2xl mx-auto">
                       <div className="flex items-center justify-between border-b border-white/5 pb-3"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">PIN</span><span className="text-xs font-bold text-primary">{formData.pin || 'NOT FOUND'}</span></div>
                       <div className="flex items-center justify-between border-b border-white/5 pb-3"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">NAME</span><span className="text-xs font-bold text-foreground text-right uppercase">{formData.fullName}</span></div>
                       <div className="flex items-center justify-between"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">AREA</span><span className="text-xs font-bold text-muted-foreground text-right uppercase tracking-wide">{formData.town}, {formData.county}</span></div>

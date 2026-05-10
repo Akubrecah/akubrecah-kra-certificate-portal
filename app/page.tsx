@@ -42,7 +42,7 @@ export default function Home() {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="w-full flex flex-col space-y-0 py-0 max-w-5xl mx-auto"
+          className="w-full flex flex-col space-y-0 py-0 max-w-7xl mx-auto"
         >
           {/* 01. Hero */}
           <section id="about" className="relative flex flex-col items-center justify-center text-center overflow-visible pt-0">
@@ -68,13 +68,13 @@ export default function Home() {
                 <span className="text-primary font-bold">Portal.</span>
               </h1>
               
-              <p className="max-w-[380px] mx-auto text-[10px] text-muted-foreground font-normal leading-normal opacity-80 uppercase tracking-wide">
+              <p className="max-w-7xl mx-auto text-[10px] text-muted-foreground font-normal leading-normal opacity-80 uppercase tracking-wide">
                 Simple and secure retrieval of KRA PIN and Compliance Certificates. Fast and reliable.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
                 <Show when="signed-in">
-                  <Link href="/retrieval" className="w-full sm:w-auto">
+                  <Link href="/retrieval-portal" className="w-full sm:w-auto">
                     <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
                       Proceed to Retrieval
                       <ArrowRight className="ml-2 h-3 w-3" />
@@ -123,7 +123,7 @@ export default function Home() {
           <section id="security" className="py-4">
             <div className="text-center mb-4 space-y-1">
               <h2 className="text-base font-bold tracking-tight uppercase">How it works.</h2>
-              <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-60">Simple steps to get your certificate.</p>
+              <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-90">Simple steps to get your certificate.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
@@ -167,7 +167,7 @@ export default function Home() {
                   </div>
                   <div className="space-y-0.5">
                     <h3 className="text-[9px] font-bold uppercase tracking-widest">{item.title}</h3>
-                    <p className="text-muted-foreground font-medium leading-relaxed opacity-60 text-[8px] uppercase px-2">{item.desc}</p>
+                    <p className="text-muted-foreground font-medium leading-relaxed opacity-90 text-[8px] uppercase px-2">{item.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -205,7 +205,7 @@ export default function Home() {
           </section>
 
           {/* 05. FAQ - Simplified */}
-          <section id="faqs" className="max-w-2xl mx-auto py-2 space-y-3">
+          <section id="faqs" className="max-w-7xl mx-auto py-2 space-y-3">
             <div className="text-center space-y-1">
               <h2 className="text-base font-bold uppercase tracking-widest">Inquiries.</h2>
               <div className="h-[1px] w-8 bg-primary mx-auto" />

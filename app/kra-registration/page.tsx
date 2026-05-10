@@ -266,7 +266,7 @@ export default function KRARegistrationPage() {
 
   return (
     <PageBackground>
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <Button

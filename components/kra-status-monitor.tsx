@@ -66,7 +66,7 @@ export function KraStatusMonitor() {
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <h3 className="text-[10px] font-bold uppercase tracking-widest">GATEWAY</h3>
-          <p className="text-[9px] text-muted-foreground uppercase tracking-wide opacity-60">
+          <p className="text-[9px] text-muted-foreground uppercase tracking-wide opacity-90">
             LATENCY: {status.responseTime}MS
           </p>
         </div>

@@ -20,7 +20,7 @@ export default function AboutPage() {
 
   return (
     <PageBackground>
-      <div className="w-full flex flex-col space-y-6 py-6 max-w-2xl mx-auto">
+      <div className="w-full flex flex-col space-y-6 py-6 max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10">
@@ -30,7 +30,7 @@ export default function AboutPage() {
           <h1 className="text-2xl font-bold tracking-tighter uppercase leading-tight">
             Compliance <span className="text-primary">Redefined.</span>
           </h1>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide leading-relaxed opacity-60 max-w-md mx-auto">
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide leading-relaxed opacity-90 max-w-md mx-auto">
             Committed to removing barriers and empowering young people to stay compliant without the friction.
           </p>
         </div>
@@ -63,7 +63,7 @@ export default function AboutPage() {
           <div className="relative z-10 space-y-4">
             <div className="text-center space-y-1">
               <h2 className="text-sm font-bold uppercase tracking-widest">Digital Precision.</h2>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-50">Infrastructure for a compliant generation.</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-80">Infrastructure for a compliant generation.</p>
             </div>
             
             <div className="grid gap-3">
@@ -78,7 +78,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <h3 className="text-[10px] font-bold uppercase tracking-widest group-hover:text-primary transition-colors">{item.title}</h3>
-                    <p className="text-[9px] text-muted-foreground uppercase font-medium opacity-60">{item.desc}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase font-medium opacity-90">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -88,9 +88,9 @@ export default function AboutPage() {
 
         {/* Security Focus */}
         <div className="text-center py-4 border-t border-white/5 space-y-2">
-          <Shield size={24} className="text-primary mx-auto opacity-40" />
+          <Shield size={24} className="text-primary mx-auto opacity-70" />
           <h3 className="text-[9px] font-bold uppercase tracking-[0.3em]">Vault-Grade Security</h3>
-          <p className="text-[8px] text-muted-foreground uppercase tracking-widest opacity-50 max-w-xs mx-auto">
+          <p className="text-[8px] text-muted-foreground uppercase tracking-widest opacity-80 max-w-xs mx-auto">
             Every interaction is protected by enterprise-level encryption protocols.
           </p>
         </div>

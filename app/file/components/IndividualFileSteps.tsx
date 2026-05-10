@@ -42,7 +42,7 @@ interface Step1IDProps {
 export function Step1ID({ idNumber, setIdNumber, onNext, loading, error }: Step1IDProps) {
     return (
         <FadeIn>
-            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-2xl mx-auto">
+            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-7xl mx-auto">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <Fingerprint className="w-24 h-24 text-brand-cyan" />
                 </div>
@@ -81,7 +81,7 @@ export function Step1ID({ idNumber, setIdNumber, onNext, loading, error }: Step1
                                     <CreditCard className="w-5 h-5 text-muted-foreground/50 group-focus-within/input:text-brand-cyan transition-colors" />
                                 </div>
                             </div>
-                            <p className="text-[10px] text-muted-foreground font-medium px-1 leading-relaxed">
+                            <p className="text-muted-foreground text-base font-medium max-w-3xl mx-auto opacity-80 leading-relaxed">
                                 Enter the 8-digit number found on your national identification card.
                             </p>
                         </div>
@@ -180,7 +180,7 @@ interface Step2VerifyProps {
 export function Step2Verify({ pin, name, email, mobileNumber, manufacturerDetails, onBack, onNext }: Step2VerifyProps) {
     return (
         <FadeIn>
-            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-2xl mx-auto">
+            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-7xl mx-auto">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <ShieldCheck className="w-24 h-24 text-brand-cyan" />
                 </div>
@@ -345,7 +345,7 @@ export function Step3Password({
 }: Step3PasswordProps) {
     return (
         <FadeIn>
-            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-2xl mx-auto">
+            <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group max-w-7xl mx-auto">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <Lock className="w-24 h-24 text-brand-cyan" />
                 </div>

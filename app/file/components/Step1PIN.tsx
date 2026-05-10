@@ -747,7 +747,7 @@ export default function Step1PIN({
 
       {/* Premium Multi-Step Address Dialog */}
       <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
-        <DialogContent className="max-w-4xl w-[95%] p-0 rounded-[3rem] overflow-hidden border-border shadow-4xl glass backdrop-blur-3xl">
+        <DialogContent className="max-w-7xl w-[95%] p-0 rounded-[3rem] overflow-hidden border-border shadow-4xl glass backdrop-blur-3xl">
           <div className="absolute inset-0 bg-gradient-to-br from-brand-cyan/10 via-transparent to-brand-cyan/5 pointer-events-none" />
 
           <div className="relative p-12 space-y-10">
@@ -1152,7 +1152,7 @@ export default function Step1PIN({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 max-w-4xl mx-auto pb-10"
+        className="space-y-6 max-w-7xl mx-auto pb-10"
       >
         {/* Main Card */}
         <div className="glass p-10 rounded-[2.5rem] border-border shadow-2xl relative overflow-hidden group">
@@ -1254,7 +1254,7 @@ export default function Step1PIN({
                         </Button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-center text-muted-foreground font-black px-2 mt-4 italic uppercase tracking-wider opacity-60">
+                    <p className="text-[10px] text-center text-muted-foreground font-black px-2 mt-4 italic uppercase tracking-wider opacity-80">
                       * Instant profile retrieval using 8-digit ID or 11-character KRA PIN.
                     </p>
                     {idSearchError && (
@@ -1329,7 +1329,7 @@ export default function Step1PIN({
                               <User className="w-10 h-10" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">
+                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80">
                                 Legal Taxpayer Name
                               </p>
                               <p className="text-3xl font-black text-foreground uppercase truncate tracking-tight">
@@ -1352,7 +1352,7 @@ export default function Step1PIN({
                               <Fingerprint className="w-10 h-10" />
                             </div>
                             <div>
-                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">
+                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80">
                                 Official KRA PIN
                               </p>
                               <p className="text-3xl font-mono font-black text-foreground tracking-[0.2em]">
@@ -1368,7 +1368,7 @@ export default function Step1PIN({
                               <Mail className="w-10 h-10" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">
+                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80">
                                 Primary Vault Email
                               </p>
                               <p className="text-2xl font-black text-foreground truncate tracking-tight">
@@ -1419,7 +1419,7 @@ export default function Step1PIN({
 
       {/* Premium Multi-Step Address Dialog */}
       <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
-        <DialogContent className="max-w-4xl w-[95%] p-0 rounded-[3rem] overflow-hidden border-border shadow-4xl glass backdrop-blur-3xl">
+        <DialogContent className="max-w-7xl w-[95%] p-0 rounded-[3rem] overflow-hidden border-border shadow-4xl glass backdrop-blur-3xl">
           <div className="absolute inset-0 bg-gradient-to-br from-brand-cyan/10 via-transparent to-brand-cyan/5 pointer-events-none" />
 
           <div className="relative p-12 space-y-10">

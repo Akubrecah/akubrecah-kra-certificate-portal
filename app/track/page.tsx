@@ -1,7 +1,7 @@
 export default function TrackPage() {
   return (
     <div className="container py-24">
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <h1 className="text-4xl font-bold tracking-tighter">Track Your Return Status</h1>
         <p className="text-xl text-muted-foreground">
           Enter your KRA PIN to check the status of your recent nil return filing.

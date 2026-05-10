@@ -124,7 +124,7 @@ export default function BlogAdminPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-xl font-bold uppercase tracking-tight">Blog Manager</h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-60">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-90">
             Publish and edit insights for 2026.
           </p>
         </div>
@@ -157,7 +157,7 @@ export default function BlogAdminPage() {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin mb-4" />
-              <p className="text-[10px] uppercase tracking-widest opacity-60">Synchronizing with database...</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-90">Synchronizing with database...</p>
             </div>
           ) : (
             <Table>
@@ -172,7 +172,7 @@ export default function BlogAdminPage() {
                 {filteredPosts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center gap-2 opacity-40">
+                      <div className="flex flex-col items-center gap-2 opacity-70">
                         <FileText className="w-8 h-8" />
                         <p className="text-[10px] uppercase tracking-widest">No articles found.</p>
                       </div>
@@ -185,7 +185,7 @@ export default function BlogAdminPage() {
                         <div className="flex items-center gap-4">
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-black/20 flex-shrink-0">
                             {post.image ? (
-                              <img src={post.image} alt="" className="object-cover w-full h-full opacity-60" />
+                              <img src={post.image} alt="" className="object-cover w-full h-full opacity-90" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                 <ImageIcon className="w-4 h-4" />
@@ -194,7 +194,7 @@ export default function BlogAdminPage() {
                           </div>
                           <div>
                             <p className="text-xs font-bold uppercase tracking-tight line-clamp-1">{post.title}</p>
-                            <p className="text-[9px] text-muted-foreground uppercase opacity-60 line-clamp-1">{post.excerpt}</p>
+                            <p className="text-[9px] text-muted-foreground uppercase opacity-90 line-clamp-1">{post.excerpt}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -242,7 +242,7 @@ export default function BlogAdminPage() {
             <SheetTitle className="text-lg font-bold uppercase tracking-tight">
               {editingPost?.id ? 'Edit Article' : 'Create New Article'}
             </SheetTitle>
-            <SheetDescription className="text-[10px] uppercase tracking-widest opacity-60">
+            <SheetDescription className="text-[10px] uppercase tracking-widest opacity-90">
               Configure article details for the 2026 insights feed.
             </SheetDescription>
           </SheetHeader>

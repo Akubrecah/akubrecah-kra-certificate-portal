@@ -139,7 +139,7 @@ export default function SettingsPage() {
   }
   
   return (
-    <div className="flex-1 space-y-8 p-6 lg:p-2 max-w-4xl mx-auto">
+    <div className="flex-1 space-y-8 p-6 lg:p-2 max-w-7xl mx-auto">
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold uppercase tracking-[0.3em]">Settings</h1>
         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Configure platform parameters and preferences</p>
@@ -254,7 +254,7 @@ export default function SettingsPage() {
               <Card className="rounded-2xl border-white/5 shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-white/5 pb-6">
                   <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Localization Settings</CardTitle>
-                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-50">
+                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-80">
                     Configure regional settings and localization preferences
                   </CardDescription>
                 </CardHeader>
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Enabled Languages</Label>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">
+                      <p className="text-[10px] uppercase tracking-widest opacity-80">
                         Select which languages are available to users
                       </p>
                     </div>
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                       />
                       <div className="grid gap-1">
                         <Label htmlFor="en" className="text-[10px] font-bold uppercase tracking-widest">English</Label>
-                        <p className="text-[10px] uppercase tracking-widest opacity-50">Primary language</p>
+                        <p className="text-[10px] uppercase tracking-widest opacity-80">Primary language</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -362,7 +362,7 @@ export default function SettingsPage() {
                       />
                       <div className="grid gap-1">
                         <Label htmlFor="sw" className="text-[10px] font-bold uppercase tracking-widest">Swahili</Label>
-                        <p className="text-[10px] uppercase tracking-widest opacity-50">Regional language</p>
+                        <p className="text-[10px] uppercase tracking-widest opacity-80">Regional language</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                       />
                       <div className="grid gap-1">
                         <Label htmlFor="fr" className="text-[10px] font-bold uppercase tracking-widest">French</Label>
-                        <p className="text-[10px] uppercase tracking-widest opacity-50">Additional language</p>
+                        <p className="text-[10px] uppercase tracking-widest opacity-80">Additional language</p>
                       </div>
                     </div>
                   </div>
@@ -397,7 +397,7 @@ export default function SettingsPage() {
               <Card className="rounded-2xl border-white/5 shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-white/5 pb-6">
                   <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email Settings</CardTitle>
-                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-50">
+                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-80">
                     Configure email delivery settings and templates
                   </CardDescription>
                 </CardHeader>
@@ -454,7 +454,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Templates</Label>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">
+                      <p className="text-[10px] uppercase tracking-widest opacity-80">
                         Manage email templates for various notifications
                       </p>
                     </div>
@@ -502,7 +502,7 @@ export default function SettingsPage() {
               <Card className="rounded-2xl border-white/5 shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-white/5 pb-6">
                   <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Tax Settings</CardTitle>
-                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-50">
+                  <CardDescription className="text-[10px] uppercase tracking-widest opacity-80">
                     Configure tax-related settings and rules
                   </CardDescription>
                 </CardHeader>
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Filing Deadlines</Label>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">
+                      <p className="text-[10px] uppercase tracking-widest opacity-80">
                         Set default deadlines for different tax returns
                       </p>
                     </div>
@@ -599,7 +599,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tax Authority Connection</Label>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">
+                      <p className="text-[10px] uppercase tracking-widest opacity-80">
                         Configure connection to KRA API
                       </p>
                     </div>
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                       />
                       <Label htmlFor="test-mode" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Use Sandbox Environment</Label>
                     </div>
-                    <p className="text-[8px] uppercase tracking-widest opacity-40 ml-12">
+                    <p className="text-[8px] uppercase tracking-widest opacity-70 ml-12">
                       Submissions will be sent to the KRA test environment
                     </p>
                   </div>

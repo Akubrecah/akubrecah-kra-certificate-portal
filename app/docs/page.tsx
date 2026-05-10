@@ -1,7 +1,7 @@
 export default function DocsPage() {
   return (
     <div className="container py-24">
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <h1 className="text-4xl font-bold tracking-tighter">Documentation</h1>
         <p className="text-xl text-muted-foreground">
           Welcome to the Akubrecah Entertainment documentation. Here you'll find guides on how to use our platform, FAQs, and detailed explanations of our features.

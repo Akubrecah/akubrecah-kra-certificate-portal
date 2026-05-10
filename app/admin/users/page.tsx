@@ -198,7 +198,7 @@ export default function UsersPage() {
             <div className="flex items-center text-[10px] text-muted-foreground mt-1">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-bold uppercase tracking-tighter">Real-time</span>
-              <span className="ml-1 uppercase opacity-50">from Clerk</span>
+              <span className="ml-1 uppercase opacity-80">from Clerk</span>
             </div>
           </CardContent>
         </Card>
@@ -213,7 +213,7 @@ export default function UsersPage() {
             <div className="flex items-center text-[10px] text-muted-foreground mt-1">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-bold uppercase tracking-tighter">Live</span>
-              <span className="ml-1 uppercase opacity-50">activity tracked</span>
+              <span className="ml-1 uppercase opacity-80">activity tracked</span>
             </div>
           </CardContent>
         </Card>
@@ -228,7 +228,7 @@ export default function UsersPage() {
             <div className="flex items-center text-[10px] text-muted-foreground mt-1">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-bold uppercase tracking-tighter">Growth</span>
-              <span className="ml-1 uppercase opacity-50">last 30 days</span>
+              <span className="ml-1 uppercase opacity-80">last 30 days</span>
             </div>
           </CardContent>
         </Card>
@@ -243,7 +243,7 @@ export default function UsersPage() {
             <div className="flex items-center text-[10px] text-muted-foreground mt-1">
               <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
               <span className="text-emerald-500 font-bold uppercase tracking-tighter">3.2%</span>
-              <span className="ml-1 uppercase opacity-50">from last month</span>
+              <span className="ml-1 uppercase opacity-80">from last month</span>
             </div>
           </CardContent>
         </Card>

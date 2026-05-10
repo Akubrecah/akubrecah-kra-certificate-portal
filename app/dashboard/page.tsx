@@ -1,7 +1,7 @@
 export default function DashboardPage() {
   return (
     <div className="container py-24">
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <h1 className="text-4xl font-bold tracking-tighter">Your Dashboard</h1>
         <p className="text-xl text-muted-foreground">
           Welcome to your Akubrecah Entertainment dashboard. Here you can view your filing history, track current submissions, and manage your account.

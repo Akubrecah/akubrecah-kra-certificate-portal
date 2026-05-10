@@ -311,7 +311,7 @@ export function Step4Filing({
                                             "flex items-center gap-5 p-6 rounded-[2rem] border transition-all duration-700",
                                             isActive ? "bg-[#2E8B75]/10 border-[#2E8B75]/30 shadow-2xl shadow-[#2E8B75]/5 scale-[1.02]" : 
                                             isCompleted ? "bg-[#2E8B75]/5 border-[#2E8B75]/20 text-[#2E8B75]" : 
-                                            "bg-muted/30 border-border text-muted-foreground opacity-60"
+                                            "bg-muted/30 border-border text-muted-foreground opacity-90"
                                         )}
                                     >
                                         <div className={cn(
@@ -323,7 +323,7 @@ export function Step4Filing({
                                             {isCompleted ? <CheckCircle className="w-7 h-7" /> : s.icon}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Process 0{index + 1}</p>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-90 mb-1">Process 0{index + 1}</p>
                                             <p className="text-base font-black truncate">{s.label}</p>
                                         </div>
                                     </div>
@@ -437,7 +437,7 @@ export function Step4Filing({
                             </div>
                             <div className="flex items-center gap-3 px-2">
                                 <div className="w-2 h-2 rounded-full bg-[#2E8B75] animate-pulse shadow-[0_0_8px_#2E8B75]" />
-                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">End-to-End Encryption Armed</p>
+                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-90">End-to-End Encryption Armed</p>
                             </div>
                         </div>
 

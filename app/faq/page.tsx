@@ -33,11 +33,11 @@ export default function FAQPage() {
 
   return (
     <PageBackground>
-      <div className="w-full flex flex-col space-y-4 py-4 max-w-2xl mx-auto">
+      <div className="w-full flex flex-col space-y-4 py-4 max-w-7xl mx-auto">
         <div className="text-center space-y-1 mb-4">
           <h1 className="text-xl font-bold uppercase tracking-widest">Inquiries.</h1>
           <div className="h-[1px] w-8 bg-primary mx-auto" />
-          <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-60 mt-2">
+          <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-90 mt-2">
             Common questions about our service.
           </p>
         </div>

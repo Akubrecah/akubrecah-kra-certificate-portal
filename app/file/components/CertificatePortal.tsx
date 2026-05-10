@@ -66,7 +66,7 @@ export function CertificatePortal({
         </div>
       </div>
 
-      <div className="grid gap-8 max-w-4xl mx-auto">
+      <div className="grid gap-8 max-w-7xl mx-auto">
         {/* Certificate Card - Premium Pro Layout */}
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
@@ -89,7 +89,7 @@ export function CertificatePortal({
                   </div>
                   <div>
                       <h3 className="text-3xl font-black text-foreground tracking-tight uppercase">PIN Certificate</h3>
-                      <p className="text-[10px] font-black text-[#2E8B75] uppercase tracking-[0.2em] opacity-80">Official KRA Document • 2024 Cycle</p>
+                      <p className="text-[10px] font-black text-[#2E8B75] uppercase tracking-[0.2em]">Official KRA Document • 2024 Cycle</p>
                   </div>
                 </div>
                 <div className="hidden sm:block">
@@ -177,7 +177,7 @@ export function CertificatePortal({
               <p className="text-[9px] text-[#2E8B75] font-black uppercase tracking-[0.3em] leading-none">
                   Secure Cryptographic Signature
               </p>
-              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-40">
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-70">
                   Official KRA iTax Synchronization Active
               </p>
             </div>

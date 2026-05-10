@@ -118,7 +118,7 @@ export default function AdminLayout({
     <div className="flex flex-col w-full">
       {/* Admin Horizontal Nav - Always Visible & Centered */}
       <div className="w-full border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-[100px] z-40 py-2">
-        <div className="container mx-auto max-w-4xl px-4">
+        <div className="container mx-auto max-w-7xl px-4">
           <nav className="flex flex-wrap items-center justify-center gap-2">
             {navItems.map((item) => {
               const isActive = pathname === item.href

@@ -49,10 +49,10 @@ export default function BlogPage() {
 
   return (
     <PageBackground>
-      <div className="w-full max-w-5xl mx-auto py-6 space-y-8">
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto py-6 space-y-8">
+        <div className="text-center space-y-6 max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold tracking-tighter uppercase">Insights <span className="text-primary">&</span> Updates.</h1>
-          <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-60">
+          <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-90">
             Latest news and guides from Akubrecah • 2026 Edition
           </p>
         </div>
@@ -120,7 +120,7 @@ export default function BlogPage() {
                       src={post.image}
                       alt={post.title}
                       fill
-                      className="object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                      className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent hidden md:block" />
                   </div>
@@ -136,7 +136,7 @@ export default function BlogPage() {
                     <h2 className="text-sm font-bold uppercase tracking-tight group-hover:text-primary transition-colors line-clamp-2">
                       {post.title}
                     </h2>
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium line-clamp-2 opacity-60 leading-relaxed">
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium line-clamp-2 opacity-90 leading-relaxed">
                       {post.excerpt}
                     </p>
                     <div className="pt-2">

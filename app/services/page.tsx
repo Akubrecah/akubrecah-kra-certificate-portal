@@ -58,7 +58,7 @@ export default function ServicesPage() {
     <PageBackground className="pt-24 pb-20">
       <div className="container mx-auto px-6 max-w-6xl space-y-16">
         {/* Header */}
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
+        <div className="text-center space-y-6 max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 mb-4">
             <span className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-cyan">Protocol Catalog</span>

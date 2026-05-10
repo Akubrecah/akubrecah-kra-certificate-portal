@@ -8,8 +8,8 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader />
-      <main className="flex-grow pt-0 pb-4">
-        <div className="container mx-auto max-w-3xl px-4 flex flex-col items-center">
+      <main className="flex-grow w-full">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
           {children}
         </div>
       </main>

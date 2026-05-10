@@ -29,10 +29,10 @@ export default function TermsPage() {
 
   return (
     <PageBackground>
-      <div className="w-full flex flex-col space-y-6 py-6 max-w-2xl mx-auto">
+      <div className="w-full flex flex-col space-y-6 py-6 max-w-7xl mx-auto">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold tracking-tighter uppercase leading-tight">Terms of <span className="text-primary">Service.</span></h1>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-40">Last updated: December 2024</p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-70">Last updated: December 2024</p>
         </div>
 
         <div className="space-y-4">
@@ -53,7 +53,7 @@ export default function TermsPage() {
         </div>
 
         <div className="glass p-6 rounded-2xl border border-white/5 text-center space-y-2">
-          <p className="text-[8px] text-muted-foreground uppercase font-medium leading-relaxed opacity-40">
+          <p className="text-[8px] text-muted-foreground uppercase font-medium leading-relaxed opacity-70">
             By using this service, you acknowledge you have read and understood these terms.
           </p>
         </div>

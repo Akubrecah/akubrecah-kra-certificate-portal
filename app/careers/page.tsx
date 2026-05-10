@@ -190,9 +190,9 @@ export default function CareersPage() {
 
   return (
     <PageBackground className="pt-24 pb-20">
-      <div className="container mx-auto px-6 max-w-5xl space-y-12">
+      <div className="container mx-auto px-6 max-w-7xl space-y-12">
         {/* Header */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 mb-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Open Positions</span>
@@ -200,7 +200,7 @@ export default function CareersPage() {
           <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground leading-tight uppercase">
             Join the <span className="text-primary">Future</span> of Compliance.
           </h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-60 font-bold max-w-md mx-auto">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-90 font-bold max-w-2xl mx-auto">
             We're looking for precision-driven individuals to help revolutionize tax technology across the continent.
           </p>
         </div>
@@ -251,7 +251,7 @@ export default function CareersPage() {
                       <Badge variant="outline" className="text-[8px] font-black uppercase tracking-[0.2em] border-primary/20 text-primary px-2 py-0.5 rounded-full">
                         {position.type}
                       </Badge>
-                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-70">
                         {position.id.padStart(2, '0')}
                       </span>
                     </div>
@@ -259,7 +259,7 @@ export default function CareersPage() {
                       <CardTitle className="text-base font-black tracking-tight uppercase leading-tight group-hover:text-primary transition-colors">
                         {position.title}
                       </CardTitle>
-                      <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60 flex items-center gap-1.5">
+                      <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-90 flex items-center gap-1.5">
                         <MapPin size={10} className="text-primary" />
                         {position.location}
                       </CardDescription>
@@ -286,7 +286,7 @@ export default function CareersPage() {
           <div className="text-center py-20 glass rounded-[2rem] border-dashed border-border">
             <Briefcase className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">No matching positions found</h3>
-            <p className="text-[9px] uppercase tracking-widest opacity-40 mt-1">Try adjusting your filters to find more opportunities.</p>
+            <p className="text-[9px] uppercase tracking-widest opacity-70 mt-1">Try adjusting your filters to find more opportunities.</p>
           </div>
         )}
       </div>
@@ -306,7 +306,7 @@ export default function CareersPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-4xl max-h-[85vh] glass-panel overflow-hidden flex flex-col shadow-2xl border-primary/10"
+              className="relative w-full max-w-7xl max-h-[85vh] glass-panel overflow-hidden flex flex-col shadow-2xl border-primary/10"
             >
               {/* Modal Header */}
               <div className="p-6 md:p-10 border-b border-border bg-muted/20 flex items-start justify-between">
@@ -322,7 +322,7 @@ export default function CareersPage() {
                   <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase leading-none">
                     {selectedPosition.title}
                   </h2>
-                  <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                  <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-90">
                     <span className="flex items-center gap-1.5"><MapPin size={12} className="text-primary" /> {selectedPosition.location}</span>
                     <span className="flex items-center gap-1.5"><Clock size={12} className="text-primary" /> {selectedPosition.type}</span>
                     <span className="flex items-center gap-1.5"><Briefcase size={12} className="text-primary" /> {selectedPosition.roleType}</span>
@@ -340,7 +340,7 @@ export default function CareersPage() {
 
               {/* Modal Content */}
               <ScrollArea className="flex-1">
-                <div className="p-6 md:p-10 space-y-12">
+                <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-12">
                   {/* Overview */}
                   <div className="space-y-4">
                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Mission Overview</h4>
@@ -436,7 +436,7 @@ export default function CareersPage() {
                   </Button>
                 </div>
                 <h3 className="text-xl font-black uppercase tracking-tight">Onboarding Intel Request</h3>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60 mt-1">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-90 mt-1">
                   Applying for: {selectedPosition?.title}
                 </p>
               </div>
@@ -445,20 +445,20 @@ export default function CareersPage() {
                 <div className="p-8 space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">First Name</Label>
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-90">First Name</Label>
                       <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="VAULT_ID" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Last Name</Label>
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-90">Last Name</Label>
                       <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="ACCESS_CODE" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Professional Email</Label>
+                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-90">Professional Email</Label>
                     <Input className="glass h-10 text-xs font-bold uppercase tracking-widest border-border bg-background/40" placeholder="PROTOCOL@COMPANY.COM" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Resume Intel (.PDF)</Label>
+                    <Label className="text-[9px] font-black uppercase tracking-widest opacity-90">Resume Intel (.PDF)</Label>
                     <Input type="file" className="glass h-12 text-[10px] font-bold uppercase tracking-widest border-border bg-background/40 pt-3" />
                   </div>
                 </div>

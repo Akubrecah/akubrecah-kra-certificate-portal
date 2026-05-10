@@ -88,7 +88,7 @@ export function LiveStatusMonitor() {
       <motion.div 
         animate={{ top: ["0%", "100%", "0%"] }}
         transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent z-20 pointer-events-none opacity-40"
+        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent z-20 pointer-events-none opacity-70"
       />
     </div>
   )

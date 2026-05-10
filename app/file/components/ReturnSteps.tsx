@@ -718,7 +718,7 @@ export function ReturnSteps() {
                             <Button
                                 type="button"
                                 onClick={handleNextStep}
-                                className="h-12 px-8 rounded-xl bg-gradient-to-r from-brand-cyan to-blue-700 text-black font-bold shadow-lg shadow-brand-cyan/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center gap-2 group"
+                                className="h-12 px-8 rounded-xl bg-gradient-to-r from-brand-cyan to-blue-700 text-black font-bold shadow-lg shadow-brand-cyan/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-80 disabled:scale-100 disabled:shadow-none flex items-center gap-2 group"
                             >
                                 Next Step
                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

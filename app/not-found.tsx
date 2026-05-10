@@ -50,7 +50,7 @@ export default function NotFound() {
             className="w-full sm:w-auto"
             asChild
           >
-            <Link href="/file">
+            <Link href="/retrieval-portal">
               <FileText />
               <span>File Returns</span>
             </Link>

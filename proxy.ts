@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-const isProtectedRoute = createRouteMatcher(['/admin(.*)', '/file(.*)', '/api/admin(.*)']);
+const isProtectedRoute = createRouteMatcher(['/admin(.*)', '/retrieval(.*)', '/api/admin(.*)']);
 
 const BLOCKED_SCANNERS = [/sqlmap/i, /nikto/i, /nessus/i, /dirbuster/i, /acunetix/i, /havij/i];
 

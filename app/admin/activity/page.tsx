@@ -101,7 +101,7 @@ export default function ActivityLogPage() {
       <Card className="border-white/5 bg-background/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl">
         <CardHeader className="pb-4 text-center border-b border-white/5">
           <CardTitle className="text-sm font-bold uppercase tracking-[0.2em]">Activity Logs</CardTitle>
-          <CardDescription className="text-[10px] uppercase tracking-widest opacity-50">Real-time platform events</CardDescription>
+          <CardDescription className="text-[10px] uppercase tracking-widest opacity-80">Real-time platform events</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -115,7 +115,7 @@ export default function ActivityLogPage() {
             <div className="flex flex-col gap-4 mb-6">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground opacity-50" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground opacity-80" />
                   <Input
                     placeholder="Search logs..." 
                     className="pl-9 h-9 rounded-full text-[11px] precision-outline bg-muted/30 border-white/5"

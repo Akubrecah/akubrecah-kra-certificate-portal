@@ -101,7 +101,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12">
+    <div className="max-w-7xl mx-auto space-y-12">
       {/* Top stats row - High density minimal cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
@@ -112,8 +112,8 @@ export default function DashboardPage() {
         ].map((stat, i) => (
           <Card key={i} className="bg-white/5 border-white/5 shadow-none hover:bg-white/[0.08] transition-all group rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-4">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity">{stat.title}</CardTitle>
-              <stat.icon className="h-3 w-3 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
+              <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-80 group-hover:opacity-100 transition-opacity">{stat.title}</CardTitle>
+              <stat.icon className="h-3 w-3 text-primary opacity-70 group-hover:opacity-100 transition-opacity" />
             </CardHeader>
             <CardContent className="pb-4">
               <div className="text-xl font-bold tracking-tight">{stat.value.toLocaleString()}</div>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         <Card className="rounded-2xl border-white/5 bg-white/5 shadow-none p-6">
           <div className="flex flex-col gap-1 mb-8">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">User Ingress</h3>
-            <p className="text-[9px] uppercase tracking-widest opacity-40">7-Day Registration Velocity</p>
+            <p className="text-[9px] uppercase tracking-widest opacity-70">7-Day Registration Velocity</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={dashboardData.userMetrics}>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         <Card className="rounded-2xl border-white/5 bg-white/5 shadow-none p-6">
           <div className="flex flex-col gap-1 mb-8">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Asset Distribution</h3>
-            <p className="text-[9px] uppercase tracking-widest opacity-40">Account Classification</p>
+            <p className="text-[9px] uppercase tracking-widest opacity-70">Account Classification</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -186,9 +186,9 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex flex-col gap-1">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Vault Activity</h3>
-            <p className="text-[9px] uppercase tracking-widest opacity-40">Live Real-time Ledger</p>
+            <p className="text-[9px] uppercase tracking-widest opacity-70">Live Real-time Ledger</p>
           </div>
-          <Activity className="h-4 w-4 text-primary opacity-40" />
+          <Activity className="h-4 w-4 text-primary opacity-70" />
         </div>
         
         <div className="space-y-3">
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                 <div className="flex-1 flex items-center justify-between">
                   <div className="space-y-0.5">
                     <p className="text-[11px] font-bold uppercase tracking-wide">{activity.user}</p>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-40">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-70">
                       {activity.type} Protocol Verified
                     </p>
                   </div>
