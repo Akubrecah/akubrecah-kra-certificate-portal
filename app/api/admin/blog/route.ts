@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const { sessionClaims } = await auth()
-    if (sessionClaims?.metadata?.role !== 'admin') {
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

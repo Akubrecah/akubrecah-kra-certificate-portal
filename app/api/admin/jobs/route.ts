@@ -17,14 +17,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    if (!isAdminUser(user)) {
+    const { sessionClaims } = await auth();
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
       return new NextResponse('Forbidden', { status: 403 });
     }
 

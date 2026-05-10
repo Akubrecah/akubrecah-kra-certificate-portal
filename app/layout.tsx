@@ -2,7 +2,7 @@ import { Inter, Alfa_Slab_One, Satisfy, Plus_Jakarta_Sans } from 'next/font/goog
 import { headers } from 'next/headers'
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from 'next-themes'
-import { ClerkProvider } from '@clerk/nextjs'
+import { ClerkProvider, Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
 
 import { TooltipProviderWrapper } from '@/components/providers/tooltip-provider'
 import { AdminLayoutWrapper } from "@/components/admin-layout-wrapper"
@@ -36,7 +36,12 @@ export default async function RootLayout({
         <ClerkProvider 
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
+          taskUrls={{
+            'setup-mfa': '/session-tasks/setup-mfa',
+            'reset-password': '/session-tasks/reset-password',
+          }}
         >
+          {/* SiteHeader is managed within AdminLayoutWrapper */}
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

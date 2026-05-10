@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { 
@@ -18,102 +18,57 @@ import {
   Download, 
   FileText, 
   AlertTriangle,
-  Search
+  Search,
+  RefreshCw,
+  FileDown
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Button } from '@/components/ui/button'
+import { toast } from 'react-hot-toast'
 
-// Mock returns data
-const returnsMetrics = [
-  { name: 'Apr 6', completed: 230, pending: 45, failed: 12 },
-  { name: 'Apr 7', completed: 280, pending: 50, failed: 15 },
-  { name: 'Apr 8', completed: 310, pending: 60, failed: 20 },
-  { name: 'Apr 9', completed: 350, pending: 70, failed: 15 },
-  { name: 'Apr 10', completed: 390, pending: 65, failed: 10 },
-  { name: 'Apr 11', completed: 450, pending: 80, failed: 25 },
-]
-
-const returns = [
-  {
-    id: "r-1",
-    pinNumber: "A123456789B",
-    userName: "John Doe",
-    status: "completed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T09:24:18.123Z",
-    amount: 0
-  },
-  {
-    id: "r-2",
-    pinNumber: "A987654321C",
-    userName: "Mary Smith",
-    status: "completed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T14:32:10.982Z",
-    amount: 0
-  },
-  {
-    id: "r-3",
-    pinNumber: "A567891234D",
-    userName: "Peter Kamau",
-    status: "pending",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T08:15:47.325Z",
-    amount: 0
-  },
-  {
-    id: "r-4",
-    pinNumber: "A234567891E",
-    userName: "Jane Wanjiku",
-    status: "completed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-10T16:08:35.190Z",
-    amount: 0
-  },
-  {
-    id: "r-5",
-    pinNumber: "A345678912F",
-    userName: "David Omondi",
-    status: "failed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T10:42:53.687Z",
-    amount: 0
-  },
-  {
-    id: "r-6",
-    pinNumber: "A456789123G",
-    userName: "Sarah Njeri",
-    status: "completed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-09T12:19:08.456Z",
-    amount: 0
-  },
-  {
-    id: "r-7",
-    pinNumber: "A789123456H",
-    userName: "Michael Mwangi",
-    status: "completed",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T15:51:24.213Z",
-    amount: 0
-  },
-  {
-    id: "r-8",
-    pinNumber: "A891234567I",
-    userName: "Esther Akinyi",
-    status: "pending",
-    returnPeriod: "2025-03",
-    submissionDate: "2025-04-11T09:30:16.874Z",
-    amount: 0
-  }
-]
+interface ReturnData {
+  id: string;
+  userName: string;
+  userEmail: string;
+  pinNumber: string;
+  authorizedBy: string;
+  submissionDate: string;
+  status: string;
+  amount: number;
+  activityType: string;
+  description: string;
+}
 
 export default function ReturnsPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [returns, setReturns] = useState<ReturnData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const fetchReturns = async () => {
+    setIsRefreshing(true)
+    try {
+      const response = await fetch('/api/admin/returns')
+      if (!response.ok) throw new Error('Failed to fetch returns')
+      const data = await response.json()
+      setReturns(data)
+    } catch (error) {
+      console.error('Error fetching returns:', error)
+      toast.error('Failed to load real-time returns data')
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchReturns()
+  }, [])
   
   const filteredReturns = returns.filter(ret => 
     ret.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ret.pinNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ret.returnPeriod.toLowerCase().includes(searchQuery.toLowerCase())
+    ret.userEmail.toLowerCase().includes(searchQuery.toLowerCase())
   )
   
   // Format date to display in a more friendly way
@@ -130,21 +85,95 @@ export default function ReturnsPage() {
   
   // Get status badge styling
   const getStatusBadgeStyles = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'completed':
+      case 'success':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500'
       case 'failed':
+      case 'error':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500'
     }
   }
 
+  const exportToCSV = () => {
+    if (filteredReturns.length === 0) {
+      toast.error('No data to export')
+      return
+    }
+
+    const headers = ['User', 'Email', 'KRA PIN', 'Authorized By', 'Date Time', 'Status', 'Amount']
+    const csvContent = [
+      headers.join(','),
+      ...filteredReturns.map(ret => [
+        `"${ret.userName}"`,
+        `"${ret.userEmail}"`,
+        `"${ret.pinNumber}"`,
+        `"${ret.authorizedBy}"`,
+        `"${formatDate(ret.submissionDate)}"`,
+        `"${ret.status}"`,
+        ret.amount
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `KRA_Returns_Report_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Report generated successfully')
+  }
+
+  // Calculate metrics based on real data
+  const totalReturns = returns.length
+  const completedReturns = returns.filter(r => r.status === 'success' || r.status === 'completed').length
+  const pendingReturns = returns.filter(r => r.status === 'pending').length
+  const failedReturns = returns.filter(r => r.status === 'error' || r.status === 'failed').length
+
+  // Generate chart data from real returns
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return d.toISOString().split('T')[0]
+  })
+
+  const chartData = last7Days.map(date => {
+    const dayReturns = returns.filter(r => r.submissionDate.startsWith(date))
+    return {
+      name: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      completed: dayReturns.filter(r => r.status === 'success' || r.status === 'completed').length,
+      pending: dayReturns.filter(r => r.status === 'pending').length,
+      failed: dayReturns.filter(r => r.status === 'error' || r.status === 'failed').length,
+    }
+  })
+
   return (
     <div className="flex-1 space-y-4 p-6 lg:p-2">
-
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Returns Management</h2>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchReturns} 
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={exportToCSV}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Generate Report
+          </Button>
+        </div>
+      </div>
       
       {/* Statistics cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -154,12 +183,8 @@ export default function ReturnsPage() {
             <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,780</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">22.5%</span>
-              <span className="ml-1">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{totalReturns}</div>
+            <p className="text-xs text-muted-foreground">Real-time system data</p>
           </CardContent>
         </Card>
         
@@ -169,12 +194,8 @@ export default function ReturnsPage() {
             <CheckCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,655</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">20.8%</span>
-              <span className="ml-1">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{completedReturns}</div>
+            <p className="text-xs text-muted-foreground">Successful filings</p>
           </CardContent>
         </Card>
         
@@ -184,12 +205,8 @@ export default function ReturnsPage() {
             <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">80</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">12.1%</span>
-              <span className="ml-1">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{pendingReturns}</div>
+            <p className="text-xs text-muted-foreground">Currently in progress</p>
           </CardContent>
         </Card>
         
@@ -199,11 +216,8 @@ export default function ReturnsPage() {
             <AlertTriangle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <span className="text-red-500 font-medium">-15.3%</span>
-              <span className="ml-1">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{failedReturns}</div>
+            <p className="text-xs text-muted-foreground">Requires attention</p>
           </CardContent>
         </Card>
       </div>
@@ -211,19 +225,22 @@ export default function ReturnsPage() {
       {/* Returns chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Returns Status Trends</CardTitle>
+          <CardTitle>Returns Activity (Last 7 Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={returnsMetrics}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.1} />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip contentStyle={{ backgroundColor: '#333', borderRadius: '8px' }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1f2937', borderRadius: '8px', border: 'none' }} 
+                itemStyle={{ color: '#fff' }}
+              />
               <Legend />
-              <Bar dataKey="completed" name="Completed" stackId="a" fill="#8884d8" />
-              <Bar dataKey="pending" name="Pending" stackId="a" fill="#82ca9d" />
-              <Bar dataKey="failed" name="Failed" stackId="a" fill="#ffc658" />
+              <Bar dataKey="completed" name="Completed" stackId="a" fill="#10b981" />
+              <Bar dataKey="pending" name="Pending" stackId="a" fill="#f59e0b" />
+              <Bar dataKey="failed" name="Failed" stackId="a" fill="#ef4444" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -232,7 +249,7 @@ export default function ReturnsPage() {
       {/* Returns table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Returns</CardTitle>
+          <CardTitle>Return Records</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -243,43 +260,61 @@ export default function ReturnsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted">
-              <Download className="h-4 w-4" />
-              <span className="sr-only">Download CSV</span>
-            </button>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>KRA PIN</TableHead>
-                <TableHead>Return Period</TableHead>
-                <TableHead>Submission Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReturns.map((ret) => (
-                <TableRow key={ret.id}>
-                  <TableCell className="font-medium">{ret.userName}</TableCell>
-                  <TableCell className="font-mono text-xs">{ret.pinNumber}</TableCell>
-                  <TableCell>{ret.returnPeriod}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {formatDate(ret.submissionDate)}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeStyles(ret.status)}`}>
-                      {ret.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">KES {ret.amount.toLocaleString()}</TableCell>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading real-time data...</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>KRA PIN</TableHead>
+                  <TableHead>Authorized By</TableHead>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredReturns.length > 0 ? (
+                  filteredReturns.map((ret) => (
+                    <TableRow key={ret.id}>
+                      <TableCell className="font-medium">
+                        <div>{ret.userName}</div>
+                        <div className="text-xs text-muted-foreground">{ret.userEmail}</div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{ret.pinNumber}</TableCell>
+                      <TableCell>
+                        <span className="text-xs bg-muted px-2 py-1 rounded">{ret.authorizedBy}</span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatDate(ret.submissionDate)}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeStyles(ret.status)}`}>
+                          {ret.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        KES {ret.amount.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No return records found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

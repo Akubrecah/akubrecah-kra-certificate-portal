@@ -1,15 +1,21 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@clerk/nextjs/server'
 
+interface RouteContext {
+  params: Promise<{ id: string }>
+}
+
 export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  context: RouteContext
 ) {
-  const { id } = await params;
   try {
+    const { id } = await context.params;
     const { sessionClaims } = await auth()
-    if (sessionClaims?.metadata?.role !== 'admin') {
+    
+    // Check for admin role in session metadata
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -26,18 +32,21 @@ export async function PUT(
     })
     return NextResponse.json(post)
   } catch (error) {
+    console.error('[BLOG_PUT]', error)
     return NextResponse.json({ error: 'Failed to update post' }, { status: 500 })
   }
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  context: RouteContext
 ) {
-  const { id } = await params;
   try {
+    const { id } = await context.params;
     const { sessionClaims } = await auth()
-    if (sessionClaims?.metadata?.role !== 'admin') {
+    
+    // Check for admin role in session metadata
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -46,6 +55,7 @@ export async function DELETE(
     })
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error('[BLOG_DELETE]', error)
     return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 })
   }
 }

@@ -193,8 +193,8 @@ export function KRAPortal() {
                         <Fingerprint className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">IDENTITY</CardTitle>
-                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">ID or PIN verification.</CardDescription>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest">CHECK YOUR PIN</CardTitle>
+                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">Enter your ID or KRA PIN to start.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -205,11 +205,16 @@ export function KRAPortal() {
                           <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
                             <CheckCircle className="w-10 h-10 text-white" />
                           </div>
-                          <h3 className="text-xs font-bold uppercase tracking-widest">SUCCESS</h3>
-                          <Button className="w-full h-9 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-none" onClick={handleDownload}>
-                            DOWNLOAD
-                            <Download className="ml-2 w-3 h-3" />
-                          </Button>
+                          <h3 className="text-xs font-bold uppercase tracking-widest">IDENTITY FOUND</h3>
+                          <div className="flex flex-col gap-2 w-full max-w-[240px]">
+                            <Button className="w-full h-9 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-none" onClick={handleDownload}>
+                              DOWNLOAD
+                              <Download className="ml-2 w-3 h-3" />
+                            </Button>
+                            <Button variant="ghost" className="w-full h-8 text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
+                              VERIFY ANOTHER
+                            </Button>
+                          </div>
                         </motion.div>
                       ) : (
                         <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -239,13 +244,13 @@ export function KRAPortal() {
                                 </Button>
                               </div>
                             </div>
-                            <div className="space-y-2 max-w-2xl mx-auto">
-                              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formData.pin ? 'KRA PIN' : 'ID NUMBER'}</Label>
+                            <div className="space-y-2 max-w-xs mx-auto">
+                              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formData.pin ? 'KRA PIN NUMBER' : 'ID NUMBER'}</Label>
                               <Input 
                                 value={formData.pin || formData.idNumber} 
                                 onChange={(e) => handleInputChange(formData.pin ? 'pin' : 'idNumber', e.target.value.toUpperCase())} 
                                 placeholder={formData.pin ? 'A00XXXXXXXXB' : '12345678'} 
-                                className="h-9 rounded-full border-white/10 precision-outline focus:border-primary px-6 text-[11px] text-center font-medium transition-all uppercase bg-black/5" 
+                                className="h-10 rounded-full border-white/10 precision-outline focus:border-primary px-8 text-[11px] text-center font-medium transition-all uppercase bg-black/5" 
                               />
                             </div>
                           </div>
@@ -257,7 +262,7 @@ export function KRAPortal() {
                           )}
                           <div className="flex flex-col items-center gap-3">
                             <Button 
-                              className="h-9 px-10 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-full max-w-2xl" 
+                              className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-auto min-w-[140px]" 
                               onClick={handleIdSearch} 
                               disabled={idSearchStatus === "searching"}
                             >
@@ -266,14 +271,14 @@ export function KRAPortal() {
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                   <span>SEARCHING...</span>
                                 </div>
-                              ) : <>VERIFY <Search className="ml-2 w-3 h-3" /></>}
+                              ) : <>CHECK ID <Search className="ml-2 w-3 h-3" /></>}
                             </Button>
                             <Button 
                               variant="ghost" 
                               className="h-8 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" 
                               onClick={() => setCurrentStep(2)}
                             >
-                              MANUAL ENTRY
+                              I'LL ENTER DETAILS MYSELF
                             </Button>
                           </div>
                         </motion.div>
@@ -294,8 +299,8 @@ export function KRAPortal() {
                         <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center space-y-0.5">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">DETAILS</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Your contact info.</CardDescription>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">PERSONAL INFO</CardTitle>
+                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Enter your name and email.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -330,7 +335,7 @@ export function KRAPortal() {
                       </div>
                       <div className="text-center space-y-0.5">
                         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">ADDRESS</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Physical location.</CardDescription>
+                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Where do you live?</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -406,8 +411,8 @@ export function KRAPortal() {
                         <ShieldCheck className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">SUMMARY</CardTitle>
-                        <CardDescription className="text-xs uppercase tracking-wide opacity-90">Review details.</CardDescription>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest">CHECK YOUR DETAILS</CardTitle>
+                        <CardDescription className="text-xs uppercase tracking-wide opacity-90">Please check everything before downloading.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -418,8 +423,8 @@ export function KRAPortal() {
                       <div className="flex items-center justify-between"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">AREA</span><span className="text-xs font-bold text-muted-foreground text-right uppercase tracking-wide">{formData.town}, {formData.county}</span></div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-11 px-10 bg-primary text-white rounded-full transition-all font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/20" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-4 h-4" /></Button>
-                      <Button variant="ghost" className="h-10 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-xs uppercase tracking-widest" onClick={() => setCurrentStep(1)}>RESET</Button>
+                      <Button className="h-10 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
+                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>VERIFY ANOTHER</Button>
                     </div>
                   </CardContent>
                 </Card>

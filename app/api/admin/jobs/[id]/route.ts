@@ -4,13 +4,6 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-/**
- * The context parameter for these route handlers is typed in an unusual way
- * to match the expectation from the build error log. The error indicates
- * that this specific version of Next.js expects `context.params` to be a
- * Promise. This is not standard and is likely due to an experimental or
- * unstable version of the framework.
- */
 interface RouteContext {
   params: Promise<{ id: string }>
 }
@@ -21,7 +14,7 @@ export async function GET(
   context: RouteContext
 ) {
   try {
-    const { id } = await context.params; // Await the promise to get params
+    const { id } = await context.params; 
 
     const job = await prisma.jobPosition.findUnique({
       where: { id },
@@ -50,12 +43,14 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
-    const { userId } = auth()
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 })
+    const { sessionClaims } = await auth()
+    
+    // Check for admin role in session metadata
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const { id } = await context.params; // Await the promise
+    const { id } = await context.params;
     const body = await req.json()
 
     const updatedJob = await prisma.jobPosition.update({
@@ -79,12 +74,14 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
-    const { userId } = auth()
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 })
+    const { sessionClaims } = await auth()
+    
+    // Check for admin role in session metadata
+    if ((sessionClaims?.metadata as any)?.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const { id } = await context.params; // Await the promise
+    const { id } = await context.params;
 
     await prisma.jobPosition.delete({
       where: { id },

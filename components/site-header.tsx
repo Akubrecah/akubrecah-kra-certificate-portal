@@ -87,7 +87,7 @@ export function SiteHeader() {
             
             {isLoaded && isSignedIn ? (
               <div className="flex items-center gap-1.5">
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </div>
             ) : isLoaded ? (
               <div className="flex items-center gap-1.5">
@@ -110,5 +110,5 @@ export function SiteHeader() {
         </nav>
       </div>
     </header>
-  )
+  );
 }

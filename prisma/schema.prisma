@@ -33,6 +33,8 @@ model UserActivity {
   description  String?
   status       String   @default("success") // 'success', 'error', 'warning', 'info'
   metadata     Json     @default("{}")
+  amount       Float?   @default(0)
+  authorizedBy String?  @default("System")
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("user_activities")

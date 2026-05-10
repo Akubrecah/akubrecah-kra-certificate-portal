@@ -223,7 +223,12 @@ export async function POST(req: NextRequest) {
         activityType: 'document',
         description: `Generated KRA certificate for ${name} (${pin})`,
         status: 'success',
-        metadata: { pin, name }
+        metadata: { 
+          pin, 
+          name,
+          amount: data.amount || 0,
+          authorizedBy: 'System'
+        }
       });
     }
 
