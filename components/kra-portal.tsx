@@ -102,11 +102,11 @@ export function KRAPortal() {
         }))
         setIdSearchStatus("found")
         setIsVerified(true)
-        toast.success("PIN Retrieval Verified")
+        toast.success("Certificate Identity Found")
       } else {
         setIdSearchStatus("error")
-        setError(result.error || "Verification failed. Please check your credentials.")
-        toast.error("PIN Retrieval Verification Failed")
+        setError(result.error || "Details not found. Please check your credentials.")
+        toast.error("Certificate Retrieval Failed")
       }
     } catch (err: any) {
       setIdSearchStatus("error")
@@ -193,8 +193,8 @@ export function KRAPortal() {
                         <Fingerprint className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">CHECK YOUR PIN</CardTitle>
-                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">Enter your ID or KRA PIN to start.</CardDescription>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest">KRA CERTIFICATE</CardTitle>
+                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">Enter your ID or PIN to generate your certificate.</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -269,9 +269,9 @@ export function KRAPortal() {
                               {idSearchStatus === "searching" ? (
                                 <div className="flex items-center gap-2">
                                   <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>SEARCHING...</span>
+                                  <span>GENERATING...</span>
                                 </div>
-                              ) : <>CHECK ID <Search className="ml-2 w-3 h-3" /></>}
+                              ) : <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>}
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -411,7 +411,7 @@ export function KRAPortal() {
                         <ShieldCheck className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">CHECK YOUR DETAILS</CardTitle>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest">REVIEW CERTIFICATE</CardTitle>
                         <CardDescription className="text-xs uppercase tracking-wide opacity-90">Please check everything before downloading.</CardDescription>
                       </div>
                     </div>
@@ -424,7 +424,7 @@ export function KRAPortal() {
                     </div>
                     <div className="flex flex-col items-center gap-4">
                       <Button className="h-10 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>VERIFY ANOTHER</Button>
+                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
                     </div>
                   </CardContent>
                 </Card>

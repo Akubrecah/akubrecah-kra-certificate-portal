@@ -63,8 +63,8 @@ export default function Home() {
               </div>
               
               <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight leading-tight mb-1 uppercase">
-                KRA Retrieval <br />
-                <span className="text-primary font-bold">Portal.</span>
+                Generate Your <br />
+                <span className="text-primary font-bold">KRA Certificate.</span>
               </h1>
               
               <p className="max-w-7xl mx-auto text-[10px] text-muted-foreground font-normal leading-normal opacity-80 uppercase tracking-wide">
@@ -75,7 +75,7 @@ export default function Home() {
                 {isLoaded && isSignedIn ? (
                   <Link href="/retrieval-portal" className="w-full sm:w-auto">
                     <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                      Proceed to Retrieval
+                      Get Your Certificate
                       <ArrowRight className="ml-2 h-3 w-3" />
                     </Button>
                   </Link>
@@ -83,7 +83,7 @@ export default function Home() {
                   <>
                     <Link href="/sign-in" className="w-full sm:w-auto">
                       <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                        Get Started
+                        Get Your Certificate
                         <ArrowRight className="ml-2 h-3 w-3" />
                       </Button>
                     </Link>
@@ -143,7 +143,7 @@ export default function Home() {
                 { 
                   step: "03", 
                   icon: <Layers className="w-5 h-5" />, 
-                  title: "RETRIEVAL", 
+                  title: "CERTIFICATE", 
                   desc: "Download official PDF certificate."
                 }
               ].map((item, i) => (

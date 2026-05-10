@@ -67,21 +67,12 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.next();
   }
 
-  // 2. Strict Admin Role Protection (Edge-side)
+  // 2. Admin Route Authentication (Fine-grained role check happens in Layout)
   if (userId && isAdminRoute(request)) {
-    const metadata = sessionClaims?.metadata as { role?: string } | undefined;
-    // Note: sessionClaims.email requires configuration in Clerk Dashboard JWT Template
-    // We fallback to checking metadata or assume the email check happens in layout as a secondary layer
-    // if not available in JWT claims.
-    const userEmail = sessionClaims?.email as string | undefined;
-    
-    const isAuthorized = metadata?.role === 'admin' || userEmail === SUPER_ADMIN_EMAIL;
-    
-    if (!isAuthorized && userEmail !== SUPER_ADMIN_EMAIL) {
-      // Allow if it's the super admin email, otherwise redirect to home
-      // In many Clerk setups, email is in sessionClaims.email if added to JWT
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+    // We allow the request to proceed to the page/layout
+    // The AdminLayout (app/admin/layout.tsx) will do the final isAdminUser check
+    // using the full Clerk User object which is more reliable than sessionClaims.
+    return NextResponse.next();
   }
 
   // 3. Redirect signed-in users away from auth pages

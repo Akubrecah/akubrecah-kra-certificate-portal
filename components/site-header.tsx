@@ -16,7 +16,7 @@ import { ArrowLeft } from "lucide-react"
 
 const navItems = [
   { name: "HOME", href: "/" },
-  { name: "RETRIEVAL PORTAL", href: "/retrieval-portal" },
+  { name: "KRA CERTIFICATE", href: "/retrieval-portal" },
   { name: "SECURITY", href: "/security" },
   { name: "BLOGS", href: "/blog" },
   { name: "FAQS", href: "/faq" },
@@ -68,6 +68,21 @@ export function SiteHeader() {
           >
             FILE RETURN
           </Button>
+
+          {/* Conditional Dashboard Access */}
+          {isLoaded && isSignedIn && (
+            <Link href="/dashboard">
+              <Button 
+                variant="outline"
+                className={cn(
+                  "h-8 px-5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] hover:bg-primary/10 hover:text-primary transition-all",
+                  pathname === "/dashboard" ? "bg-primary/15 text-primary border-primary/20" : "border-border"
+                )}
+              >
+                DASHBOARD
+              </Button>
+            </Link>
+          )}
 
           {/* Conditional Admin Access */}
           {isLoaded && isSignedIn && isAdmin && (
