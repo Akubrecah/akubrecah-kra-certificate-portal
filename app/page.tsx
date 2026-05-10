@@ -1,7 +1,7 @@
 "use client"
 
 import { 
-  Show,
+  useUser,
   SignInButton, 
   SignUpButton
 } from "@clerk/nextjs"
@@ -34,6 +34,7 @@ export default function Home() {
     target: containerRef,
     offset: ["start start", "end end"]
   })
+  const { isSignedIn, isLoaded } = useUser()
 
   return (
     <PageBackground>
@@ -73,30 +74,31 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                <Show when="signed-in">
+                {isLoaded && isSignedIn ? (
                   <Link href="/retrieval-portal" className="w-full sm:w-auto">
                     <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
                       Proceed to Retrieval
                       <ArrowRight className="ml-2 h-3 w-3" />
                     </Button>
                   </Link>
-                </Show>
-                
-                <Show when="signed-out">
-                  <SignInButton mode="modal">
-                    <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                      Get Started
-                      <ArrowRight className="ml-2 h-3 w-3" />
-                    </Button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
-                      Create Account
-                    </Button>
-                  </SignUpButton>
-                </Show>
+                ) : isLoaded && (
+                  <>
+                    <Link href="/sign-in" className="w-full sm:w-auto">
+                      <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
+                        Get Started
+                        <ArrowRight className="ml-2 h-3 w-3" />
+                      </Button>
+                    </Link>
+                    <Link href="/sign-up" className="w-full sm:w-auto">
+                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
+                        Create Account
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </motion.div>
+
           </section>
 
           {/* 02. Service Marquee - Minimal */}

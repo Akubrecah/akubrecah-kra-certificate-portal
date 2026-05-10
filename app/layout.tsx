@@ -33,7 +33,10 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${plusJakarta.variable} ${alfa.variable} ${satisfy.variable} font-sans`} data-theme={theme} suppressHydrationWarning={true}>
-        <ClerkProvider>
+        <ClerkProvider 
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

@@ -16,7 +16,8 @@ import {
   Plus,
   X,
   LineChart,
-  ActivitySquare
+  ActivitySquare,
+  Briefcase
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -79,6 +80,11 @@ const navItems: NavItem[] = [
     title: "Blog",
     href: "/admin/blog",
     icon: FileText,
+  },
+  {
+    title: "Careers",
+    href: "/admin/careers",
+    icon: Briefcase,
   },
   {
     title: "Settings",

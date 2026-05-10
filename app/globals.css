@@ -23,8 +23,8 @@
   --card: 0 0% 100%;
   --card-foreground: 165 40% 6%;
 
-  --border: 165 20% 50%;
-  --input: 165 20% 90%;
+  --border: 165 20% 45%;
+  --input: 165 20% 92%;
   --ring: 165 56% 28%;
 
   --radius: 1rem;
@@ -47,14 +47,14 @@
   --card: 165 40% 3%;
   --card-foreground: 0 0% 98%;
  
-  --border: 165 20% 15%;
+  --border: 165 20% 20%;
   --input: 165 20% 12%;
   --ring: 57 100% 47%;
 }
  
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border/80;
   }
   body {
     @apply bg-background text-foreground;
@@ -66,7 +66,7 @@
   }
   
   input, textarea, select {
-    @apply rounded-full border border-primary/40 bg-background px-4 py-2 text-[11px] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/10;
+    @apply rounded-full border border-primary/40 bg-background px-4 py-2 text-[11px] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20;
   }
 
   button {
@@ -84,20 +84,20 @@
 @layer utilities {
   /* Glassmorphism Utilities - Premium Rounded */
   .glass {
-    @apply bg-background/60 backdrop-blur-md border border-border shadow-sm rounded-2xl;
+    @apply bg-background/60 backdrop-blur-md border border-border shadow-sm rounded-2xl dark:border-white/10;
   }
  
   .glass-card {
-    @apply bg-card/60 backdrop-blur-sm border border-border rounded-2xl;
+    @apply bg-card/60 backdrop-blur-sm border border-border rounded-2xl dark:border-white/10;
   }
  
   .glass-panel {
-    @apply bg-background/80 backdrop-blur-xl border border-border rounded-2xl;
+    @apply bg-background/80 backdrop-blur-xl border border-border/80 rounded-2xl dark:border-white/10;
   }
  
   /* Precision Outline Utilities */
   .precision-outline {
-    @apply border border-primary/70 rounded-full transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10;
+    @apply border-2 border-primary/40 rounded-full transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-primary/60;
   }
 
   /* Animations */

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { isAdminUser } from "@/lib/admin-config"
 import { Logo } from "@/components/logo"
+import { cn } from "@/lib/utils"
 
 export function SiteFooter(): JSX.Element {
   useEffect(() => {
@@ -20,6 +21,7 @@ export function SiteFooter(): JSX.Element {
       links: [
         { label: "Home", href: "/" },
         { label: "Retrieval Portal", href: "/retrieval-portal" },
+        { label: "File Return", href: "#", disabled: true },
         { label: "Security Protocol", href: "/security" },
       ],
     },
@@ -65,8 +67,11 @@ export function SiteFooter(): JSX.Element {
                   {group.links.map((link) => (
                     <li key={link.label}>
                       <Link 
-                        href={link.href} 
-                        className="text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100"
+                        href={link.disabled ? "#" : link.href} 
+                        className={cn(
+                          "text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100",
+                          link.disabled && "opacity-30 cursor-not-allowed pointer-events-none"
+                        )}
                       >
                         {link.label}
                       </Link>

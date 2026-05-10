@@ -8,11 +8,11 @@ import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { 
   UserButton, 
-  useUser,
-  useClerk
+  useUser
 } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
 import { isAdminUser } from "@/lib/admin-config"
+import { ArrowLeft } from "lucide-react"
 
 const navItems = [
   { name: "HOME", href: "/" },
@@ -27,7 +27,7 @@ const navItems = [
 export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isLoaded } = useUser()
+  const { user, isLoaded, isSignedIn } = useUser()
 
   // Check if user is admin using the central utility
   const isAdmin = isAdminUser(user)
@@ -60,8 +60,17 @@ export function SiteHeader() {
             </Link>
           ))}
 
+          {/* Special Disabled Return Button */}
+          <Button 
+            disabled 
+            variant="outline"
+            className="h-8 px-4 text-[10px] font-extrabold tracking-[0.2em] uppercase rounded-full opacity-40 grayscale cursor-not-allowed border-white/10"
+          >
+            FILE RETURN
+          </Button>
+
           {/* Conditional Admin Access */}
-          {isLoaded && user && isAdmin && (
+          {isLoaded && isSignedIn && isAdmin && (
             <Link href="/admin/dashboard">
               <Button 
                 variant="default"
@@ -76,11 +85,11 @@ export function SiteHeader() {
           <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-border">
             <ThemeToggle />
             
-            {isLoaded && user ? (
+            {isLoaded && isSignedIn ? (
               <div className="flex items-center gap-1.5">
                 <UserButton afterSignOutUrl="/" />
               </div>
-            ) : (
+            ) : isLoaded ? (
               <div className="flex items-center gap-1.5">
                 <Button 
                   variant="ghost"
@@ -96,7 +105,7 @@ export function SiteHeader() {
                   JOIN
                 </Button>
               </div>
-            )}
+            ) : null}
           </div>
         </nav>
       </div>

@@ -3,7 +3,7 @@ import databaseService from '@/lib/services/databaseService';
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { status = 'completed', errorMessage } = await request.json();
     
     const result = await databaseService.completeSession(id, status, errorMessage);

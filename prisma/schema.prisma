@@ -210,3 +210,30 @@ model AppSetting {
 
   @@map("app_settings")
 }
+
+model JobPosition {
+  id                      String   @id @default(uuid())
+  title                   String
+  location                String
+  type                    String
+  department              String
+  jobNumber               String   @unique @map("job_number")
+  worksite                String
+  travel                  String
+  roleType                String   @map("role_type")
+  profession              String
+  discipline              String
+  employmentType          String   @map("employment_type")
+  datePosted              String   @map("date_posted")
+  description             String   @db.Text
+  overview                String[]
+  responsibilities        String[]
+  requiredQualifications  String[] @map("required_qualifications")
+  preferredQualifications String[] @map("preferred_qualifications")
+  additionalRequirements  String[] @map("additional_requirements")
+  compensation            String
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("job_positions")
+}

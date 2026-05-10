@@ -184,7 +184,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-6 lg:p-2">
+    <div className="flex-1 space-y-4 p-6 lg:p-2 max-w-7xl mx-auto w-full">
       
       {/* Statistics cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
