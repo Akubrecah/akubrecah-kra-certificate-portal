@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,6 @@ import { PageBackground } from "@/components/ui/page-background"
 import { motion, AnimatePresence } from "framer-motion"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
 import { Loader2 } from "lucide-react"
-import { useEffect } from "react"
 
 interface JobPosition {
   id: string
@@ -80,7 +79,8 @@ export default function CareersPage() {
   return (
     <PageBackground className="pt-24 pb-20">
       {isSignedIn ? (
-        <div className="container mx-auto px-6 max-w-7xl space-y-12">
+        <>
+          <div className="container mx-auto px-6 max-w-7xl space-y-12">
           {/* Header */}
           <div className="text-center space-y-4 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 mb-2">
@@ -180,14 +180,14 @@ export default function CareersPage() {
 
 
           {/* Empty State */}
-          {filteredPositions.length === 0 && (
+          {!loading && filteredPositions.length === 0 && (
             <div className="text-center py-20 glass rounded-[2rem] border-dashed border-border">
               <Briefcase className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
               <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">No matching positions found</h3>
               <p className="text-[9px] uppercase tracking-widest opacity-70 mt-1">Try adjusting your filters to find more opportunities.</p>
             </div>
           )}
-        </div>
+          </div>
 
         {/* Detail Dialog / Overlay */}
         <AnimatePresence>
@@ -380,6 +380,7 @@ export default function CareersPage() {
             </div>
           )}
         </AnimatePresence>
+        </>
       ) : (
         <RedirectToSignIn />
       )}
