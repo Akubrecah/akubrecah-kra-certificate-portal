@@ -258,7 +258,7 @@ export default async function ServicePage({ params }) {
         <PageBackground>
             {/* <ServiceSidebar /> */}
 
-            <div className="container mx-auto py-6 px-4 md:py-1">
+            <div className="container mx-auto py-6 px-4 md:py-1 max-w-6xl">
                 <Link href="/services" className="inline-flex items-center text-primary hover:underline mb-4 md:mb-8 text-sm">
                     <ArrowLeft className="mr-1 h-3 w-3 md:h-4 md:w-4" /> Back to all services
                 </Link>
