@@ -12,6 +12,7 @@ import {
   useClerk
 } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
+import { isAdminUser } from "@/lib/admin-config"
 
 const navItems = [
   { name: "HOME", href: "/" },
@@ -27,8 +28,8 @@ export function SiteHeader() {
   const router = useRouter()
   const { user, isLoaded } = useUser()
 
-  // Check if user is admin
-  const isAdmin = user?.publicMetadata?.role === 'admin'
+  // Check if user is admin using the central utility
+  const isAdmin = isAdminUser(user)
 
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 py-3">
