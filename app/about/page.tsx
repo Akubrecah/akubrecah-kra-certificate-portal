@@ -1,110 +1,98 @@
-import Image from 'next/image'
+"use client"
+
 import { PageBackground } from "@/components/ui/page-background"
-import ServiceSidebar from '@/components/service-sidebar'
-import { Shield, Zap, Target, Users, TrendingUp, Lightbulb } from 'lucide-react'
+import { Shield, Zap, Target, Lightbulb } from 'lucide-react'
+import { motion } from "framer-motion"
 
 export default function AboutPage() {
+  const sections = [
+    {
+      icon: <Target className="w-4 h-4" />,
+      title: "OUR MISSION",
+      desc: "Simplifying tax compliance for the next generation. We provide accessible solutions for students and freelancers."
+    },
+    {
+      icon: <Lightbulb className="w-4 h-4" />,
+      title: "OUR VISION",
+      desc: "A Kenya where every individual can easily fulfill their tax responsibilities with confidence and ease."
+    }
+  ]
+
   return (
     <PageBackground>
-      <div className="mx-auto max-w-4xl space-y-12 px-4 py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-heading tracking-tighter sm:text-5xl text-primary">
-            Simplifying Tax Compliance for Kenyan Youth
+      <div className="w-full flex flex-col space-y-6 py-6 max-w-2xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary">Identity</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tighter uppercase leading-tight">
+            Compliance <span className="text-primary">Redefined.</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Akubrecah Entertainment is committed to removing the barriers that prevent young people in Kenya from meeting their tax obligations.
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide leading-relaxed opacity-60 max-w-md mx-auto">
+            Committed to removing barriers and empowering young people to stay compliant without the friction.
           </p>
         </div>
 
-        {/* Mission & Vision Section */}
-        <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-          <div className="group relative overflow-hidden rounded-2xl border border-brand-cyan/20 bg-white/50 p-8 transition-all hover:shadow-2xl hover:shadow-brand-red/5">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-red/10 text-brand-red">
-              <Target className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-heading text-brand-red mb-3">Our Mission</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              We provide simple, affordable, and accessible tax solutions tailored specifically for students, freelancers, and unemployed youth—empowering them to stay compliant without confusion or stress.
-            </p>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-2xl border border-brand-cyan/20 bg-white/50 p-8 transition-all hover:shadow-2xl hover:shadow-brand-cyan/5">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan">
-              <Lightbulb className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-heading text-brand-cyan mb-3">Our Vision</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              We envision a Kenya where tax compliance is fully inclusive—where every young person, regardless of income level or employment status, can easily understand and fulfill their tax responsibilities.
-            </p>
-          </div>
+        {/* Info Grid */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {sections.map((item, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="glass p-6 rounded-2xl border border-white/5 space-y-4 text-center"
+            >
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                {item.icon}
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-[10px] font-bold tracking-widest uppercase">{item.title}</h2>
+                <p className="text-[9px] text-muted-foreground uppercase leading-relaxed font-medium opacity-70">
+                  {item.desc}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Approach Section */}
-        <div className="rounded-2xl border border-brand-green/20 bg-gradient-to-br from-white to-brand-green/5 p-8 md:p-12">
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
-            <Zap className="h-6 w-6" />
-          </div>
-          <h2 className="text-3xl font-heading text-brand-green mb-8">Our Approach</h2>
-          <div className="grid gap-8 md:grid-cols-2">
-            <div className="space-y-2">
-              <h3 className="font-bold text-primary flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                User-Centered Design
-              </h3>
-              <p className="text-sm text-muted-foreground">A clean, mobile-first platform designed for simplicity, even for first-time taxpayers.</p>
+        {/* Digital-First Approach */}
+        <section className="glass rounded-2xl border border-white/5 p-6 relative overflow-hidden">
+          <div className="relative z-10 space-y-4">
+            <div className="text-center space-y-1">
+              <h2 className="text-sm font-bold uppercase tracking-widest">Digital Precision.</h2>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-50">Infrastructure for a compliant generation.</p>
             </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-primary flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                Smart Automation
-              </h3>
-              <p className="text-sm text-muted-foreground">Guided filing processes that reduce errors and eliminate guesswork.</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-primary flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                Blockchain Security
-              </h3>
-              <p className="text-sm text-muted-foreground">Transparent and tamper-resistant records that enhance trust and data integrity.</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-primary flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                Localized Support
-              </h3>
-              <p className="text-sm text-muted-foreground">Content and guidance tailored to the Kenyan tax environment, including student scenarios.</p>
+            
+            <div className="grid gap-3">
+              {[
+                { title: "User-Centered", desc: "Mobile-first platform designed for absolute simplicity." },
+                { title: "Smart Automation", desc: "Guided filing processes that eliminate manual errors." },
+                { title: "Localized Support", desc: "Tailored to the unique Kenyan tax landscape." }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group">
+                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                    <Zap size={12} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest group-hover:text-primary transition-colors">{item.title}</h3>
+                    <p className="text-[9px] text-muted-foreground uppercase font-medium opacity-60">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Strategic Roadmap Sections */}
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="space-y-4 p-6">
-            <h3 className="text-xl font-heading flex items-center gap-2 text-primary">
-              <Shield className="h-5 w-5 text-brand-red" />
-              The Problem
-            </h3>
-            <p className="text-sm text-muted-foreground italic">
-              Many young Kenyans struggle with tax compliance due to lack of awareness, complex systems, and fear of penalties. Existing solutions are often expensive or not tailored to low-income users.
-            </p>
-          </div>
-
-          <div className="space-y-4 p-6">
-            <h3 className="text-xl font-heading flex items-center gap-2 text-primary">
-              <TrendingUp className="h-5 w-5 text-brand-cyan" />
-              Target Audience
-            </h3>
-            <ul className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">• University and college students</li>
-              <li className="flex items-center gap-2">• Recent graduates</li>
-              <li className="flex items-center gap-2">• Freelancers and gig workers</li>
-              <li className="flex items-center gap-2">• Unemployed youth</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t pt-12">
-          <ServiceSidebar />
+        {/* Security Focus */}
+        <div className="text-center py-4 border-t border-white/5 space-y-2">
+          <Shield size={24} className="text-primary mx-auto opacity-40" />
+          <h3 className="text-[9px] font-bold uppercase tracking-[0.3em]">Vault-Grade Security</h3>
+          <p className="text-[8px] text-muted-foreground uppercase tracking-widest opacity-50 max-w-xs mx-auto">
+            Every interaction is protected by enterprise-level encryption protocols.
+          </p>
         </div>
       </div>
     </PageBackground>

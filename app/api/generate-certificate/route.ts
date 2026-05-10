@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
+import { auth } from '@clerk/nextjs/server';
+import { logUserActivity } from '@/lib/activity-logger';
+import prisma from '@/lib/prisma';
+
 export async function GET(req: NextRequest) {
   return NextResponse.json({ 
     message: 'POST to this endpoint with your form data, or use ?echo=true on POST to see received data',
@@ -13,6 +17,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId: clerkId } = await auth();
+    
+    if (!clerkId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId }
+    });
+
     const data = await req.json();
     
     // ECHO MODE: Return received data as JSON for debugging
@@ -201,6 +215,17 @@ export async function POST(req: NextRequest) {
     });
 
     const modifiedPdfBytes = await pdfDoc.save();
+
+    // Log activity
+    if (dbUser) {
+      await logUserActivity({
+        userId: dbUser.id,
+        activityType: 'document',
+        description: `Generated KRA certificate for ${name} (${pin})`,
+        status: 'success',
+        metadata: { pin, name }
+      });
+    }
 
     return new NextResponse(modifiedPdfBytes, {
       headers: {

@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { AdminNavbar } from "@/components/admin/navbar"
 import { useUser } from "@clerk/nextjs"
 import { isAdminUser } from "@/lib/admin-config"
+import { Logo } from "@/components/logo"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
@@ -75,6 +76,11 @@ const navItems: NavItem[] = [
     icon: ActivitySquare,
   },
   {
+    title: "Blog",
+    href: "/admin/blog",
+    icon: FileText,
+  },
+  {
     title: "Settings",
     href: "/admin/settings",
     icon: Settings,
@@ -86,7 +92,6 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user, isLoaded } = useUser()
   const router = useRouter()
@@ -100,96 +105,46 @@ export default function AdminLayout({
   if (!isLoaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   if (!isAdminUser(user)) {
-    return null // Will redirect in useEffect
+    return null
   }
   
   return (
-    <div className="min-h-screen flex flex-col bg-muted/40">
-      {/* Mobile navigation header - only visible on small screens */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-background px-4 py-3 lg:hidden">
-        <Link href="/admin/dashboard" className="flex items-center space-x-2">
-          <span className="text-xl font-bold text-primary">Akubrecah Entertainment Admin</span>
-        </Link>
-        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetTrigger asChild>
-            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Menu</span>
-            </button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <Link href="/admin/dashboard" className="flex items-center space-x-2">
-                  <span className="text-xl font-bold text-primary">Akubrecah Entertainment Admin</span>
-                </Link>
-                <button onClick={() => setSidebarOpen(false)}>
-                  <X className="h-6 w-6" />
-                  <span className="sr-only">Close Menu</span>
-                </button>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="flex flex-col gap-1 p-2">
-                  <MobileNav items={navItems} pathname={pathname} onNavClick={() => setSidebarOpen(false)} />
-                </div>
-              </ScrollArea>
-              <div className="border-t p-4">
+    <div className="flex flex-col w-full">
+      {/* Admin Horizontal Nav - Always Visible & Centered */}
+      <div className="w-full border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-[100px] z-40 py-2">
+        <div className="container mx-auto max-w-4xl px-4">
+          <nav className="flex flex-wrap items-center justify-center gap-2">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
                 <Link
-                  href="/"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 px-3 h-8 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0",
+                    isActive 
+                      ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                      : "text-foreground/60 hover:text-foreground hover:bg-white/5"
+                  )}
                 >
-                  <Home className="h-4 w-4" />
-                  Return to Website
+                  <item.icon className="h-3 w-3" />
+                  <span className="whitespace-nowrap">{item.title}</span>
                 </Link>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </header>
-      
-      {/* Main container with sidebar and content */}
-      <div className="flex flex-1 relative">
-        {/* Desktop sidebar - fixed position */}
-        <aside className="hidden fixed left-0 top-0 bottom-0 w-[280px] border-r bg-background lg:block z-10 overflow-hidden">
-          <div className="flex h-full flex-col">
-            <div className="flex h-14 items-center border-b px-6">
-              <Link href="/admin/dashboard" className="flex items-center space-x-2">
-                <span className="text-xl font-bold text-primary">Akubrecah Entertainment Admin</span>
-              </Link>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col gap-1 p-4">
-                <DesktopNav items={navItems} pathname={pathname} />
-              </div>
-            </div>
-            <div className="mt-auto border-t p-4">
-              <Link
-                href="/"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <Home className="h-4 w-4" />
-                Return to Website
-              </Link>
-            </div>
-          </div>
-        </aside>
-        
-        {/* Main content area with left margin on large screens */}
-        <main className="flex-1 w-full lg:ml-[280px]">
-          {/* Admin Navbar */}
-          <AdminNavbar />
-          
-          {/* Page content */}
-          <div className="p-6">
-            {children}
-          </div>
-        </main>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Admin Content Area */}
+      <div className="w-full py-8">
+        {children}
       </div>
     </div>
   )

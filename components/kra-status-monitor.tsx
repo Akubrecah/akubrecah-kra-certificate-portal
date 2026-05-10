@@ -62,15 +62,16 @@ export function KraStatusMonitor() {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-3 rounded-none border-white/10 bg-black/10 shadow-none">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">KRA Website Status</h3>
-          <p className="text-sm text-muted-foreground">
-            Response Time: {status.responseTime}ms
+        <div className="space-y-0.5">
+          <h3 className="text-[10px] font-bold uppercase tracking-widest">GATEWAY</h3>
+          <p className="text-[9px] text-muted-foreground uppercase tracking-wide opacity-60">
+            LATENCY: {status.responseTime}MS
           </p>
         </div>
         <Badge
+          className="rounded-none text-[8px] font-bold tracking-widest"
           variant={
             status.status === "up"
               ? "default"

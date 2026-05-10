@@ -14,7 +14,7 @@ export default function KRAAnnouncementBanner() {
     
     if (currentDate < marchDeadline) {
       setAnnouncement(
-        "⚠️ Important Notice: KRA is currently reconciling 2025 data from eTIMS and withholding tax records. NIL returns for the 2025 tax year can only be filed after March 31, 2026. You can still file NIL returns for 2024 and earlier years. ⚠️"
+        "Notice: NIL returns for the 2025 tax year can be filed starting April 1st, 2026. You can still file for previous years now."
       )
     }
   }, [])
@@ -22,19 +22,18 @@ export default function KRAAnnouncementBanner() {
   if (!announcement) return null
 
   return (
-    <div role="alert" aria-live="polite" className="sticky top-0 z-[60] w-full bg-gradient-to-r from-[#1F6F5B] to-[#145A47] text-white shadow-2xl border-b border-white/5 overflow-hidden">
-      <div className="flex items-center py-4">
-        <div className="flex-shrink-0 pl-6">
-          <AlertCircle className="h-6 w-6 text-[#F2E600] animate-pulse" />
+    <div role="alert" aria-live="polite" className="sticky top-0 z-[60] w-full bg-primary text-white border-b border-white/10 shadow-none">
+      <div className="flex items-center py-1 h-8">
+        <div className="flex-shrink-0 pl-4">
+          <AlertCircle className="h-4 w-4 text-white" />
         </div>
         
-        {/* Scrolling marquee container */}
-        <div className="flex-1 overflow-hidden mx-4 pr-4">
+        <div className="flex-1 overflow-hidden mx-4">
           <div className="animate-marquee whitespace-nowrap inline-block">
-            <span className="text-xs sm:text-sm md:text-base font-medium px-8">
+            <span className="text-[9px] font-bold uppercase tracking-widest px-8">
               {announcement}
             </span>
-            <span className="text-xs sm:text-sm md:text-base font-medium px-8">
+            <span className="text-[9px] font-bold uppercase tracking-widest px-8">
               {announcement}
             </span>
           </div>

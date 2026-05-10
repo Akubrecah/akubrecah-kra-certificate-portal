@@ -7,6 +7,10 @@ import ExcelJS from "exceljs";
 import retry from "async-retry";
 import { createWorker } from "tesseract.js";
 import { createClient } from "@supabase/supabase-js";
+import { logUserActivity, logSessionActivity } from '@/lib/activity-logger';
+import { auth } from '@clerk/nextjs/server';
+import prisma from '@/lib/prisma';
+
 
 // Supabase client initialization
 const supabaseUrl = "https://mqqkfggqfkpkgtzdpkmt.supabase.co";
@@ -560,8 +564,9 @@ async function navigateToFileReturn(page, individual) {
     };
 }
 
-// Function to update status in Supabase
-const updateSupabaseStatus = async (sessionId, returnId, status, receiptUrl) => {
+// Function to update status in Supabase and Prisma
+const updateSupabaseStatus = async (sessionId, returnId, status, receiptUrl, dbUserId, kra_pin) => {
+
     try {
         // Update return record
         await supabase
@@ -585,10 +590,38 @@ const updateSupabaseStatus = async (sessionId, returnId, status, receiptUrl) => 
                     timestamp: new Date().toISOString()
                 }
             }]);
+        // Log activity in Prisma
+        if (dbUserId) {
+            await logUserActivity({
+                userId: dbUserId,
+                activityType: 'return',
+                description: `Individual nil return filing ${status === 'Valid' ? 'completed' : 'failed'} for PIN: ${kra_pin}`,
+                status: status === 'Valid' ? 'success' : 'error',
+                metadata: {
+                    kra_pin,
+                    status,
+                    receipt_url: receiptUrl,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+
+        if (sessionId) {
+            await logSessionActivity({
+                sessionId,
+                activityType: 'automation_complete',
+                description: `Individual nil return filing ${status === 'Valid' ? 'completed' : 'failed'}`,
+                metadata: {
+                    status,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
     } catch (error) {
-        console.error("Error updating Supabase:", error);
+        console.error("Error updating activities:", error);
     }
 };
+
 
 // Main API handler
 export async function POST(req) {
@@ -609,7 +642,18 @@ export async function POST(req) {
             hasPaidExtra // New field
         } = requestData;
 
+        const { userId: clerkId } = await auth();
+        let dbUserId = null;
+
+        if (clerkId) {
+            const dbUser = await prisma.user.findUnique({
+                where: { clerkId }
+            });
+            if (dbUser) dbUserId = dbUser.id;
+        }
+
         if (!kra_pin || !kra_password) {
+
             return NextResponse.json(
                 { error: "Missing required individual information" },
                 { status: 400 }
@@ -828,8 +872,10 @@ export async function POST(req) {
         }
 
         // Update Supabase with results
+        // Update status with results
         if (session_id && return_id) {
-            await updateSupabaseStatus(session_id, return_id, status, receiptUrl);
+            await updateSupabaseStatus(session_id, return_id, status, receiptUrl, dbUserId, kra_pin);
+
 
             // Create a document record if we have a receipt URL
             if (receiptUrl && receiptPaths.localPath) {

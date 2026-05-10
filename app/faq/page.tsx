@@ -1,82 +1,66 @@
 "use client"
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import Link from "next/link"
+import { PageBackground } from "@/components/ui/page-background"
+import { motion } from "framer-motion"
 
 export default function FAQPage() {
   const faqs = [
     {
-      question: "How secure is my data?",
-      answer:
-        "We employ bank-level encryption and security measures to protect your data. All information is encrypted both in transit and at rest, and we regularly undergo security audits to ensure the highest level of protection.",
+      question: "IS THIS OFFICIAL?",
+      answer: "This is a reliable independent service for easy KRA portal access and certificate retrieval."
     },
     {
-      question: "What documents do I need to file my tax return?",
-      answer:
-        "You'll need your W-2 forms from employers, 1099 forms for contract work or investments, receipts for deductions, and social security numbers for you and your dependents. Our system will guide you through the specific documents needed based on your situation.",
+      question: "DATA SECURITY?",
+      answer: "We employ bank-level encryption. All information is encrypted and we do not store your personal details permanently."
     },
     {
-      question: "How long does it take to complete a tax return?",
-      answer:
-        "Most users complete their returns in 30-60 minutes. However, the time can vary depending on the complexity of your tax situation and whether you have all necessary documents ready.",
+      question: "PROCESSING TIME?",
+      answer: "Most retrievals are completed within 45 seconds depending on system synchronization."
     },
     {
-      question: "What if I need help while filing?",
-      answer:
-        "We offer multiple support options including live chat, email support, and detailed help documentation. Professional users also get priority support with direct access to tax experts.",
+      question: "SUPPORT OPTIONS?",
+      answer: "We offer priority support for all users. Reach out via our official channels for any assistance."
     },
     {
-      question: "Can I file taxes for multiple years?",
-      answer:
-        "Yes, you can file returns for previous tax years. However, please note that different rules and requirements may apply for past years, and our system will guide you through these differences.",
+      question: "PREVIOUS YEARS?",
+      answer: "Yes, you can retrieve certificates and file returns for previous tax years through our portal."
     },
     {
-      question: "What payment methods do you accept?",
-      answer:
-        "We accept all major credit cards, debit cards, and bank transfers. Payment is only required after you've completed your return and are ready to file.",
-    },
+      question: "MOBILE READY?",
+      answer: "Our platform is fully optimized for all devices, ensuring a seamless experience on mobile and desktop."
+    }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50">
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-indigo-900">Frequently Asked Questions</h1>
-          <p className="mt-2 text-indigo-600">
-            Find answers to common questions about our tax filing service
+    <PageBackground>
+      <div className="w-full flex flex-col space-y-4 py-4 max-w-2xl mx-auto">
+        <div className="text-center space-y-1 mb-4">
+          <h1 className="text-xl font-bold uppercase tracking-widest">Inquiries.</h1>
+          <div className="h-[1px] w-8 bg-primary mx-auto" />
+          <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-60 mt-2">
+            Common questions about our service.
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {faqs.map((faq, index) => (
-            <div
+            <motion.div
               key={index}
-              className="p-6 rounded-lg bg-white/80 backdrop-blur-sm border border-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="glass rounded-2xl p-4 border border-white/5 hover:border-primary/20 transition-all group"
             >
-              <h3 className="text-lg font-semibold text-indigo-900 mb-3">{faq.question}</h3>
-              <p className="text-indigo-800">{faq.answer}</p>
-            </div>
+              <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2 text-primary group-hover:text-primary/80 transition-colors">
+                {faq.question}
+              </h3>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide leading-relaxed opacity-80">
+                {faq.answer}
+              </p>
+            </motion.div>
           ))}
         </div>
-
-        <div className="mt-12 p-6 rounded-lg bg-white/80 backdrop-blur-sm border border-emerald-200 text-center">
-          <h2 className="text-lg font-semibold text-indigo-900 mb-2">Still have questions?</h2>
-          <p className="text-indigo-800 mb-4">
-            Our support team is here to help you with any questions you may have.
-          </p>
-          <Link 
-            href="/contact"
-            className="inline-block px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors duration-300"
-          >
-            Contact Support
-          </Link>
-        </div>
       </div>
-    </div>
+    </PageBackground>
   )
 }

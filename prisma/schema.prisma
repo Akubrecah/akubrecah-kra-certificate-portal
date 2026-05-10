@@ -20,8 +20,22 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   role          String    @default("user") // "user", "admin"
+  activities    UserActivity[]
 
   @@map("users")
+}
+
+model UserActivity {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityType String   @map("activity_type") // e.g., 'login', 'file_return', 'update_profile'
+  description  String?
+  status       String   @default("success") // 'success', 'error', 'warning', 'info'
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("user_activities")
 }
 
 model ServiceSetting {
@@ -157,6 +171,7 @@ model Session {
   completedAt  DateTime?         @map("completed_at")
   createdAt    DateTime          @default(now()) @map("created_at")
   activities   SessionActivity[]
+  userId       String?           @map("user_id")
 
   @@map("sessions")
 }
@@ -171,6 +186,19 @@ model SessionActivity {
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("session_activities")
+}
+
+model BlogPost {
+  id        String   @id @default(uuid())
+  title     String
+  date      String   // Using string to match the requested format YYYY.MM.DD
+  excerpt   String
+  content   String   @db.Text
+  image     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("blog_posts")
 }
 
 model AppSetting {

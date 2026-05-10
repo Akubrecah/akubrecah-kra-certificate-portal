@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { isAdminUser } from '@/lib/admin-config';
 import prisma from '@/lib/prisma';
+import { logUserActivity } from '@/lib/activity-logger';
+
 
 export async function GET() {
   try {
@@ -34,7 +36,7 @@ export async function GET() {
       const email = clerkUser.emailAddresses[0]?.emailAddress;
       if (email) {
         try {
-          await prisma.user.upsert({
+          const newUser = await prisma.user.upsert({
             where: { clerkId: clerkUser.id },
             update: {
               email,
@@ -52,6 +54,19 @@ export async function GET() {
               role: (clerkUser.publicMetadata?.role as string) || 'user',
             },
           });
+
+          // Log activity for the synced user
+          await logUserActivity({
+            userId: newUser.id,
+            activityType: 'auth',
+            description: `User synced from Clerk: ${email}`,
+            status: 'success',
+            metadata: {
+              clerkId: clerkUser.id,
+              source: 'admin_sync'
+            }
+          });
+
         } catch (e) {
           console.error(`Error upserting user ${clerkUser.id}:`, e);
         }
@@ -64,15 +79,38 @@ export async function GET() {
     });
 
     // Map Clerk data to a consistent format for the frontend
-    const formattedUsers = clerkUsers.map(u => ({
-      id: u.id,
-      name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Anonymous',
-      email: u.emailAddresses[0]?.emailAddress || 'N/A',
-      image: u.imageUrl,
-      status: 'active', // Clerk doesn't have a simple 'active' status like mock
-      role: (u.publicMetadata?.role as string) || 'user',
-      registeredAt: new Date(u.createdAt).toISOString(),
-      lastActive: new Date(u.lastSignInAt || u.updatedAt).toISOString(),
+    const formattedUsers = await Promise.all(clerkUsers.map(async (u) => {
+      // Find the most recent PIN retrieved by this user from their activity logs
+      const dbUser = dbUsers.find(dbu => dbu.clerkId === u.id);
+      let lastPin = 'N/A';
+      
+      if (dbUser) {
+        const latestActivity = await prisma.userActivity.findFirst({
+          where: { 
+            userId: dbUser.id,
+            activityType: 'return',
+            status: 'success'
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        if (latestActivity && latestActivity.metadata) {
+          const metadata = latestActivity.metadata as any;
+          lastPin = metadata.pin || 'N/A';
+        }
+      }
+
+      return {
+        id: u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Anonymous',
+        email: u.emailAddresses[0]?.emailAddress || 'N/A',
+        image: u.imageUrl,
+        pin: lastPin,
+        status: u.lastSignInAt ? 'active' : 'inactive',
+        role: (u.publicMetadata?.role as string) || 'user',
+        registeredAt: new Date(u.createdAt).toISOString(),
+        lastActive: new Date(u.lastSignInAt || u.updatedAt).toISOString(),
+      };
     }));
 
     return NextResponse.json(formattedUsers);

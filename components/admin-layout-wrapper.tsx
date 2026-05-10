@@ -5,20 +5,15 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 
 export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const isAdminPage = pathname?.startsWith('/admin')
-
-  if (isAdminPage) {
-    // For admin pages, don't show the header and footer
-    return <>{children}</>
-  }
-
-  // For non-admin pages, show the header and footer
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <SiteHeader />
-      {children}
+      <main className="flex-grow pt-0 pb-4">
+        <div className="container mx-auto max-w-3xl px-4 flex flex-col items-center">
+          {children}
+        </div>
+      </main>
       <SiteFooter />
-    </>
+    </div>
   )
 }

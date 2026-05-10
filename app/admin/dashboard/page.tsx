@@ -94,204 +94,135 @@ export default function DashboardPage() {
   if (loading && dashboardData.totals.users === 0) {
     return (
       <div className="flex h-[400px] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Syncing realtime data...</span>
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <span className="ml-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Syncing realtime data...</span>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 space-y-4 p-6 lg:p-2">
-
-      {/* Top stats row */}
+    <div className="max-w-3xl mx-auto space-y-12">
+      {/* Top stats row - High density minimal cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totals.users.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">Real-time</span>
-              <span className="ml-1">from Clerk</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">KES {dashboardData.totals.revenue.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">Live</span>
-              <span className="ml-1">total revenue</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Returns Filed</CardTitle>
-            <FileText className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totals.returns.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">Live</span>
-              <span className="ml-1">total returns</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card hover:bg-card/80 transition-colors border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totals.successRate.toFixed(1)}%</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 font-medium">Live</span>
-              <span className="ml-1">completion rate</span>
-            </div>
-          </CardContent>
-        </Card>
+        {[
+          { title: "Network Growth", value: dashboardData.totals.users, icon: Users, sub: "Clerk Synced" },
+          { title: "Protocol Yield", value: `KES ${dashboardData.totals.revenue}`, icon: DollarSign, sub: "Gross Return" },
+          { title: "Active Files", value: dashboardData.totals.returns, icon: FileText, sub: "Generated" },
+          { title: "Success Rate", value: `${dashboardData.totals.successRate.toFixed(1)}%`, icon: CheckCircle, sub: "Completion" }
+        ].map((stat, i) => (
+          <Card key={i} className="bg-white/5 border-white/5 shadow-none hover:bg-white/[0.08] transition-all group rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-4">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity">{stat.title}</CardTitle>
+              <stat.icon className="h-3 w-3 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="text-xl font-bold tracking-tight">{stat.value.toLocaleString()}</div>
+              <div className="flex items-center text-[9px] font-bold uppercase tracking-widest text-primary/40 mt-1">
+                <span>{stat.sub}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
       
       {/* Charts section */}
-      <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 border-primary/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>User Growth</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dashboardData.userMetrics}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.1} />
-                <XAxis dataKey="name" stroke="#888" fontSize={12} />
-                <YAxis stroke="#888" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
-                  itemStyle={{ color: '#06b6d4' }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="users" 
-                  stroke="#06b6d4" 
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#06b6d4' }}
-                  activeDot={{ r: 8, strokeWidth: 0 }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="rounded-2xl border-white/5 bg-white/5 shadow-none p-6">
+          <div className="flex flex-col gap-1 mb-8">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">User Ingress</h3>
+            <p className="text-[9px] uppercase tracking-widest opacity-40">7-Day Registration Velocity</p>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={dashboardData.userMetrics}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} vertical={false} />
+              <XAxis dataKey="name" stroke="#ffffff" fontSize={8} tickLine={false} axisLine={false} tick={{ opacity: 0.3 }} />
+              <YAxis stroke="#ffffff" fontSize={8} tickLine={false} axisLine={false} tick={{ opacity: 0.3 }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '8px' }}
+                labelStyle={{ fontSize: '9px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px' }}
+                itemStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#fff', textTransform: 'uppercase' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="users" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0, fill: 'hsl(var(--primary))' }} 
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </Card>
         
-        <Card className="md:col-span-3 border-primary/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>PIN Type Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={dashboardData.pinBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
+        <Card className="rounded-2xl border-white/5 bg-white/5 shadow-none p-6">
+          <div className="flex flex-col gap-1 mb-8">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Asset Distribution</h3>
+            <p className="text-[9px] uppercase tracking-widest opacity-40">Account Classification</p>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={dashboardData.pinBreakdown}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={70}
+                paddingAngle={8}
+                dataKey="value"
+                stroke="none"
+              >
+              </Pie>
+              <Tooltip 
+                 contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                 itemStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </Card>
       </div>
       
-      {/* Recent activity and table data */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dashboardData.recentActivity.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground italic text-sm">
-                  No recent activity found in database.
-                </div>
-              ) : (
-                dashboardData.recentActivity.map((activity: any) => (
-                  <div key={activity.id} className="flex items-start gap-4 rounded-lg border border-primary/5 p-3 bg-primary/5 hover:bg-primary/10 transition-colors">
-                    <div className="rounded-full p-2 bg-primary/10">
-                      {activity.type === 'return' && <FileText className="h-4 w-4 text-primary" />}
-                      {activity.type === 'payment' && <DollarSign className="h-4 w-4 text-primary" />}
-                      {activity.type === 'registration' && <Users className="h-4 w-4 text-primary" />}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {activity.user}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {activity.type === 'return' ? 'Filed a tax return' : 
-                         activity.type === 'payment' ? 'Made a payment' : 
-                         'Active session detected'}
-                      </p>
-                      <div className="flex items-center pt-1">
-                        <CalendarDays className="mr-1 h-3 w-3 text-muted-foreground opacity-70" />
-                        <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</span>
-                        <span className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          activity.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
-                          activity.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                          'bg-red-500/10 text-red-500'
-                        }`}>
-                          {activity.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Recent activity */}
+      <Card className="rounded-2xl border-white/5 bg-white/5 shadow-none p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Vault Activity</h3>
+            <p className="text-[9px] uppercase tracking-widest opacity-40">Live Real-time Ledger</p>
+          </div>
+          <Activity className="h-4 w-4 text-primary opacity-40" />
+        </div>
         
-        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Returns Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dashboardData.returnsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.1} />
-                <XAxis dataKey="name" stroke="#888" fontSize={12} />
-                <YAxis stroke="#888" fontSize={12} />
-                <Tooltip 
-                   contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
-                />
-                <Legend />
-                <Bar dataKey="completed" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="pending" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="failed" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="space-y-3">
+          {dashboardData.recentActivity.length === 0 ? (
+            <div className="py-20 text-center text-[9px] font-bold uppercase tracking-widest opacity-20 border border-dashed border-white/5 rounded-2xl">
+              LEDGER EMPTY
+            </div>
+          ) : (
+            dashboardData.recentActivity.map((activity: any) => (
+              <div key={activity.id} className="flex items-center gap-6 p-4 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all rounded-xl">
+                <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center">
+                  {activity.type === 'return' && <FileText className="h-3 w-3 text-primary" />}
+                  {activity.type === 'payment' && <DollarSign className="h-3 w-3 text-primary" />}
+                  {activity.type === 'registration' && <Users className="h-3 w-3 text-primary" />}
+                </div>
+                <div className="flex-1 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wide">{activity.user}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-40">
+                      {activity.type} Protocol Verified
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1.5">
+                    <p className="text-[9px] font-bold uppercase tracking-widest opacity-30">{formatTimeAgo(activity.time)}</p>
+                    <span className="inline-block text-[8px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full border border-primary/20 text-primary bg-primary/5">
+                      {activity.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
     </div>
   )
 }
-

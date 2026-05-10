@@ -40,31 +40,97 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState('Last 30 days')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [activeReportTab, setActiveReportTab] = useState('overview')
+  const [isLoading, setIsLoading] = useState(true)
+  const [data, setData] = useState({
+    overviewData: [],
+    returnsTrendData: [],
+    userTrendData: [],
+    recentActivities: [],
+    users: [],
+    totals: { users: 0, returns: 0, successRate: 0, revenue: 0 }
+  })
 
-  // Fetch data from our reporting data source
-  const {
-    overviewData,
-    returnsTrendData,
-    transactionsTrendData,
-    userTrendData,
-    documentsTrendData,
-    recentActivities,
-    reportColumns,
-    reportData,
-    returnsByTypeData
-  } = getReportingData() || {}
+  const fetchData = async () => {
+    setIsRefreshing(true)
+    try {
+      const [dashboardRes, usersRes, activitiesRes] = await Promise.all([
+        fetch('/api/admin/dashboard'),
+        fetch('/api/admin/users'),
+        fetch('/api/admin/activities?limit=10')
+      ])
+
+      const dashboard = await dashboardRes.json()
+      const users = await usersRes.json()
+      const activities = await activitiesRes.json()
+
+      // Format overview data for StatCards
+      const overviewData = [
+        {
+          title: 'Total Returns',
+          value: dashboard.totals?.returns?.toLocaleString() || '0',
+          icon: FileText,
+          change: 0,
+          trend: 'positive',
+          tooltip: 'Total successful filings'
+        },
+        {
+          title: 'Total Users',
+          value: dashboard.totals?.users?.toLocaleString() || '0',
+          icon: Users,
+          change: 0,
+          trend: 'positive',
+          tooltip: 'Total registered users'
+        },
+        {
+          title: 'Success Rate',
+          value: `${dashboard.totals?.successRate?.toFixed(1) || '0'}%`,
+          icon: BarChart,
+          change: 0,
+          trend: 'positive',
+          tooltip: 'Filing success rate'
+        },
+        {
+          title: 'Total Revenue',
+          value: `KES ${dashboard.totals?.revenue?.toLocaleString() || '0'}`,
+          icon: CreditCard,
+          change: 0,
+          trend: 'neutral',
+          tooltip: 'Total processed payments'
+        }
+      ]
+
+      setData({
+        overviewData,
+        returnsTrendData: dashboard.returnsTrendData || [], // We should add this to dashboard API too
+        userTrendData: dashboard.userTrendData || [],
+        recentActivities: activities || [],
+        users: users.users || [],
+        totals: dashboard.totals || { users: 0, returns: 0, successRate: 0, revenue: 0 }
+      })
+    } catch (error) {
+      console.error('Error fetching reporting data:', error)
+    } finally {
+      setIsRefreshing(false)
+      setIsLoading(false)
+    }
+  }
+
+  React.useEffect(() => {
+    fetchData()
+  }, [])
 
   // Format activities for the activity log component
-  const formattedActivities = recentActivities?.map(activity => ({
+  const formattedActivities = data.recentActivities.map(activity => ({
     id: activity.id,
-    type: activity.type as ActivityType,
+    type: (activity.type as string).toLowerCase().includes('sync') ? 'auth' : 
+          (activity.type as string).toLowerCase().includes('return') ? 'return' : 'system' as ActivityType,
     title: activity.title,
     description: activity.description,
     timestamp: activity.timestamp,
-    status: activity.status === 'completed' ? 'success' as ActivityStatus :
+    status: activity.status === 'completed' || activity.status === 'success' ? 'success' as ActivityStatus :
       activity.status === 'pending' ? 'pending' as ActivityStatus : 'info' as ActivityStatus,
-    user: activity.user
-  })) || []
+    user: activity.user?.name || activity.user?.email || 'Unknown'
+  }))
 
   const handleGenerateReport = () => {
     // In a real app, this would trigger a report generation
@@ -72,11 +138,7 @@ export default function ReportsPage() {
   }
 
   const handleRefreshData = () => {
-    setIsRefreshing(true)
-    // Simulate data refresh
-    setTimeout(() => {
-      setIsRefreshing(false)
-    }, 1000)
+    fetchData()
   }
 
   const handleExportData = () => {
@@ -158,7 +220,7 @@ export default function ReportsPage() {
 
           <TabsContent value="overview" className="space-y-4 mt-0">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              {overviewData?.map((stat, index) => (
+              {data.overviewData?.map((stat, index) => (
                 <StatCard
                   key={index}
                   title={stat.title}
@@ -173,12 +235,12 @@ export default function ReportsPage() {
 
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
               <MetricsChart
-                title="Returns Trend"
-                description="Number of returns filed over time"
-                data={returnsTrendData}
+                title="User Growth"
+                description="New registrations over the last 6 months"
+                data={data.userTrendData}
                 type="line"
                 series={[
-                  { name: 'Returns', dataKey: 'value', color: '#8884d8' }
+                  { name: 'Users', dataKey: 'value', color: '#8884d8' }
                 ]}
                 dateRanges={dateRanges}
                 selectedRange={dateRange}
@@ -186,23 +248,22 @@ export default function ReportsPage() {
                 showLegend={false}
                 height={280}
                 trend={{
-                  value: 12.5,
+                  value: 0,
                   direction: 'up',
-                  label: 'increase'
+                  label: 'real data'
                 }}
                 actions={[
-                  { label: 'Download Data', action: handleExportData },
-                  { label: 'View Full Report', action: () => { } }
+                  { label: 'Refresh', action: fetchData }
                 ]}
               />
 
               <MetricsChart
-                title="Transaction Volume"
-                description="Total transaction volume over time"
-                data={transactionsTrendData}
+                title="Success Rate"
+                description="Filing performance"
+                data={[{ name: 'Success', value: data.totals.successRate }, { name: 'Total', value: 100 }]}
                 type="area"
                 series={[
-                  { name: 'Transactions', dataKey: 'value', color: '#82ca9d' }
+                  { name: 'Rate', dataKey: 'value', color: '#82ca9d' }
                 ]}
                 dateRanges={dateRanges}
                 selectedRange={dateRange}
@@ -210,27 +271,38 @@ export default function ReportsPage() {
                 showLegend={false}
                 height={280}
                 trend={{
-                  value: 8.3,
+                  value: data.totals.successRate,
                   direction: 'up',
-                  label: 'increase'
+                  label: 'success'
                 }}
                 actions={[
-                  { label: 'Download Data', action: handleExportData },
-                  { label: 'View Full Report', action: () => { } }
+                  { label: 'Refresh', action: fetchData }
                 ]}
               />
             </div>
 
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <DataTable
-                  columns={reportColumns}
-                  data={reportData}
-                  searchColumn="name"
-                  searchPlaceholder="Search reports..."
-                  onExportData={handleExportData}
-                  pageSize={5}
-                />
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle>Registered Users</CardTitle>
+                    <CardDescription>Latest users in the system</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <DataTable
+                      columns={[
+                        { accessorKey: 'email', header: 'Email' },
+                        { accessorKey: 'firstName', header: 'First Name' },
+                        { accessorKey: 'lastName', header: 'Last Name' },
+                        { accessorKey: 'createdAt', header: 'Joined', cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString() },
+                      ]}
+                      data={data.users.slice(0, 5)}
+                      searchColumn="email"
+                      searchPlaceholder="Search users..."
+                      pageSize={5}
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               <Card>
@@ -500,24 +572,32 @@ export default function ReportsPage() {
               <CardContent>
                 <DataTable
                   columns={[
-                    { accessorKey: 'id', header: 'User ID' },
-                    { accessorKey: 'name', header: 'Name' },
                     { accessorKey: 'email', header: 'Email' },
-                    { accessorKey: 'role', header: 'Role' },
-                    { accessorKey: 'lastActive', header: 'Last Active' },
-                    { accessorKey: 'status', header: 'Status' },
+                    { accessorKey: 'firstName', header: 'First Name' },
+                    { accessorKey: 'lastName', header: 'Last Name' },
+                    { accessorKey: 'createdAt', header: 'Joined', cell: ({ row }) => new Date(row.original.createdAt).toLocaleString() },
+                    { 
+                      id: 'actions', 
+                      header: 'Actions',
+                      cell: ({ row }) => (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            window.location.href = `/admin/activity?search=${row.original.email}`
+                          }}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Activity
+                        </Button>
+                      )
+                    },
                   ]}
-                  data={[
-                    { id: 'USR-2025-001', name: 'John Doe', email: 'john.doe@example.com', role: 'Taxpayer', lastActive: '2025-04-12', status: 'Active' },
-                    { id: 'USR-2025-002', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Accountant', lastActive: '2025-04-11', status: 'Active' },
-                    { id: 'USR-2025-003', name: 'Robert Johnson', email: 'robert.j@example.com', role: 'Taxpayer', lastActive: '2025-04-10', status: 'Active' },
-                    { id: 'USR-2025-004', name: 'Mary Williams', email: 'mary.w@example.com', role: 'Administrator', lastActive: '2025-04-12', status: 'Active' },
-                    { id: 'USR-2025-005', name: 'David Brown', email: 'david.b@example.com', role: 'Taxpayer', lastActive: '2025-04-05', status: 'Inactive' },
-                  ]}
-                  searchColumn="name"
-                  searchPlaceholder="Search by name..."
+                  data={data.users}
+                  searchColumn="email"
+                  searchPlaceholder="Search by email..."
                   onExportData={handleExportData}
-                  pageSize={5}
+                  pageSize={10}
                 />
               </CardContent>
             </Card>

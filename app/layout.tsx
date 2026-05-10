@@ -47,7 +47,7 @@ export default async function RootLayout({
                 
                 <KRAAnnouncementBanner />
                 <AdminLayoutWrapper>
-                  <main className="relative z-10 flex-1">{children}</main>
+                  {children}
                 </AdminLayoutWrapper>
               </div>
             </TooltipProviderWrapper>

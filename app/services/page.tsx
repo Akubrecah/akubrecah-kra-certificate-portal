@@ -1,106 +1,130 @@
-import Link from 'next/link'
 import { PageBackground } from "@/components/ui/page-background"
-import { FilePlusIcon, KeyIcon, MailIcon, Shield, ActivityIcon, FileText } from 'lucide-react'
-import ServiceSidebar from '@/components/service-sidebar';
+import { FilePlusIcon, KeyIcon, MailIcon, Shield, ActivityIcon, FileText, ArrowUpRight } from 'lucide-react'
+import Link from "next/link"
 
 export default function ServicesPage() {
-    const services = [
-        {
-            title: "Register KRA PIN",
-            description: "Get your KRA PIN quickly and easily with our streamlined process.",
-            icon: "file-plus",
-            slug: "register-kra-pin",
-            price: "KES 30",
-            benefits: ["Fast processing", "No paperwork", "Step-by-step guidance"]
-        },
-        {
-            title: "Renew KRA Password",
-            description: "Reset your KRA password securely without the usual hassle.",
-            icon: "key",
-            slug: "renew-kra-password",
-            price: "KES 20",
-            benefits: ["Instant reset", "Bank-level security", "24/7 availability"]
-        },
-        {
-            title: "File Nil Returns",
-            description: "Quick and easy nil returns filing for individuals and companies.",
-            icon: "file-text",
-            slug: "file-nil-returns",
-            price: "KES 30",
-            benefits: ["30-second filing", "Automatic compliance", "Digital receipts"]
-        },
-        {
-            title: "Change KRA Email",
-            description: "Update your registered email address with KRA in minutes.",
-            icon: "mail",
-            slug: "change-kra-email",
-            price: "KES 30",
-            benefits: ["Simple verification", "Automated confirmation", "Secure process"]
-        },
-        {
-            title: "Register NSSF",
-            description: "Complete your NSSF registration quickly and without complications.",
-            icon: "shield",
-            slug: "register-nssf",
-            price: "KES 30",
-            benefits: ["Compliance assured", "Digital certificates", "Future-proof setup"]
-        },
-        {
-            title: "Register SHIF",
-            description: "Get registered with the Social Health Insurance Fund easily.",
-            icon: "heart-pulse",
-            slug: "register-shif",
-            price: "KES 30",
-            benefits: ["Immediate activation", "Paperless process", "Full compliance"]
-        }
-    ];
+  const services = [
+    {
+      title: "Register KRA PIN",
+      description: "Get your KRA PIN quickly and easily with our streamlined retrieval protocol.",
+      icon: <FilePlusIcon />,
+      slug: "register-kra-pin",
+      price: "KES 30",
+      accent: "text-brand-cyan"
+    },
+    {
+      title: "Renew KRA Password",
+      description: "Reset your KRA vault access securely without the usual administrative hassle.",
+      icon: <KeyIcon />,
+      slug: "renew-kra-password",
+      price: "KES 20",
+      accent: "text-brand-yellow"
+    },
+    {
+      title: "File Nil Returns",
+      description: "High-speed nil returns filing for individuals and corporate entities.",
+      icon: <FileText />,
+      slug: "file-nil-returns",
+      price: "KES 30",
+      accent: "text-brand-cyan"
+    },
+    {
+      title: "Change KRA Email",
+      description: "Update your primary communication channel with KRA in under 2 minutes.",
+      icon: <MailIcon />,
+      slug: "change-kra-email",
+      price: "KES 30",
+      accent: "text-brand-yellow"
+    },
+    {
+      title: "Register NSSF",
+      description: "Complete your social security registration with automated compliance checks.",
+      icon: <Shield />,
+      slug: "register-nssf",
+      price: "KES 30",
+      accent: "text-brand-cyan"
+    },
+    {
+      title: "Register SHIF",
+      description: "Onboard with the Social Health Insurance Fund via our secure portal.",
+      icon: <ActivityIcon />,
+      slug: "register-shif",
+      price: "KES 30",
+      accent: "text-brand-yellow"
+    }
+  ];
 
-    return (
-        <PageBackground>
-            <div className="mx-auto max-w-6xl space-y-8 px-4">
-                <div className="text-center mb-8 md:mb-12">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tighter sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan via-brand-cyan to-brand-green">
-                        Our Services
-                    </h1>
-                    <p className="mt-3 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Simplify your tax compliance journey with our range of specialized services designed for Kenyan youth and students.
+  return (
+    <PageBackground className="pt-24 pb-20">
+      <div className="container mx-auto px-6 max-w-6xl space-y-16">
+        {/* Header */}
+        <div className="text-center space-y-6 max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 mb-4">
+            <span className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-cyan">Protocol Catalog</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[1.1]">
+            Our <span className="text-brand-cyan">Compliance</span> Services
+          </h1>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Precision-engineered tax solutions designed specifically for the digital-native generation. Secure, fast, and fully compliant.
+          </p>
+        </div>
+
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {services.map((service, i) => (
+            <Link href={`/services/${service.slug}`} key={i} className="group">
+              <div className="glass-pro p-8 rounded-[2rem] border border-white/5 h-full flex flex-col justify-between transition-all duration-500 hover:border-brand-cyan/30 hover:translate-y-[-4px] relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <div className="scale-[2.5] origin-top-right">
+                    {service.icon}
+                  </div>
+                </div>
+
+                <div className="relative z-10 space-y-6">
+                  <div className={`h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-brand-cyan/50 transition-colors ${service.accent}`}>
+                    {service.icon}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-black tracking-tight text-white group-hover:text-brand-cyan transition-colors">
+                      {service.title}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed text-sm">
+                      {service.description}
                     </p>
+                  </div>
                 </div>
-                {/* <ServiceSidebar /> */}
 
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                    {services.map((service, index) => (
-                        <Link href={`/services/${service.slug}`} key={index}>
-                            <div className="group relative overflow-hidden rounded-xl border hover:border-primary transition-all duration-300 h-full">
-                                {/* Gradient overlay on hover */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-brand-cyan/10 to-brand-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                                <div className="bg-background p-4 h-full flex flex-col">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                                            {service.icon === "key" && <KeyIcon className="h-4 w-4" />}
-                                            {service.icon === "mail" && <MailIcon className="h-4 w-4" />}
-                                            {service.icon === "file-plus" && <FilePlusIcon className="h-4 w-4" />}
-                                            {service.icon === "shield" && <Shield className="h-4 w-4" />}
-                                            {service.icon === "heart-pulse" && <ActivityIcon className="h-4 w-4" />}
-                                            {service.icon === "file-text" && <FileText className="h-4 w-4" />}
-                                        </div>
-                                        <h3 className="text-sm font-bold leading-tight">{service.title}</h3>
-                                    </div>
-
-                                    <p className="text-xs text-muted-foreground mb-2 flex-grow">{service.description}</p>
-
-                                    <div className="text-xs font-semibold text-primary mt-1 mb-1">{service.price}</div>
-
-                                    <div className="text-xs mt-auto">
-                                        <span className="text-primary group-hover:underline">Learn more →</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
+                <div className="relative z-10 pt-8 flex items-center justify-between border-t border-white/5 mt-8">
+                  <span className="text-xl font-black text-white">{service.price}</span>
+                  <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-brand-cyan group-hover:text-black transition-all">
+                    <ArrowUpRight size={20} />
+                  </div>
                 </div>
-            </div>
-        </PageBackground>
-    )
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Custom Service CTA */}
+        <div className="glass-pro p-8 md:p-12 rounded-[2.5rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-8 mt-12 bg-gradient-to-br from-brand-cyan/5 to-transparent">
+          <div className="space-y-2 text-center md:text-left">
+            <h2 className="text-2xl font-black text-white tracking-tight">Need a custom filing solution?</h2>
+            <p className="text-muted-foreground">Our compliance experts are available for complex corporate tax structures.</p>
+          </div>
+          <Link 
+            href="/contact" 
+            className="px-8 py-4 rounded-full bg-white text-black font-black uppercase tracking-widest hover:bg-brand-cyan transition-colors shrink-0"
+          >
+            Contact Expert
+          </Link>
+        </div>
+      </div>
+    </PageBackground>
+  )
+}
+
 }

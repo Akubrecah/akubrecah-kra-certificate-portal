@@ -2,39 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { PageBackground } from "@/components/ui/page-background"
+import { motion, AnimatePresence } from "framer-motion"
+import { ArrowLeft, Clock } from "lucide-react"
 
 interface BlogPost {
-  id: number
+  id: string
   title: string
   date: string
   excerpt: string
   content: string
   image: string
-}
-
-const originalImages = [
-  "https://images.pexels.com/photos/53621/calculator-calculation-insurance-finance-53621.jpeg",
-  "https://images.pexels.com/photos/95916/pexels-photo-95916.jpeg",
-  "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg",
-  "https://images.pexels.com/photos/6863250/pexels-photo-6863250.jpeg",
-  "https://images.pexels.com/photos/7681091/pexels-photo-7681091.jpeg",
-  "https://images.pexels.com/photos/4386339/pexels-photo-4386339.jpeg",
-  "https://images.pexels.com/photos/4475523/pexels-photo-4475523.jpeg",
-  "https://images.pexels.com/photos/7681097/pexels-photo-7681097.jpeg",
-  "https://images.pexels.com/photos/6863255/pexels-photo-6863255.jpeg",
-  "https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg"
-]
-
-const createBlogPosts = (images: string[]): BlogPost[] => {
-  return Array.from({ length: 10 }, (_, index) => ({
-    id: index + 1,
-    title: `Blog Post ${index + 1}`,
-    date: `2023-0${(index % 12) + 1}-15`,
-    excerpt: `This is the summary of Blog Post ${index + 1}. Learn key tips, insights, and guidance on tax filing...`,
-    content: `This is the full content of Blog Post ${index + 1}. Here, you will find detailed insights, guidance, and tips to help you navigate tax compliance in Kenya. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.`,
-    image: images[index]
-  }))
 }
 
 export default function BlogPage() {
@@ -43,177 +21,136 @@ export default function BlogPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function initializeBlogPosts() {
+    const fetchPosts = async () => {
       try {
-        const response = await fetch('/api/download-images', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            images: originalImages.map((url, index) => ({
-              url,
-              filename: `tax-image-${index + 1}.jpg`
-            }))
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to download images')
+        const response = await fetch('/api/admin/blog')
+        if (response.ok) {
+          const data = await response.json()
+          setBlogPosts(data)
         }
-
-        const { imagePaths } = await response.json()
-        setBlogPosts(createBlogPosts(imagePaths))
       } catch (error) {
-        console.error('Error initializing blog posts:', error)
-        setBlogPosts(createBlogPosts(originalImages))
+        console.error('Failed to fetch blog posts')
       } finally {
         setIsLoading(false)
       }
     }
-
-    initializeBlogPosts()
+    fetchPosts()
   }, [])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50">
-        <div className="container py-8 md:py-16 lg:py-24 px-4 md:px-6">
-          <div className="mx-auto max-w-7xl space-y-4 md:space-y-8">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-              <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-indigo-900">Loading...</h1>
-            </div>
-          </div>
+      <PageBackground>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         </div>
-      </div>
+      </PageBackground>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50">
-      <div className="container py-8 md:py-16 lg:py-24 px-4 md:px-6">
-        <div className="mx-auto max-w-7xl space-y-4 md:space-y-8">
-          <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-indigo-900">
-            Akubrecah Entertainment Blog
-          </h1>
-          <p className="text-base md:text-xl text-indigo-600">
-            Stay updated with the latest news, tips, and insights about tax filing and compliance in Kenya.
+    <PageBackground>
+      <div className="w-full max-w-3xl mx-auto py-6 space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold tracking-tighter uppercase">Insights <span className="text-primary">&</span> Updates.</h1>
+          <p className="text-[9px] text-muted-foreground uppercase tracking-widest opacity-60">
+            Latest news and guides from Akubrecah • 2026 Edition
           </p>
+        </div>
 
-          {/* Mobile Back Button */}
-          {selectedPost && (
-            <button
-              className="md:hidden mb-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors"
-              onClick={() => setSelectedPost(null)}
+        <AnimatePresence mode="wait">
+          {selectedPost ? (
+            <motion.div
+              key="post"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
             >
-              Back to All Blogs
-            </button>
-          )}
+              <button
+                onClick={() => setSelectedPost(null)}
+                className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-primary hover:opacity-70 transition-all"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                Back to Feed
+              </button>
 
-          <div className={`grid ${
-            selectedPost 
-              ? 'grid-cols-1 md:grid-cols-4 gap-4 md:gap-6' 
-              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6'
-          }`}>
-            {/* Blog Posts List */}
-            <div className={`space-y-4 ${
-              selectedPost 
-                ? 'hidden md:block md:col-span-1' 
-                : 'col-span-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6'
-            }`}>
-              {blogPosts.map((post, index) => (
-                <article
-                  key={post.id}
-                  className={`group cursor-pointer rounded-lg border border-emerald-200 bg-white/80 hover:bg-white/90 ${
-                    selectedPost 
-                      ? 'flex items-center space-x-4 p-2' 
-                      : 'flex flex-col p-3 md:p-4'
-                  } transition-all duration-200 shadow-sm hover:shadow-md`}
-                  onClick={() => setSelectedPost(post)}
-                >
-                  {/* Index for compact view */}
-                  {selectedPost && (
-                    <span className="text-xs font-bold text-indigo-600">{index + 1}.</span>
-                  )}
-                  
-                  {/* Image */}
-                  <div className={`${
-                    selectedPost 
-                      ? 'w-12 h-12 flex-shrink-0' 
-                      : 'relative w-full h-32 md:h-40'
-                  } relative`}>
-                    <Image
-                      src={post.image}
-                      alt={post.title}
-                      fill
-                      sizes={selectedPost 
-                        ? "48px" 
-                        : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"}
-                      priority={index < 4 || post.id === selectedPost?.id}
-                      className="object-cover rounded-md"
-                    />
-                  </div>
-                  
-                  {/* Content */}
-                  <div className={selectedPost ? 'flex-1 min-w-0' : 'mt-3'}>
-                    <h2 className={`${
-                      selectedPost 
-                        ? 'text-sm font-medium truncate' 
-                        : 'text-base md:text-lg font-semibold'
-                    } text-indigo-800 group-hover:text-indigo-900`}>
-                      {post.title}
-                    </h2>
-                    {!selectedPost && (
-                      <>
-                        <p className="mt-1 text-xs text-indigo-600">Published on: {post.date}</p>
-                        <p className="mt-2 text-sm text-indigo-700 line-clamp-2">{post.excerpt}</p>
-                      </>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {/* Selected Post Preview */}
-            {selectedPost && (
-              <div className={`col-span-1 md:col-span-3 ${
-                selectedPost ? 'block' : 'hidden'
-              } md:sticky md:top-24 max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-6rem)] overflow-auto rounded-lg border border-emerald-200 bg-white/80 p-4 md:p-6`}>
-                <h2 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-indigo-900">
-                  {selectedPost.title}
-                </h2>
-                <p className="text-xs md:text-sm text-indigo-600 mb-3 md:mb-4">
-                  Published on: {selectedPost.date}
-                </p>
-                
-                <div className="relative h-40 md:h-48 w-full mb-3 md:mb-4">
+              <div className="glass rounded-2xl overflow-hidden border border-white/5">
+                <div className="relative h-64 w-full">
                   <Image
                     src={selectedPost.image}
                     alt={selectedPost.title}
                     fill
-                    sizes="(max-width: 768px) 100vw, 800px"
-                    priority
-                    className="object-cover rounded-md"
-                    loading="eager"
+                    className="object-cover opacity-80"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <h2 className="text-xl font-bold text-white uppercase tracking-tight">{selectedPost.title}</h2>
+                  </div>
                 </div>
-                
-                <p className="text-base md:text-lg text-indigo-800 leading-relaxed">
-                  {selectedPost.content}
-                </p>
-                
-                <button
-                  className="mt-4 md:mt-6 hidden md:inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors"
-                  onClick={() => setSelectedPost(null)}
-                >
-                  Back to All Blogs
-                </button>
+                <div className="p-8 space-y-4">
+                  <div className="flex items-center gap-2 text-[8px] text-primary font-bold uppercase tracking-widest">
+                    <Clock className="w-3 h-3" />
+                    {selectedPost.date}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed opacity-80">
+                    {selectedPost.content}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-1 gap-4"
+            >
+              {blogPosts.map((post, index) => (
+                <motion.article
+                  key={post.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => setSelectedPost(post)}
+                  className="glass rounded-2xl border border-white/5 hover:border-primary/20 transition-all cursor-pointer group overflow-hidden flex flex-col md:flex-row h-auto md:h-48"
+                >
+                  {/* Landscape Image Section */}
+                  <div className="relative w-full md:w-2/5 h-40 md:h-full overflow-hidden">
+                    <Image
+                      src={post.image}
+                      alt={post.title}
+                      fill
+                      className="object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent hidden md:block" />
+                  </div>
+                  
+                  {/* Content Section */}
+                  <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2 text-[8px] text-primary font-bold uppercase tracking-widest">
+                        <Clock className="w-3 h-3" />
+                        {post.date}
+                      </div>
+                    </div>
+                    <h2 className="text-sm font-bold uppercase tracking-tight group-hover:text-primary transition-colors line-clamp-2">
+                      {post.title}
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium line-clamp-2 opacity-60 leading-relaxed">
+                      {post.excerpt}
+                    </p>
+                    <div className="pt-2">
+                      <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-primary/60 group-hover:text-primary transition-colors">
+                        READ ARTICLE →
+                      </span>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </PageBackground>
   )
 }

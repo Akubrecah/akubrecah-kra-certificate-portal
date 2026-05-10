@@ -1,45 +1,63 @@
+"use client"
+
+import { PageBackground } from "@/components/ui/page-background"
+import { motion } from "framer-motion"
+
 export default function TermsPage() {
+  const sections = [
+    {
+      title: "1. ACCEPTANCE",
+      content: "By accessing Akubrecah services, you agree to be bound by these Terms. If you disagree, you may not access the service."
+    },
+    {
+      title: "2. SERVICE SCOPE",
+      content: "We provide online tax preparation and retrieval services. We assist in preparing and filing returns electronically."
+    },
+    {
+      title: "3. ACCOUNT SECURITY",
+      content: "Users must provide accurate information. You are responsible for maintaining the security of your credentials."
+    },
+    {
+      title: "4. PRIVACY PROTOCOL",
+      content: "Your privacy is paramount. Our protocol describes how we handle and protect your personal information."
+    },
+    {
+      title: "5. COMPLIANCE",
+      content: "Users must comply with all local tax laws. Our system facilitates compliance but does not replace legal advice."
+    }
+  ]
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50">
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-indigo-900">Terms of Service</h1>
-          <p className="mt-2 text-sm text-indigo-600">Last updated: December 17, 2024</p>
+    <PageBackground>
+      <div className="w-full flex flex-col space-y-6 py-6 max-w-2xl mx-auto">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold tracking-tighter uppercase leading-tight">Terms of <span className="text-primary">Service.</span></h1>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-40">Last updated: December 2024</p>
         </div>
 
-        <div className="space-y-8">
-          {[
-            {
-              title: "1. Acceptance of Terms",
-              content: "By accessing or using Akubrecah Entertainment services, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service."
-            },
-            {
-              title: "2. Service Description",
-              content: "Akubrecah Entertainment provides online tax preparation and filing services. We help users prepare and file their tax returns electronically with relevant tax authorities."
-            },
-            {
-              title: "3. User Accounts",
-              content: "When you create an account with us, you must provide accurate and complete information. You are responsible for maintaining the security of your account and password."
-            },
-            {
-              title: "4. Privacy and Data Protection",
-              content: "Your privacy is important to us. Our Privacy Policy describes how we handle your personal information and protect your data."
-            },
-            {
-              title: "5. Service Fees",
-              content: "Fees for our services are clearly displayed before you begin using them. You agree to pay all fees associated with your use of our services."
-            }
-          ].map((section, index) => (
-            <div 
+        <div className="space-y-4">
+          {sections.map((section, index) => (
+            <motion.section 
               key={index}
-              className="p-6 rounded-lg bg-white/80 backdrop-blur-sm border border-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="glass p-6 rounded-2xl border border-white/5 space-y-3"
             >
-              <h2 className="text-xl font-semibold text-indigo-900 mb-4">{section.title}</h2>
-              <p className="text-indigo-800">{section.content}</p>
-            </div>
+              <h2 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{section.title}</h2>
+              <p className="text-[9px] text-muted-foreground uppercase font-medium leading-relaxed opacity-80">
+                {section.content}
+              </p>
+            </motion.section>
           ))}
         </div>
+
+        <div className="glass p-6 rounded-2xl border border-white/5 text-center space-y-2">
+          <p className="text-[8px] text-muted-foreground uppercase font-medium leading-relaxed opacity-40">
+            By using this service, you acknowledge you have read and understood these terms.
+          </p>
+        </div>
       </div>
-    </div>
+    </PageBackground>
   )
 }

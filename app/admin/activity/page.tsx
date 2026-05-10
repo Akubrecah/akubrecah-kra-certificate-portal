@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { 
   Card, 
@@ -36,282 +36,125 @@ import {
   User, 
   CreditCard, 
   Settings, 
-  Calendar 
+  Calendar,
+  RefreshCw 
 } from 'lucide-react'
 
 // Import our ActivityLog component
 import { ActivityLog, ActivityItem, ActivityType, ActivityStatus } from '@/components/admin/activity-log'
+import { LiveStatusMonitor } from '@/components/live-status-monitor'
 
 // Import mock data
 import { mockActivityData, getActivityLogData } from '@/lib/data/activity-log-data'
 
-// Convert mock data to ActivityItem format
-const activityData = [
-  {
-    id: 1,
-    type: 'auth' as ActivityType,
-    title: 'User logged in successfully',
-    description: 'Login from IP 192.168.1.1',
-    timestamp: new Date('2025-04-12T08:30:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'John Doe',
-      email: 'john.doe@example.com'
-    }
-  },
-  {
-    id: 2,
-    type: 'return' as ActivityType,
-    title: 'Filed tax return',
-    description: 'Tax return KRA-234556 submitted successfully',
-    timestamp: new Date('2025-04-12T07:45:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Mary Smith',
-      email: 'mary.smith@example.com'
-    }
-  },
-  {
-    id: 3,
-    type: 'transaction' as ActivityType,
-    title: 'Payment failed',
-    description: 'Payment of KES 3,500 failed - Insufficient funds',
-    timestamp: new Date('2025-04-12T06:20:00'),
-    status: 'error' as ActivityStatus,
-    user: {
-      name: 'David Omondi',
-      email: 'david.o@example.com'
-    }
-  },
-  {
-    id: 4,
-    type: 'user' as ActivityType,
-    title: 'New user account created',
-    description: 'User registration completed successfully',
-    timestamp: new Date('2025-04-11T16:30:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Jane Wanjiku',
-      email: 'jane.wanjiku@example.com'
-    }
-  },
-  {
-    id: 5,
-    type: 'system' as ActivityType,
-    title: 'System settings updated',
-    description: 'Tax rate changed to 16%',
-    timestamp: new Date('2025-04-11T15:15:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Admin User',
-      email: 'admin@nungereturns.com'
-    }
-  },
-  {
-    id: 6,
-    type: 'return' as ActivityType,
-    title: 'Tax return submission failed',
-    description: 'Invalid KRA PIN provided',
-    timestamp: new Date('2025-04-11T14:30:00'),
-    status: 'error' as ActivityStatus,
-    user: {
-      name: 'Peter Kamau',
-      email: 'peter.k@example.com'
-    }
-  },
-  {
-    id: 7,
-    type: 'auth' as ActivityType,
-    title: 'Failed login attempt',
-    description: 'Invalid password used',
-    timestamp: new Date('2025-04-11T12:10:00'),
-    status: 'warning' as ActivityStatus,
-    user: {
-      name: 'Sarah Mwangi',
-      email: 'sarah.m@example.com'
-    }
-  },
-  {
-    id: 8,
-    type: 'transaction' as ActivityType,
-    title: 'Payment successful',
-    description: 'Payment of KES 8,200 processed',
-    timestamp: new Date('2025-04-11T10:45:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Robert Njoroge',
-      email: 'robert.n@example.com'
-    }
-  },
-  {
-    id: 9,
-    type: 'document' as ActivityType,
-    title: 'ID document uploaded',
-    description: 'Document verification in progress',
-    timestamp: new Date('2025-04-10T16:20:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Lucy Akinyi',
-      email: 'lucy.a@example.com'
-    }
-  },
-  {
-    id: 10,
-    type: 'return' as ActivityType,
-    title: 'Tax return processed',
-    description: 'Return KRA-234123 accepted and processed',
-    timestamp: new Date('2025-04-10T14:35:00'),
-    status: 'success' as ActivityStatus,
-    user: {
-      name: 'Tom Wanyama',
-      email: 'tom.w@example.com'
-    }
-  }
-] as ActivityItem[]
+import { useSearchParams } from 'next/navigation'
 
 export default function ActivityLogPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activityType, setActivityType] = useState<string>('all')
+  const searchParams = useSearchParams()
+  const initialSearch = searchParams.get('search') || ''
+  
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [dateRange, setDateRange] = useState('7days')
   const [activeTab, setActiveTab] = useState('all')
 
-  // Handle activity item click
+  const fetchActivities = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/admin/activities?type=${activeTab}&limit=50`)
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data)
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchActivities()
+  }, [activeTab])
+
+  // Filter activities based on search and status
+  const filteredActivities = activities.filter(activity => {
+    const matchesSearch = 
+      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  })
+
   const handleActivityClick = (activity: ActivityItem) => {
     console.log('Activity clicked:', activity)
-    // Here you would typically show a modal with details or navigate to a detail page
-  }
-
-  // Handle refresh
-  const handleRefresh = () => {
-    console.log('Refreshing activity data...')
-    // Here you would typically fetch fresh data from the server
-  }
-
-  // Handle view all
-  const handleViewAll = () => {
-    console.log('View all activities')
-    // Here you would typically navigate to a full activity log page or show more items
-  }
-
-  // Handle filter change
-  const handleFilterChange = (filters: string[]) => {
-    console.log('Filters changed:', filters)
-    // Update your filter state here
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>  </CardTitle>
+      <LiveStatusMonitor />
+      <Card className="border-white/5 bg-background/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl">
+        <CardHeader className="pb-4 text-center border-b border-white/5">
+          <CardTitle className="text-sm font-bold uppercase tracking-[0.2em]">Activity Logs</CardTitle>
+          <CardDescription className="text-[10px] uppercase tracking-widest opacity-50">Real-time platform events</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Activity</TabsTrigger>
-              <TabsTrigger value="user">User Activity</TabsTrigger>
-              <TabsTrigger value="return">Returns</TabsTrigger>
-              <TabsTrigger value="transaction">Transactions</TabsTrigger>
-              <TabsTrigger value="system">System</TabsTrigger>
+        <CardContent className="pt-6">
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-6 w-full flex justify-center bg-muted/50 rounded-full p-1 h-10 border border-white/5">
+              <TabsTrigger value="all" className="rounded-full text-[10px] uppercase tracking-wider px-4">All</TabsTrigger>
+              <TabsTrigger value="auth" className="rounded-full text-[10px] uppercase tracking-wider px-4">Auth</TabsTrigger>
+              <TabsTrigger value="return" className="rounded-full text-[10px] uppercase tracking-wider px-4">Filings</TabsTrigger>
+              <TabsTrigger value="system" className="rounded-full text-[10px] uppercase tracking-wider px-4">System</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="all">
-              <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground opacity-50" />
                   <Input
-                    placeholder="Search activities..." 
-                    className="pl-8"
+                    placeholder="Search logs..." 
+                    className="pl-9 h-9 rounded-full text-[11px] precision-outline bg-muted/30 border-white/5"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full md:w-[140px] h-9 rounded-full text-[11px] precision-outline bg-muted/30 border-white/5">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="success">Success</SelectItem>
                     <SelectItem value="error">Error</SelectItem>
-                    <SelectItem value="warning">Warning</SelectItem>
-                    <SelectItem value="info">Info</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={dateRange} onValueChange={setDateRange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Date Range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="yesterday">Yesterday</SelectItem>
-                    <SelectItem value="7days">Last 7 Days</SelectItem>
-                    <SelectItem value="30days">Last 30 Days</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline">Export</Button>
+                <Button 
+                  variant="outline" 
+                  onClick={fetchActivities}
+                  className="h-9 rounded-full px-4 text-[10px] font-bold uppercase tracking-wider border-white/10 hover:bg-white/5"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
               </div>
-              
-              {/* Main Activity Log Component */}
+            </div>
+
+            <TabsContent value={activeTab} className="mt-0">
               <ActivityLog 
-                activities={activityData}
-                title="Recent Activity"
-                description="All system activity across the platform"
-                maxItems={10}
-                height={500}
-                showFilters={true}
-                showSearch={false} // We're using our own search above
+                activities={filteredActivities}
+                maxItems={50}
+                height={600}
+                showFilters={false}
+                showSearch={false} 
                 onItemClick={handleActivityClick}
-                onRefresh={handleRefresh}
-                onViewAll={handleViewAll}
-                onFilterChange={handleFilterChange}
-              />
-            </TabsContent>
-            
-            <TabsContent value="user">
-              <ActivityLog 
-                activities={activityData.filter(a => a.type === 'user' || a.type === 'auth')}
-                title="User Activity"
-                description="User registrations, logins, and account changes"
-                maxItems={10}
-                height={500}
-                onItemClick={handleActivityClick}
-              />
-            </TabsContent>
-            
-            <TabsContent value="return">
-              <ActivityLog 
-                activities={activityData.filter(a => a.type === 'return')}
-                title="Returns Activity"
-                description="Tax return submissions and processing"
-                maxItems={10}
-                height={500}
-                onItemClick={handleActivityClick}
-              />
-            </TabsContent>
-            
-            <TabsContent value="transaction">
-              <ActivityLog 
-                activities={activityData.filter(a => a.type === 'transaction')}
-                title="Transaction Activity"
-                description="Payment processing and financial transactions"
-                maxItems={10}
-                height={500}
-                onItemClick={handleActivityClick}
-              />
-            </TabsContent>
-            
-            <TabsContent value="system">
-              <ActivityLog 
-                activities={activityData.filter(a => a.type === 'system')}
-                title="System Activity"
-                description="System maintenance and configuration changes"
-                maxItems={10}
-                height={500}
-                onItemClick={handleActivityClick}
+                onRefresh={fetchActivities}
+                isLoading={isLoading}
               />
             </TabsContent>
           </Tabs>

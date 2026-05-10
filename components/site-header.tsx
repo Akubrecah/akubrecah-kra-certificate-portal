@@ -1,150 +1,98 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { useTheme } from "next-themes"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Show, SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs"
-import { ScheduleCallButton } from "@/components/schedule-call-button"
-import { isAdminUser } from "@/lib/admin-config"
+import { Logo } from "@/components/logo"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { 
+  UserButton, 
+  useUser,
+  useClerk
+} from "@clerk/nextjs"
+import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "About", href: "/about" },
-  { label: "Services", href: "/services" },
-  { label: "Blog", href: "/blog" },
-  { label: "Careers", href: "/careers" },
+  { name: "HOME", href: "/" },
+  { name: "RETRIEVAL", href: "/portal" },
+  { name: "SECURITY", href: "/security" },
+  { name: "BLOGS", href: "/blog" },
+  { name: "FAQS", href: "/faq" },
+  { name: "ABOUT", href: "/about" },
 ]
 
 export function SiteHeader() {
+  const pathname = usePathname()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const { theme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const { user } = useUser()
-  const isAdmin = isAdminUser(user)
+  const { user, isLoaded } = useUser()
 
-  // Avoid hydration mismatch by waiting for mount
-  useEffect(() => {
-    setMounted(true)
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const currentTheme = mounted ? resolvedTheme : 'light'
-  const logoSrc = currentTheme === 'dark' ? "/akubrecah-logo-dark.png" : "/akubrecah-logo.png"
+  // Check if user is admin
+  const isAdmin = user?.publicMetadata?.role === 'admin'
 
   return (
-    <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-      scrolled ? "bg-background border-b border-border/50 py-2 shadow-sm" : "bg-background/80 backdrop-blur-md py-4"
-    }`} role="banner">
-      <div className="container mx-auto px-4">
-        <div className="flex h-20 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link className="group flex items-center gap-4 text-xl font-bold text-foreground hover:opacity-90 transition-opacity" aria-label="Akubrecah - Home" href="/">
-              <div className="relative flex h-12 items-center justify-center transition-transform group-hover:scale-105">
-                <Image 
-                  alt="Akubrecah Logo" 
-                  width={180} 
-                  height={48} 
-                  decoding="async" 
-                  className="object-contain w-auto h-auto" 
-                  src={logoSrc} 
-                  priority
-                />
-              </div>
+    <header className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 py-3">
+      <div className="container mx-auto max-w-3xl px-4 flex flex-col items-center gap-3">
+        {/* Row 1: Logo */}
+        <Link href="/" className="group">
+          <Logo width={180} height={54} className="transition-transform group-hover:scale-105" />
+        </Link>
+
+        {/* Row 2: Navigation & Actions */}
+        <nav className="flex flex-wrap items-center justify-center gap-1.5 w-full">
+          {navItems.map((item) => (
+            <Link key={item.name} href={item.href}>
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "h-7 px-3 text-[9px] font-bold tracking-[0.15em] uppercase rounded-full transition-all",
+                  pathname === item.href 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-foreground/60 hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                {item.name}
+              </Button>
             </Link>
-          </div>
+          ))}
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Show when="signed-in">
-                <div className="flex items-center gap-4">
-                  {isAdmin && (
-                    <Link href="/admin/dashboard">
-                      <Button variant="outline" size="sm" className="rounded-full border-brand-red/30 text-brand-red hover:bg-brand-red/5">
-                        Admin
-                      </Button>
-                    </Link>
-                  )}
-                  <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 border border-brand-cyan/20" } }} />
-                </div>
-              </Show>
-              <Show when="signed-out">
-                <SignInButton mode="modal">
-                  <Button variant="ghost" size="sm" className="rounded-full">Sign In</Button>
-                </SignInButton>
-              </Show>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border overflow-hidden"
-          >
-            <div className="container mx-auto px-4 py-8 flex flex-col space-y-6">
-              {navItems.map(({ label, href }) => (
-                <button 
-                  key={href} 
-                  onClick={() => {
-                    router.push(href)
-                    setMobileMenuOpen(false)
-                  }} 
-                  className="text-lg font-medium text-left hover:text-brand-cyan transition-colors py-1"
-                >
-                  {label}
-                </button>
-              ))}
-              {isAdmin && (
-                <button 
-                  onClick={() => {
-                    router.push("/admin/dashboard")
-                    setMobileMenuOpen(false)
-                  }} 
-                  className="text-lg font-bold text-left text-brand-red hover:text-brand-red/80 transition-colors py-1"
-                >
-                  Admin Dashboard
-                </button>
-              )}
-              <div className="pt-4 flex flex-col space-y-3 border-t border-border">
-                <Button className="rounded-full bg-brand-cyan hover:bg-brand-cyan/90 text-black w-full border-none" onClick={() => { router.push("/file"); setMobileMenuOpen(false); }}>File Now</Button>
-                <ScheduleCallButton />
-                <Show when="signed-out">
-                  <SignInButton mode="modal">
-                    <Button variant="ghost" className="w-full border border-border rounded-full">Sign In</Button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <Button variant="outline" className="w-full border border-brand-cyan/20 rounded-full mt-2">Sign Up</Button>
-                  </SignUpButton>
-                </Show>
-                
-                <Show when="signed-in">
-                  <div className="flex items-center space-x-3 p-2 bg-muted/50 rounded-xl">
-                    <UserButton />
-                    <span className="text-sm font-medium">My Account</span>
-                  </div>
-                </Show>
+          {/* User / Auth Actions */}
+          <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-white/10">
+            <ThemeToggle />
+            
+            {isLoaded && user ? (
+              <div className="flex items-center gap-1.5">
+                {isAdmin && (
+                  <Button 
+                    variant="outline"
+                    className="h-7 px-3 rounded-full border-primary/20 text-primary font-bold uppercase tracking-widest text-[8px] hover:bg-primary/5"
+                    onClick={() => router.push("/admin/dashboard")}
+                  >
+                    ADMIN
+                  </Button>
+                )}
+                <UserButton afterSignOutUrl="/" />
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  variant="ghost"
+                  className="h-7 px-3 rounded-full text-foreground/60 font-bold uppercase tracking-widest text-[8px] hover:text-foreground"
+                  onClick={() => router.push("/sign-in")}
+                >
+                  LOGIN
+                </Button>
+                <Button 
+                  className="h-7 px-4 rounded-full bg-primary text-white font-bold uppercase tracking-widest text-[8px] shadow-none hover:opacity-90"
+                  onClick={() => router.push("/sign-up")}
+                >
+                  JOIN
+                </Button>
+              </div>
+            )}
+          </div>
+        </nav>
+      </div>
     </header>
-
   )
 }
