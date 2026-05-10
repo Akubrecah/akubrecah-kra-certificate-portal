@@ -2,8 +2,6 @@
 
 import { 
   useUser,
-  SignInButton, 
-  SignUpButton
 } from "@clerk/nextjs"
 import { 
   ArrowRight, 
