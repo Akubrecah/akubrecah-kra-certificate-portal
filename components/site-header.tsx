@@ -35,7 +35,7 @@ export function SiteHeader() {
       <div className="container mx-auto max-w-3xl px-4 flex flex-col items-center gap-3">
         {/* Row 1: Logo */}
         <Link href="/" className="group">
-          <Logo width={180} height={54} className="transition-transform group-hover:scale-105" />
+          <Logo width={280} height={84} className="transition-transform group-hover:scale-105" />
         </Link>
 
         {/* Row 2: Navigation & Actions */}

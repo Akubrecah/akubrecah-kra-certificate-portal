@@ -47,7 +47,7 @@ export function SiteFooter(): JSX.Element {
         <div className="flex flex-col items-center gap-8 mb-10">
           <div className="flex flex-col items-center gap-4">
             <Link className="group transition-opacity hover:opacity-80" aria-label="Akubrecah" href="/">
-              <Logo width={120} height={36} />
+              <Logo width={160} height={48} />
             </Link>
             <div className="flex items-center space-x-3 text-[9px] font-bold uppercase tracking-[0.2em] opacity-40">
               <span>DESIGN PRINT BRAND</span>
