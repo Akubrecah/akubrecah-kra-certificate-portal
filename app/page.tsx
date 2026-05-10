@@ -74,7 +74,7 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
                 <Show when="signed-in">
-                  <Link href="/portal" className="w-full sm:w-auto">
+                  <Link href="/retrieval" className="w-full sm:w-auto">
                     <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
                       Proceed to Retrieval
                       <ArrowRight className="ml-2 h-3 w-3" />

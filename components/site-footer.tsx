@@ -19,7 +19,7 @@ export function SiteFooter(): JSX.Element {
       title: "Services",
       links: [
         { label: "Home", href: "/" },
-        { label: "Retrieval", href: "/portal" },
+        { label: "Retrieval", href: "/retrieval" },
         { label: "Security", href: "/security" },
       ],
     },

@@ -16,7 +16,7 @@ import { isAdminUser } from "@/lib/admin-config"
 
 const navItems = [
   { name: "HOME", href: "/" },
-  { name: "RETRIEVAL", href: "/portal" },
+  { name: "RETRIEVAL", href: "/retrieval" },
   { name: "SECURITY", href: "/security" },
   { name: "BLOGS", href: "/blog" },
   { name: "FAQS", href: "/faq" },
