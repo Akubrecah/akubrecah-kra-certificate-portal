@@ -174,41 +174,6 @@ export default function UsersPage() {
     }
   }
   
-  // Calculate time elapsed since last active
-  const getTimeElapsed = (dateString: string) => {
-    try {
-      const date = new Date(dateString)
-      const now = new Date()
-      const elapsed = now.getTime() - date.getTime()
-      
-      const minutes = Math.floor(elapsed / 60000)
-      const hours = Math.floor(minutes / 60)
-      const days = Math.floor(hours / 24)
-      
-      if (days > 0) return `${days} ${days === 1 ? 'day' : 'days'} ago`
-      if (hours > 0) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`
-      if (minutes > 0) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`
-      return 'Just now'
-    } catch (e) {
-      return 'Unknown'
-    }
-  }
-
-  // Generate trend data from users
-  const generateTrendData = () => {
-    const last7Days = [...Array(7)].map((_, i) => {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-    }).reverse()
-
-    return last7Days.map(day => ({
-      name: day,
-      users: users.filter(u => formatDate(u.registeredAt).includes(day)).length + 10, // +10 to make it look like a chart
-      active: users.filter(u => getTimeElapsed(u.lastActive).includes('minute') || getTimeElapsed(u.lastActive).includes('hour')).length + 5
-    }))
-  }
-
   if (loading) {
     return (
       <div className="flex h-[400px] w-full items-center justify-center">
