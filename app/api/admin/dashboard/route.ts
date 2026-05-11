@@ -70,7 +70,7 @@ export async function GET() {
         ...userActivities.map(a => ({
           id: a.id,
           type: a.activityType,
-          title: (a.activityType || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          title: (a.activityType || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           description: a.description,
           time: a.createdAt,
           status: a.status === 'success' ? 'completed' : a.status === 'error' ? 'failed' : 'pending',
@@ -79,7 +79,7 @@ export async function GET() {
         ...sessionActivities.map(a => ({
           id: a.id,
           type: 'return',
-          title: (a.activityType || 'Return').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          title: (a.activityType || 'Return').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           description: a.description || `Session activity for PIN: ${a.session?.pin || 'Unknown'}`,
           time: a.createdAt,
           status: 'completed',

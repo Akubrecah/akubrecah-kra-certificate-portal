@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     const formattedUserActivities = userActivities.map(a => ({
       id: a.id,
       type: a.activityType,
-      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
       description: a.description,
       timestamp: a.createdAt,
       status: a.status,
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
     const formattedSessionActivities = sessionActivities.map(a => ({
       id: a.id,
       type: 'return', // Map session activity to 'return' type for UI
-      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
       description: a.description || `Session activity for PIN: ${a.session.pin || 'Unknown'}`,
       timestamp: a.createdAt,
       status: 'success', // Default for session activities
