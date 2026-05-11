@@ -12,17 +12,24 @@ export function isSuperAdmin(email?: string | null): boolean {
 }
 
 /**
- * Check if a user object (from Clerk) is an admin
+ * Check if a user object (from Clerk) or session claims is an admin
  */
-export function isAdminUser(user: any): boolean {
-  if (!user) return false;
+export function isAdminUser(userOrClaims: any): boolean {
+  if (!userOrClaims) return false;
   
-  // Check email
-  const email = user.primaryEmailAddress?.emailAddress || 
-                user.emailAddresses?.[0]?.emailAddress;
+  // Case 1: Clerk User object
+  if (userOrClaims.primaryEmailAddress || userOrClaims.emailAddresses) {
+    const email = userOrClaims.primaryEmailAddress?.emailAddress || 
+                  userOrClaims.emailAddresses?.[0]?.emailAddress;
+    
+    if (isSuperAdmin(email)) return true;
+    return userOrClaims.publicMetadata?.role === 'admin';
+  }
   
+  // Case 2: Session Claims (JWT)
+  const email = userOrClaims.email;
   if (isSuperAdmin(email)) return true;
   
-  // Check public metadata role
-  return user.publicMetadata?.role === 'admin';
+  const metadata = userOrClaims.metadata || userOrClaims.publicMetadata;
+  return (metadata as any)?.role === 'admin';
 }

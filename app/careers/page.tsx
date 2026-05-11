@@ -54,7 +54,7 @@ export default function CareersPage() {
     async function fetchJobs() {
       try {
         setLoading(true)
-        const response = await fetch('/api/admin/jobs')
+        const response = await fetch('/api/jobs')
         if (!response.ok) throw new Error('Failed to fetch jobs')
         const data = await response.json()
         setJobPositions(data)

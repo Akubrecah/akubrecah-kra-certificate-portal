@@ -8,28 +8,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      console.error('[DASHBOARD_API] No userId found in auth()');
-      return new NextResponse('Unauthorized', { status: 401 });
+    const { userId, sessionClaims } = await auth();
+    if (!isAdminUser(sessionClaims)) {
+      console.warn(`[DASHBOARD_API] Forbidden access attempt by user: ${userId}`);
+      return new NextResponse('Forbidden', { status: 403 });
     }
 
-    let user;
     let totalUsers = 0;
     try {
       const client = await clerkClient();
-      user = await client.users.getUser(userId);
       totalUsers = await client.users.getCount();
     } catch (clerkError) {
       console.error('[DASHBOARD_API] Clerk API Error:', clerkError);
-      // Don't fail the whole request if Clerk count fails, but we need the user for admin check
-      if (!user) return new NextResponse('Clerk Service Unavailable', { status: 500 });
-    }
-    
-    if (!isAdminUser(user)) {
-      console.warn(`[DASHBOARD_API] Forbidden access attempt by user: ${userId}`);
-      return new NextResponse('Forbidden', { status: 403 });
     }
 
     try {
@@ -175,6 +165,12 @@ export async function GET() {
     }
   } catch (error: any) {
     console.error('[DASHBOARD_API] Unhandled Error:', error);
-    return new NextResponse(error.message || 'Internal Server Error', { status: 500 });
+    return new NextResponse(JSON.stringify({ 
+      error: 'Internal Server Error', 
+      details: error instanceof Error ? error.message : String(error)
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

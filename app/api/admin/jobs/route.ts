@@ -5,13 +5,21 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
+    const { sessionClaims } = await auth();
+    if (!isAdminUser(sessionClaims)) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
     const jobs = await prisma.jobPosition.findMany({
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 

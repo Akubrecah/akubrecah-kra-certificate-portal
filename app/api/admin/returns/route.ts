@@ -5,63 +5,49 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     
     if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check if the current user is an admin
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    
-    if (!isAdminUser(user)) {
+    if (!isAdminUser(sessionClaims)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    // Fetch returns (UserActivity with activityType 'document' or 'return')
-    // We'll also fetch 'Session' data if needed, but UserActivity is more like a log of events.
     const returns = await prisma.userActivity.findMany({
       where: {
-        OR: [
-          { activityType: 'document' },
-          { activityType: 'return' }
-        ]
+        activityType: {
+          in: ['GENERATE_CERTIFICATE', 'KRA_RETURN_FILING']
+        }
       },
       include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            clerkId: true
-          }
-        }
+        user: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    const formattedReturns = returns.map(ret => {
-      const metadata = (ret.metadata as any) || {};
-      return {
-        id: ret.id,
-        userName: `${ret.user.firstName || ''} ${ret.user.lastName || ''}`.trim() || ret.user.email || 'Unknown',
-        userEmail: ret.user.email,
-        pinNumber: metadata.pin || 'N/A',
-        authorizedBy: ret.authorizedBy || metadata.authorizedBy || 'System',
-        submissionDate: ret.createdAt.toISOString(),
-        status: ret.status,
-        amount: ret.amount || metadata.amount || 0,
-        activityType: ret.activityType,
-        description: ret.description
-      };
-    });
+    const formattedReturns = returns.map(ret => ({
+      id: ret.id,
+      userName: ret.user ? `${ret.user.firstName || ''} ${ret.user.lastName || ''}`.trim() || 'Anonymous' : 'Deleted User',
+      userEmail: ret.user?.email || 'N/A',
+      pinNumber: (ret.metadata as any)?.pin || 'N/A',
+      authorizedBy: (ret.metadata as any)?.authorizedBy || 'System',
+      submissionDate: ret.createdAt ? ret.createdAt.toISOString() : new Date().toISOString(),
+      status: ret.status,
+      amount: (ret.metadata as any)?.amount || 0,
+      activityType: ret.activityType,
+      description: ret.description || 'KRA Certificate Generation'
+    }));
 
     return NextResponse.json(formattedReturns);
   } catch (error) {
-    console.error('Error fetching admin returns:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Error fetching returns:', error);
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

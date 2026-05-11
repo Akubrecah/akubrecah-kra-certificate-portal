@@ -8,19 +8,12 @@ import { logUserActivity } from '@/lib/activity-logger';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    // Check if the current user is an admin
-    const client = await clerkClient();
-    const currentUser = await client.users.getUser(userId);
-    
-    if (!isAdminUser(currentUser)) {
+    const { sessionClaims } = await auth();
+    if (!isAdminUser(sessionClaims)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
+
+    const client = await clerkClient();
 
     // Fetch users from Clerk
     const clerkUsersResponse = await client.users.getUserList({
@@ -72,7 +65,14 @@ export async function GET() {
 
     return NextResponse.json(formattedUsers);
   } catch (error) {
-    console.error('Error fetching admin users:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Error in GET /api/admin/users:', error);
+    return new NextResponse(JSON.stringify({ 
+      error: 'Internal Server Error', 
+      details: error instanceof Error ? error.message : String(error),
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

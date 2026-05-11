@@ -145,7 +145,7 @@ export default function ReturnsPage() {
   })
 
   const chartData = last7Days.map(date => {
-    const dayReturns = returns.filter(r => r.submissionDate.startsWith(date))
+    const dayReturns = returns.filter(r => r.submissionDate && typeof r.submissionDate === 'string' && r.submissionDate.startsWith(date))
     return {
       name: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
       completed: dayReturns.filter(r => r.status === 'success' || r.status === 'completed').length,

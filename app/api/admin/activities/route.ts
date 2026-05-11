@@ -6,16 +6,8 @@ import prisma from '@/lib/prisma';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    
-    if (!isAdminUser(user)) {
+    const { sessionClaims } = await auth();
+    if (!isAdminUser(sessionClaims)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
@@ -52,21 +44,21 @@ export async function GET(req: Request) {
     const formattedUserActivities = userActivities.map(a => ({
       id: a.id,
       type: a.activityType,
-      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-      description: a.description,
+      title: (a.activityType || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      description: a.description || '',
       timestamp: a.createdAt,
       status: a.status,
-      user: `${a.user.firstName || ''} ${a.user.lastName || ''}`.trim() || a.user.email,
+      user: a.user ? (`${a.user.firstName || ''} ${a.user.lastName || ''}`.trim() || a.user.email) : 'System User',
     }));
 
     const formattedSessionActivities = sessionActivities.map(a => ({
       id: a.id,
       type: 'return', // Map session activity to 'return' type for UI
-      title: a.activityType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-      description: a.description || `Session activity for PIN: ${a.session.pin || 'Unknown'}`,
+      title: (a.activityType || 'Return').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      description: a.description || `Session activity for PIN: ${a.session?.pin || 'Unknown'}`,
       timestamp: a.createdAt,
       status: 'success', // Default for session activities
-      user: a.session.pin || 'Guest User',
+      user: a.session?.pin || 'Guest User',
     }));
 
     // Merge and sort by timestamp
@@ -77,6 +69,9 @@ export async function GET(req: Request) {
     return NextResponse.json(allActivities);
   } catch (error) {
     console.error('Error fetching activities:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

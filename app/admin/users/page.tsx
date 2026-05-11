@@ -108,10 +108,10 @@ export default function UsersPage() {
         const now = new Date()
         const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30))
         
-        const newUsers = data.filter((u: User) => new Date(u.registeredAt) > thirtyDaysAgo).length
-        const activeUsers = data.filter((u: User) => new Date(u.lastActive) > thirtyDaysAgo).length
+        const newUsers = data.filter((u: User) => u.registeredAt && new Date(u.registeredAt).getTime() > thirtyDaysAgo.getTime()).length
+        const activeUsers = data.filter((u: User) => u.lastActive && new Date(u.lastActive).getTime() > thirtyDaysAgo.getTime()).length
         
-        const returnsCount = data.filter((u: User) => u.pin !== 'N/A').length
+        const returnsCount = data.filter((u: User) => u.pin && u.pin !== 'N/A').length
         const conversionRate = data.length > 0 ? (returnsCount / data.length) * 100 : 0
         
         setMetrics({
