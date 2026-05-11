@@ -16,9 +16,9 @@ export async function GET() {
 
     // Check if the current user is an admin
     const client = await clerkClient();
-    const user = await client.users.getUser(userId);
+    const currentUser = await client.users.getUser(userId);
     
-    if (!isAdminUser(user)) {
+    if (!isAdminUser(currentUser)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
@@ -29,75 +29,32 @@ export async function GET() {
     });
 
     const clerkUsers = clerkUsersResponse.data;
+    const clerkIds = clerkUsers.map(u => u.id);
 
-    // Optional: Sync with Prisma database
-    // This ensures that the 'users' table is populated with Clerk users
-    for (const clerkUser of clerkUsers) {
-      const email = clerkUser.emailAddresses[0]?.emailAddress;
-      if (email) {
-        try {
-          const newUser = await prisma.user.upsert({
-            where: { clerkId: clerkUser.id },
-            update: {
-              email,
-              firstName: clerkUser.firstName,
-              lastName: clerkUser.lastName,
-              profileImage: clerkUser.imageUrl,
-              lastLogin: clerkUser.lastSignInAt ? new Date(clerkUser.lastSignInAt) : undefined,
-            },
-            create: {
-              clerkId: clerkUser.id,
-              email,
-              firstName: clerkUser.firstName,
-              lastName: clerkUser.lastName,
-              profileImage: clerkUser.imageUrl,
-              role: (clerkUser.publicMetadata?.role as string) || 'user',
-            },
-          });
-
-          // Log activity for the synced user
-          await logUserActivity({
-            userId: newUser.id,
-            activityType: 'auth',
-            description: `User synced from Clerk: ${email}`,
-            status: 'success',
-            metadata: {
-              clerkId: clerkUser.id,
-              source: 'admin_sync'
-            }
-          });
-
-        } catch (e) {
-          console.error(`Error upserting user ${clerkUser.id}:`, e);
-        }
-      }
-    }
-
-    // Fetch synced users from database to get additional metadata if any
+    // Fetch all corresponding users from database in one query
     const dbUsers = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // Map Clerk data to a consistent format for the frontend
-    const formattedUsers = await Promise.all(clerkUsers.map(async (u) => {
-      // Find the most recent PIN retrieved by this user from their activity logs
-      const dbUser = dbUsers.find(dbu => dbu.clerkId === u.id);
-      let lastPin = 'N/A';
-      
-      if (dbUser) {
-        const latestActivity = await prisma.userActivity.findFirst({
+      where: { clerkId: { in: clerkIds } },
+      include: {
+        activities: {
           where: { 
-            userId: dbUser.id,
             activityType: 'return',
             status: 'success'
           },
-          orderBy: { createdAt: 'desc' }
-        });
-        
-        if (latestActivity && latestActivity.metadata) {
-          const metadata = latestActivity.metadata as any;
-          lastPin = metadata.pin || 'N/A';
+          orderBy: { createdAt: 'desc' },
+          take: 1
         }
+      }
+    });
+
+    // Map Clerk data to a consistent format for the frontend
+    const formattedUsers = clerkUsers.map((u) => {
+      const dbUser = dbUsers.find(dbu => dbu.clerkId === u.id);
+      
+      // Get last PIN from nested activities (pre-fetched)
+      let lastPin = 'N/A';
+      if (dbUser && dbUser.activities.length > 0) {
+        const metadata = dbUser.activities[0].metadata as any;
+        lastPin = metadata.pin || 'N/A';
       }
 
       return {
@@ -111,7 +68,7 @@ export async function GET() {
         registeredAt: new Date(u.createdAt).toISOString(),
         lastActive: new Date(u.lastSignInAt || u.updatedAt).toISOString(),
       };
-    }));
+    });
 
     return NextResponse.json(formattedUsers);
   } catch (error) {
