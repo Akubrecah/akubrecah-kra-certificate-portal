@@ -15,9 +15,9 @@ export async function GET() {
 
     const client = await clerkClient();
 
-    // Fetch users from Clerk
+    // Fetch users from Clerk - increased limit
     const clerkUsersResponse = await client.users.getUserList({
-      limit: 100,
+      limit: 500,
       orderBy: '-created_at',
     });
 
@@ -66,11 +66,50 @@ export async function GET() {
     return NextResponse.json(formattedUsers);
   } catch (error) {
     console.error('Error in GET /api/admin/users:', error);
-    return new NextResponse(JSON.stringify({ 
-      error: 'Internal Server Error', 
-      details: error instanceof Error ? error.message : String(error),
-      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
-    }), { 
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+export async function POST() {
+  try {
+    const { sessionClaims } = await auth();
+    if (!isAdminUser(sessionClaims)) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
+    const client = await clerkClient();
+    const clerkUsers = await client.users.getUserList({ limit: 500 });
+    
+    let syncCount = 0;
+    for (const u of clerkUsers.data) {
+      await prisma.user.upsert({
+        where: { clerkId: u.id },
+        update: {
+          email: u.emailAddresses[0]?.emailAddress || '',
+          firstName: u.firstName,
+          lastName: u.lastName,
+          profileImage: u.imageUrl,
+          role: (u.publicMetadata?.role as string) || 'user',
+        },
+        create: {
+          clerkId: u.id,
+          email: u.emailAddresses[0]?.emailAddress || '',
+          firstName: u.firstName,
+          lastName: u.lastName,
+          profileImage: u.imageUrl,
+          role: (u.publicMetadata?.role as string) || 'user',
+        },
+      });
+      syncCount++;
+    }
+
+    return NextResponse.json({ success: true, synced: syncCount });
+  } catch (error) {
+    console.error('Error syncing users:', error);
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

@@ -151,6 +151,23 @@ export default function UsersPage() {
     setIsSheetOpen(true)
     fetchUserActivity(user.id)
   }
+
+  const handleSync = async () => {
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST' })
+      if (!res.ok) throw new Error('Sync failed')
+      const data = await res.json()
+      toast.success(`Successfully synced ${data.synced} users`)
+      
+      // Refresh the list
+      const response = await fetch('/api/admin/users')
+      const usersData = await response.json()
+      setUsers(usersData)
+    } catch (error) {
+      console.error('Sync error:', error)
+      toast.error('Failed to sync users')
+    }
+  }
   
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -296,6 +313,13 @@ export default function UsersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <button 
+              onClick={handleSync}
+              className="inline-flex items-center justify-center rounded-full px-4 h-9 text-[10px] font-bold uppercase tracking-widest text-primary border border-primary/20 hover:bg-primary/5 transition-all"
+            >
+              <Activity className="mr-2 h-3.5 w-3.5" />
+              Sync with Clerk
+            </button>
             <button className="inline-flex items-center justify-center rounded-full p-2.5 text-muted-foreground hover:bg-muted/50 border border-white/5 transition-all">
               <Download className="h-4 w-4" />
               <span className="sr-only">Download CSV</span>
