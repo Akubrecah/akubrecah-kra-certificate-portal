@@ -51,7 +51,10 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         const response = await fetch('/api/admin/dashboard')
-        if (!response.ok) throw new Error('Failed to fetch dashboard data')
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(errorText || `Error ${response.status}`)
+        }
         const data = await response.json()
         
         if (data.success) {
@@ -64,9 +67,9 @@ export default function DashboardPage() {
             returnsData: data.returnsData || initialState.returnsData,
           })
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching dashboard data:', error)
-        toast.error('Could not load dashboard metrics')
+        toast.error(`Dashboard Error: ${error.message || 'Check connection'}`)
       } finally {
         setLoading(false)
       }

@@ -57,6 +57,7 @@
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.4.1",
     "recharts": "^2.15.2",
+    "svix": "^1.93.0",
     "tailwind-merge": "^2.5.5",
     "tesseract.js": "^5.0.5",
     "ws": "^8.20.0",
