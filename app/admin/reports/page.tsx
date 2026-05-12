@@ -101,10 +101,10 @@ export default function ReportsPage() {
 
       setData({
         overviewData,
-        returnsTrendData: dashboard.returnsTrendData || [], // We should add this to dashboard API too
-        userTrendData: dashboard.userTrendData || [],
-        recentActivities: activities || [],
-        users: users.users || [],
+        returnsTrendData: (dashboard.returnsData || []).map(r => ({ name: r.name, value: r.completed })),
+        userTrendData: (dashboard.userMetrics || []).map(u => ({ name: u.name, value: u.users })),
+        recentActivities: Array.isArray(activities) ? activities : (activities?.activities || []),
+        users: Array.isArray(users) ? users : (users?.users || []),
         totals: dashboard.totals || { users: 0, returns: 0, successRate: 0, revenue: 0 }
       })
     } catch (error) {
@@ -120,13 +120,13 @@ export default function ReportsPage() {
   }, [])
 
   // Format activities for the activity log component
-  const formattedActivities = data.recentActivities.map(activity => ({
+  const formattedActivities = (Array.isArray(data.recentActivities) ? data.recentActivities : []).map(activity => ({
     id: activity.id,
-    type: (activity.type as string).toLowerCase().includes('sync') ? 'auth' : 
-          (activity.type as string).toLowerCase().includes('return') ? 'return' : 'system' as ActivityType,
-    title: activity.title,
-    description: activity.description,
-    timestamp: activity.timestamp,
+    type: (String(activity.type || '')).toLowerCase().includes('sync') ? 'auth' : 
+          (String(activity.type || '')).toLowerCase().includes('return') ? 'return' : 'system' as ActivityType,
+    title: activity.title || 'System Activity',
+    description: activity.description || '',
+    timestamp: activity.timestamp || new Date().toISOString(),
     status: activity.status === 'completed' || activity.status === 'success' ? 'success' as ActivityStatus :
       activity.status === 'pending' ? 'pending' as ActivityStatus : 'info' as ActivityStatus,
     user: activity.user?.name || activity.user?.email || 'Unknown'
@@ -296,7 +296,7 @@ export default function ReportsPage() {
                         { accessorKey: 'lastName', header: 'Last Name' },
                         { accessorKey: 'createdAt', header: 'Joined', cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString() },
                       ]}
-                      data={data.users.slice(0, 5)}
+                      data={(Array.isArray(data.users) ? data.users : []).slice(0, 5)}
                       searchColumn="email"
                       searchPlaceholder="Search users..."
                       pageSize={5}
@@ -329,7 +329,7 @@ export default function ReportsPage() {
               <MetricsChart
                 title="Returns Trend"
                 description="Number of returns filed over time"
-                data={returnsTrendData}
+                data={data.returnsTrendData}
                 type="line"
                 series={[
                   { name: 'Returns', dataKey: 'value', color: '#8884d8' },
@@ -406,7 +406,7 @@ export default function ReportsPage() {
               <MetricsChart
                 title="Transaction Volume"
                 description="Total transaction volume over time"
-                data={transactionsTrendData}
+                data={data.transactionsTrendData || []}
                 type="area"
                 series={[
                   { name: 'Transactions', dataKey: 'value', color: '#82ca9d' }
@@ -503,7 +503,7 @@ export default function ReportsPage() {
               <MetricsChart
                 title="User Growth"
                 description="User growth over time"
-                data={userTrendData}
+                data={data.userTrendData}
                 type="line"
                 series={[
                   { name: 'Users', dataKey: 'value', color: '#8884d8' }
@@ -593,7 +593,7 @@ export default function ReportsPage() {
                       )
                     },
                   ]}
-                  data={data.users}
+                  data={Array.isArray(data.users) ? data.users : []}
                   searchColumn="email"
                   searchPlaceholder="Search by email..."
                   onExportData={handleExportData}
@@ -611,8 +611,8 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <DataTable
-                  columns={reportColumns}
-                  data={reportData}
+                  columns={[]}
+                  data={[]}
                   searchColumn="name"
                   searchPlaceholder="Search reports..."
                   onExportData={handleExportData}
