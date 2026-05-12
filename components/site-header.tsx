@@ -36,8 +36,11 @@ export function SiteHeader() {
     <header className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border py-4">
       <div className="container mx-auto max-w-7xl px-6 flex flex-col items-center gap-4">
         {/* Row 1: Logo */}
-        <Link href="/" className="group">
-          <Logo width={360} height={108} className="transition-transform duration-500 group-hover:scale-105" />
+        <Link href="/" className="group flex items-center gap-4">
+          <div className="relative">
+            <Logo width={360} height={108} className="transition-transform duration-500 group-hover:scale-105" />
+            <span className="absolute -top-2 -right-12 bg-primary/20 text-primary text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter border border-primary/30 backdrop-blur-md">BETA</span>
+          </div>
         </Link>
 
         {/* Row 2: Navigation & Actions */}

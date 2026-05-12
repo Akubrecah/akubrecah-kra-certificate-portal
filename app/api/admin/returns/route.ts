@@ -33,20 +33,25 @@ export async function GET() {
     });
 
     const formattedReturns = returns.map(ret => {
-      const metadata = (ret.metadata as any) || {};
-      return {
-        id: ret.id,
-        userName: ret.user ? `${ret.user.firstName || ''} ${ret.user.lastName || ''}`.trim() || 'Anonymous' : 'Guest User',
-        userEmail: ret.user?.email || 'N/A',
-        pinNumber: metadata.pin || 'N/A',
-        authorizedBy: metadata.authorizedBy || 'System',
-        submissionDate: ret.createdAt ? ret.createdAt.toISOString() : new Date().toISOString(),
-        status: ret.status === 'success' ? 'completed' : ret.status === 'error' ? 'failed' : ret.status,
-        amount: metadata.amount || 0,
-        activityType: ret.activityType,
-        description: ret.description || 'KRA Retrieval'
-      };
-    });
+      try {
+        const metadata = (ret.metadata as any) || {};
+        return {
+          id: ret.id,
+          userName: ret.user ? `${ret.user.firstName || ''} ${ret.user.lastName || ''}`.trim() || 'Anonymous' : 'Guest User',
+          userEmail: ret.user?.email || 'N/A',
+          pinNumber: metadata.pin || 'N/A',
+          authorizedBy: metadata.authorizedBy || 'System',
+          submissionDate: ret.createdAt ? (ret.createdAt instanceof Date ? ret.createdAt.toISOString() : new Date(ret.createdAt).toISOString()) : new Date().toISOString(),
+          status: ret.status === 'success' ? 'completed' : ret.status === 'error' ? 'failed' : ret.status,
+          amount: metadata.amount || 0,
+          activityType: ret.activityType,
+          description: ret.description || 'KRA Retrieval'
+        };
+      } catch (err) {
+        console.error(`[ADMIN_RETRIEVALS] Error mapping record ${ret.id}:`, err);
+        return null;
+      }
+    }).filter(Boolean);
 
     return NextResponse.json(formattedReturns);
   } catch (error) {
