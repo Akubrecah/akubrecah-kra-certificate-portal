@@ -31,8 +31,6 @@ export async function logUserActivity({
         description,
         status,
         metadata,
-        amount: metadata?.amount || 0,
-        authorizedBy: metadata?.authorizedBy || 'System',
       },
     });
   } catch (error) {
