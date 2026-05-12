@@ -8,6 +8,7 @@ import { TooltipProviderWrapper } from '@/components/providers/tooltip-provider'
 import { AdminLayoutWrapper } from "@/components/admin-layout-wrapper"
 import { getDomainTheme } from '@/lib/utils'
 import KRAAnnouncementBanner from '@/components/KRAAnnouncementBanner'
+import { Analytics } from "@vercel/analytics/next"
 
 import "./globals.css"
 
@@ -82,6 +83,7 @@ export default async function RootLayout({
                 },
               }}
             />
+            <Analytics />
           </ThemeProvider>
         </ClerkProvider>
       </body>
