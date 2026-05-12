@@ -152,9 +152,9 @@ export function StatCard({
           </div>
         </div>
         <div className={variantStyles.iconContainer}>
-          {React.cloneElement(icon as React.ReactElement, { 
+          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { 
             className: 'h-4 w-4 text-primary' 
-          })}
+          }) : <HelpCircle className="h-4 w-4 text-primary" />}
         </div>
       </div>
     </Card>

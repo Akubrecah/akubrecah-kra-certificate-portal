@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import {
-  BarChart,
+  BarChart3,
   FileText,
   Users,
   CreditCard,
@@ -87,7 +87,7 @@ export default function ReportsPage() {
         {
           title: 'Success Rate',
           value: `${dashboardTotals.successRate?.toFixed(1) || '0'}%`,
-          icon: BarChart,
+          icon: BarChart3,
           change: 0,
           trend: 'positive',
           tooltip: 'Filing success rate'
@@ -238,7 +238,7 @@ export default function ReportsPage() {
                   key={index}
                   title={stat.title}
                   value={stat.value}
-                  icon={typeof stat.icon === 'function' ? React.createElement(stat.icon) : stat.icon}
+                  icon={stat.icon ? (typeof stat.icon === 'function' ? React.createElement(stat.icon) : stat.icon) : <FileText />}
                   change={stat.change}
                   trend={stat.trend}
                   tooltip={stat.tooltip}
@@ -465,7 +465,7 @@ export default function ReportsPage() {
                     <StatCard
                       title="Success Rate"
                       value="98.2%"
-                      icon={<BarChart className="h-5 w-5 text-primary" />}
+                      icon={<BarChart3 className="h-5 w-5 text-primary" />}
                       change={0.5}
                       trend="positive"
                     />
