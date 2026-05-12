@@ -201,18 +201,37 @@ export function KRAPortal() {
                   <CardContent className="p-6 pt-4 space-y-6 relative z-10 text-center">
                     <AnimatePresence mode="wait">
                       {idSearchStatus === "found" ? (
-                        <motion.div key="verified" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 flex flex-col items-center py-6">
-                          <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
-                            <CheckCircle className="w-10 h-10 text-white" />
+                        <motion.div key="verified" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 flex flex-col items-center py-4 w-full max-w-sm mx-auto">
+                          <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+                            <CheckCircle className="w-7 h-7 text-primary" />
                           </div>
-                          <h3 className="text-xs font-bold uppercase tracking-widest">IDENTITY FOUND</h3>
-                          <div className="flex flex-col gap-2 w-full max-w-[240px]">
-                            <Button className="w-full h-9 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-none" onClick={handleDownload}>
+                          
+                          <div className="w-full space-y-4 bg-black/10 p-6 rounded-2xl border border-white/5 shadow-inner">
+                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Full Name</span>
+                              <span className="text-[10px] font-bold text-foreground text-right uppercase tracking-tight">{formData.fullName}</span>
+                            </div>
+                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email</span>
+                              <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">KRA PIN</span>
+                              <span className="text-[11px] font-black text-primary text-right uppercase tracking-widest">{formData.pin}</span>
+                            </div>
+                            <div className="flex justify-between items-center gap-4">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>
+                              <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.phoneNumber || 'N/A'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 w-full max-w-[240px] pt-2">
+                            <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary/20" onClick={handleDownload}>
                               DOWNLOAD
-                              <Download className="ml-2 w-3 h-3" />
+                              <Download className="ml-2 w-4 h-4" />
                             </Button>
                             <Button variant="ghost" className="w-full h-8 text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
-                              VERIFY ANOTHER
+                              SEARCH ANOTHER
                             </Button>
                           </div>
                         </motion.div>
@@ -417,10 +436,27 @@ export function KRAPortal() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="bg-black/10 p-6 rounded-2xl border border-white/5 space-y-4 max-w-2xl mx-auto">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">PIN</span><span className="text-xs font-bold text-primary">{formData.pin || 'NOT FOUND'}</span></div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">NAME</span><span className="text-xs font-bold text-foreground text-right uppercase">{formData.fullName}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">AREA</span><span className="text-xs font-bold text-muted-foreground text-right uppercase tracking-wide">{formData.town}, {formData.county}</span></div>
+                    <div className="bg-black/10 p-6 rounded-2xl border border-white/5 space-y-4 max-w-2xl mx-auto shadow-inner">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">KRA PIN</span>
+                        <span className="text-[11px] font-black text-primary uppercase tracking-widest">{formData.pin || 'NOT FOUND'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Name</span>
+                        <span className="text-[10px] font-bold text-foreground text-right uppercase tracking-tight">{formData.fullName}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email</span>
+                        <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>
+                        <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.phoneNumber || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Location</span>
+                        <span className="text-[10px] font-bold text-muted-foreground text-right uppercase tracking-wide">{formData.town || 'N/A'}, {formData.county || 'N/A'}</span>
+                      </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
                       <Button className="h-10 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
