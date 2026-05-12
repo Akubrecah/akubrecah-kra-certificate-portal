@@ -8,9 +8,25 @@ import { logUserActivity } from '@/lib/activity-logger';
 
 export async function GET() {
   try {
-    const { sessionClaims } = await auth();
+    const { userId, sessionClaims } = await auth();
+    
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      return new NextResponse('Forbidden', { status: 403 });
+      // Fallback: Fetch full user object from Clerk for definitive verification
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        if (!isAdminUser(user)) {
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      } catch (error) {
+        console.error('[ADMIN_API] Admin verification fallback failed:', error);
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
 
     const client = await clerkClient();
@@ -88,9 +104,25 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const { sessionClaims } = await auth();
+    const { userId, sessionClaims } = await auth();
+    
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      return new NextResponse('Forbidden', { status: 403 });
+      // Fallback: Fetch full user object from Clerk for definitive verification
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        if (!isAdminUser(user)) {
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      } catch (error) {
+        console.error('[ADMIN_API] Admin verification fallback failed:', error);
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
 
     const client = await clerkClient();

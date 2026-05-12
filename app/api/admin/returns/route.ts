@@ -13,8 +13,19 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      return new NextResponse('Forbidden', { status: 403 });
+      // Fallback: Fetch full user object from Clerk for definitive verification
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        if (!isAdminUser(user)) {
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      } catch (error) {
+        console.error('[RETRIEVALS_API] Admin verification fallback failed:', error);
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
 
     const returns = await prisma.userActivity.findMany({

@@ -9,9 +9,25 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const { userId, sessionClaims } = await auth();
+    
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      console.warn(`[DASHBOARD_API] Forbidden access attempt by user: ${userId}`);
-      return new NextResponse('Forbidden', { status: 403 });
+      // Fallback: Fetch full user object from Clerk for definitive verification
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        if (!isAdminUser(user)) {
+          console.warn(`[DASHBOARD_API] Forbidden access attempt by user: ${userId}`);
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      } catch (error) {
+        console.error('[DASHBOARD_API] Admin verification fallback failed:', error);
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
 
     let totalUsers = 0;
