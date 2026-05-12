@@ -101,8 +101,15 @@ export default function ReportsPage() {
 
       setData({
         overviewData,
-        returnsTrendData: (dashboard.returnsData || []).map(r => ({ name: r.name, value: r.completed })),
-        userTrendData: (dashboard.userMetrics || []).map(u => ({ name: u.name, value: u.users })),
+        returnsTrendData: (dashboard.returnsData || []).map(r => ({ 
+          name: r.name, 
+          value: r.completed,
+          failed: r.failed || 0 
+        })),
+        userTrendData: (dashboard.userMetrics || []).map(u => ({ 
+          name: u.name, 
+          value: u.users 
+        })),
         recentActivities: Array.isArray(activities) ? activities : (activities?.activities || []),
         users: Array.isArray(users) ? users : (users?.users || []),
         totals: dashboard.totals || { users: 0, returns: 0, successRate: 0, revenue: 0 }
@@ -258,22 +265,23 @@ export default function ReportsPage() {
               />
 
               <MetricsChart
-                title="Success Rate"
-                description="Filing performance"
-                data={[{ name: 'Success', value: data.totals.successRate }, { name: 'Total', value: 100 }]}
-                type="area"
+                title="Activity Performance"
+                description="Success vs Failed retrieval attempts"
+                data={data.returnsTrendData}
+                type="bar"
                 series={[
-                  { name: 'Rate', dataKey: 'value', color: '#82ca9d' }
+                  { name: 'Completed', dataKey: 'value', color: '#10b981' },
+                  { name: 'Failed', dataKey: 'failed', color: '#ef4444' }
                 ]}
                 dateRanges={dateRanges}
                 selectedRange={dateRange}
                 onRangeChange={setDateRange}
-                showLegend={false}
+                showLegend={true}
                 height={280}
                 trend={{
                   value: data.totals.successRate,
                   direction: 'up',
-                  label: 'success'
+                  label: 'success rate'
                 }}
                 actions={[
                   { label: 'Refresh', action: fetchData }

@@ -6,9 +6,25 @@ import prisma from '@/lib/prisma';
 
 export async function GET(req: Request) {
   try {
-    const { sessionClaims } = await auth();
+    const { userId, sessionClaims } = await auth();
+    
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      return new NextResponse('Forbidden', { status: 403 });
+      // Fallback: Fetch full user object from Clerk for definitive verification
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        if (!isAdminUser(user)) {
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      } catch (error) {
+        console.error('[ACTIVITIES_API] Admin verification fallback failed:', error);
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
 
     const { searchParams } = new URL(req.url);
