@@ -26,7 +26,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 
-interface ReturnData {
+interface RetrievalData {
   id: string;
   userName: string;
   userEmail: string;
@@ -41,20 +41,20 @@ interface ReturnData {
 
 export default function ReturnsPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [returns, setReturns] = useState<ReturnData[]>([])
+  const [retrievals, setRetrievals] = useState<RetrievalData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const fetchReturns = async () => {
+  const fetchRetrievals = async () => {
     setIsRefreshing(true)
     try {
       const response = await fetch('/api/admin/returns')
-      if (!response.ok) throw new Error('Failed to fetch returns')
+      if (!response.ok) throw new Error('Failed to fetch retrievals')
       const data = await response.json()
-      setReturns(data)
+      setRetrievals(data)
     } catch (error) {
-      console.error('Error fetching returns:', error)
-      toast.error('Failed to load real-time returns data')
+      console.error('Error fetching retrievals:', error)
+      toast.error('Failed to load real-time retrieval data')
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -62,10 +62,10 @@ export default function ReturnsPage() {
   }
 
   useEffect(() => {
-    fetchReturns()
+    fetchRetrievals()
   }, [])
   
-  const filteredReturns = returns.filter(ret => 
+  const filteredRetrievals = retrievals.filter(ret => 
     ret.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ret.pinNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ret.userEmail.toLowerCase().includes(searchQuery.toLowerCase())
@@ -100,7 +100,7 @@ export default function ReturnsPage() {
   }
 
   const exportToCSV = () => {
-    if (filteredReturns.length === 0) {
+    if (filteredRetrievals.length === 0) {
       toast.error('No data to export')
       return
     }
@@ -108,7 +108,7 @@ export default function ReturnsPage() {
     const headers = ['User', 'Email', 'KRA PIN', 'Authorized By', 'Date Time', 'Status', 'Amount']
     const csvContent = [
       headers.join(','),
-      ...filteredReturns.map(ret => [
+      ...filteredRetrievals.map(ret => [
         `"${ret.userName}"`,
         `"${ret.userEmail}"`,
         `"${ret.pinNumber}"`,
@@ -123,7 +123,7 @@ export default function ReturnsPage() {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `KRA_Returns_Report_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `KRA_Retrievals_Report_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -132,12 +132,12 @@ export default function ReturnsPage() {
   }
 
   // Calculate metrics based on real data
-  const totalReturns = returns.length
-  const completedReturns = returns.filter(r => r.status === 'success' || r.status === 'completed').length
-  const pendingReturns = returns.filter(r => r.status === 'pending').length
-  const failedReturns = returns.filter(r => r.status === 'error' || r.status === 'failed').length
+  const totalRetrievals = retrievals.length
+  const completedRetrievals = retrievals.filter(r => r.status === 'completed').length
+  const pendingRetrievals = retrievals.filter(r => r.status === 'pending').length
+  const failedRetrievals = retrievals.filter(r => r.status === 'failed').length
 
-  // Generate chart data from real returns
+  // Generate chart data from real retrievals
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
@@ -145,24 +145,24 @@ export default function ReturnsPage() {
   })
 
   const chartData = last7Days.map(date => {
-    const dayReturns = returns.filter(r => r.submissionDate && typeof r.submissionDate === 'string' && r.submissionDate.startsWith(date))
+    const dayRetrievals = retrievals.filter(r => r.submissionDate && typeof r.submissionDate === 'string' && r.submissionDate.startsWith(date))
     return {
       name: new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-      completed: dayReturns.filter(r => r.status === 'success' || r.status === 'completed').length,
-      pending: dayReturns.filter(r => r.status === 'pending').length,
-      failed: dayReturns.filter(r => r.status === 'error' || r.status === 'failed').length,
+      completed: dayRetrievals.filter(r => r.status === 'completed').length,
+      pending: dayRetrievals.filter(r => r.status === 'pending').length,
+      failed: dayRetrievals.filter(r => r.status === 'failed').length,
     }
   })
 
   return (
     <div className="flex-1 space-y-4 p-6 lg:p-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Returns Management</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Retrievals Management</h2>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={fetchReturns} 
+            onClick={fetchRetrievals} 
             disabled={isRefreshing}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -179,11 +179,11 @@ export default function ReturnsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card hover:bg-card/80 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Returns</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Retrievals</CardTitle>
             <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalReturns}</div>
+            <div className="text-2xl font-bold">{totalRetrievals}</div>
             <p className="text-xs text-muted-foreground">Real-time system data</p>
           </CardContent>
         </Card>
@@ -194,8 +194,8 @@ export default function ReturnsPage() {
             <CheckCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedReturns}</div>
-            <p className="text-xs text-muted-foreground">Successful filings</p>
+            <div className="text-2xl font-bold">{completedRetrievals}</div>
+            <p className="text-xs text-muted-foreground">Successful retrievals</p>
           </CardContent>
         </Card>
         
@@ -205,7 +205,7 @@ export default function ReturnsPage() {
             <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingReturns}</div>
+            <div className="text-2xl font-bold">{pendingRetrievals}</div>
             <p className="text-xs text-muted-foreground">Currently in progress</p>
           </CardContent>
         </Card>
@@ -216,7 +216,7 @@ export default function ReturnsPage() {
             <AlertTriangle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{failedReturns}</div>
+            <div className="text-2xl font-bold">{failedRetrievals}</div>
             <p className="text-xs text-muted-foreground">Requires attention</p>
           </CardContent>
         </Card>
@@ -225,7 +225,7 @@ export default function ReturnsPage() {
       {/* Returns chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Returns Activity (Last 7 Days)</CardTitle>
+          <CardTitle>Retrieval Activity (Last 7 Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -249,12 +249,12 @@ export default function ReturnsPage() {
       {/* Returns table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Return Records</CardTitle>
+          <CardTitle>Retrieval Records</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search returns..."
+                placeholder="Search retrievals..."
                 className="pl-8 max-w-xs"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -281,8 +281,8 @@ export default function ReturnsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReturns.length > 0 ? (
-                  filteredReturns.map((ret) => (
+                {filteredRetrievals.length > 0 ? (
+                  filteredRetrievals.map((ret) => (
                     <TableRow key={ret.id}>
                       <TableCell className="font-medium">
                         <div>{ret.userName}</div>
@@ -308,7 +308,7 @@ export default function ReturnsPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No return records found.
+                      No retrieval records found.
                     </TableCell>
                   </TableRow>
                 )}
