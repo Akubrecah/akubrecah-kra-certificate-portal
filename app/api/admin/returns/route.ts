@@ -3,6 +3,8 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { isAdminUser } from '@/lib/admin-config';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { userId, sessionClaims } = await auth();
@@ -26,7 +28,8 @@ export async function GET() {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      take: 100
     });
 
     const formattedReturns = returns.map(ret => {
