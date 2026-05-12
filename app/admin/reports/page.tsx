@@ -59,15 +59,18 @@ export default function ReportsPage() {
         fetch('/api/admin/activities?limit=10')
       ])
 
-      const dashboard = await dashboardRes.json()
-      const users = await usersRes.json()
-      const activities = await activitiesRes.json()
+      const dashboard = dashboardRes.ok ? await dashboardRes.json() : {};
+      const usersData = usersRes.ok ? await usersRes.json() : [];
+      const activitiesData = activitiesRes.ok ? await activitiesRes.json() : [];
 
-      // Format overview data for StatCards
+      const dashboardTotals = dashboard.totals || { users: 0, returns: 0, successRate: 0, revenue: 0 };
+      const userList = Array.isArray(usersData) ? usersData : (usersData.users || []);
+      const activitiesList = Array.isArray(activitiesData) ? activitiesData : (activitiesData.activities || []);
+
       const overviewData = [
         {
           title: 'Total Returns',
-          value: dashboard.totals?.returns?.toLocaleString() || '0',
+          value: dashboardTotals.returns?.toLocaleString() || '0',
           icon: FileText,
           change: 0,
           trend: 'positive',
@@ -75,7 +78,7 @@ export default function ReportsPage() {
         },
         {
           title: 'Total Users',
-          value: dashboard.totals?.users?.toLocaleString() || '0',
+          value: dashboardTotals.users?.toLocaleString() || '0',
           icon: Users,
           change: 0,
           trend: 'positive',
@@ -83,7 +86,7 @@ export default function ReportsPage() {
         },
         {
           title: 'Success Rate',
-          value: `${dashboard.totals?.successRate?.toFixed(1) || '0'}%`,
+          value: `${dashboardTotals.successRate?.toFixed(1) || '0'}%`,
           icon: BarChart,
           change: 0,
           trend: 'positive',
@@ -91,7 +94,7 @@ export default function ReportsPage() {
         },
         {
           title: 'Total Revenue',
-          value: `KES ${dashboard.totals?.revenue?.toLocaleString() || '0'}`,
+          value: `KES ${dashboardTotals.revenue?.toLocaleString() || '0'}`,
           icon: CreditCard,
           change: 0,
           trend: 'neutral',
@@ -103,16 +106,16 @@ export default function ReportsPage() {
         overviewData,
         returnsTrendData: (dashboard.returnsData || []).map(r => ({ 
           name: r.name, 
-          value: r.completed,
+          value: r.completed || 0,
           failed: r.failed || 0 
         })),
         userTrendData: (dashboard.userMetrics || []).map(u => ({ 
           name: u.name, 
-          value: u.users 
+          value: u.users || 0 
         })),
-        recentActivities: Array.isArray(activities) ? activities : (activities?.activities || []),
-        users: Array.isArray(users) ? users : (users?.users || []),
-        totals: dashboard.totals || { users: 0, returns: 0, successRate: 0, revenue: 0 }
+        recentActivities: activitiesList,
+        users: userList,
+        totals: dashboardTotals
       })
     } catch (error) {
       console.error('Error fetching reporting data:', error)
@@ -136,7 +139,10 @@ export default function ReportsPage() {
     timestamp: activity.timestamp || new Date().toISOString(),
     status: activity.status === 'completed' || activity.status === 'success' ? 'success' as ActivityStatus :
       activity.status === 'pending' ? 'pending' as ActivityStatus : 'info' as ActivityStatus,
-    user: activity.user?.name || activity.user?.email || 'Unknown'
+    user: {
+      name: activity.user?.name || activity.user?.email || 'Unknown',
+      email: activity.user?.email || ''
+    }
   }))
 
   const handleGenerateReport = () => {
