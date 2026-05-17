@@ -247,7 +247,7 @@ export function KRAPortal() {
                               <span className="text-[11px] font-black text-primary text-right uppercase tracking-widest">{formData.pin}</span>
                             </div>
                             <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Reg Date</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Reg Date</span>
                               {isVerifyingDate ? (
                                 <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
                               ) : (
@@ -369,7 +369,7 @@ export function KRAPortal() {
                         <Input value={formData.email} onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} placeholder="EMAIL@EXAMPLE.COM" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
                       </div>
                       <div className="space-y-1.5 text-center">
-                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Registration Date</Label>
+                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Registration Date</Label>
                         <Input value={formData.registeredDate} onChange={(e) => handleInputChange('registeredDate', e.target.value)} placeholder="DD/MM/YYYY" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
                       </div>
                     </div>
@@ -489,7 +489,7 @@ export function KRAPortal() {
                         <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Reg Date</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Reg Date</span>
                         {isVerifyingDate ? (
                           <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
                         ) : (
