@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(`[CONFIRM-DATE] Triggering lazy verification for PIN: ${pin}`);
-    const exactDate = await kraService.fetchEffectiveDateFromPinChecker(pin);
+    let exactDate = await kraService.fetchEffectiveDateFromPinChecker(pin);
+    if (!exactDate) {
+      exactDate = (kraService as any).derivePrimaryRegistrationDate(pin);
+      console.log(`[CONFIRM-DATE] Fallback: derived primary date: ${exactDate}`);
+    }
 
     return NextResponse.json({ 
       success: true, 

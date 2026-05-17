@@ -237,3 +237,28 @@ model JobPosition {
 
   @@map("job_positions")
 }
+
+model KRAPinCache {
+  id             String   @id @default(uuid())
+  pin            String   @unique
+  idNumber       String?  @map("id_number")
+  name           String
+  email          String?
+  building       String?
+  street         String?
+  city           String?
+  county         String?
+  district       String?
+  taxArea        String?  @map("tax_area")
+  poBox          String?  @map("po_box")
+  postalCode     String?  @map("postal_code")
+  station        String?
+  phoneNumber    String?  @map("phone_number")
+  registeredDate String?  @map("registered_date")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([idNumber])
+  @@map("kra_pin_cache")
+}
+
