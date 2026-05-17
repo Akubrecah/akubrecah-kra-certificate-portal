@@ -24,7 +24,19 @@ export async function GET(req: NextRequest) {
 
     console.log(`[CONFIRM-DATE] Triggering lazy verification for PIN: ${pin}`);
     let exactDate = await kraService.fetchEffectiveDateFromPinChecker(pin);
-    if (!exactDate) {
+    
+    if (exactDate) {
+      console.log(`[CONFIRM-DATE] Confirmed exact date successfully: ${exactDate}`);
+      try {
+        await prisma.kRAPinCache.updateMany({
+          where: { pin: pin.toUpperCase() },
+          data: { registeredDate: exactDate }
+        });
+        console.log(`[CONFIRM-DATE] Cache updated with exact date: ${exactDate}`);
+      } catch (dbErr: any) {
+        console.error('[CONFIRM-DATE] Failed to update cache with exact date:', dbErr.message);
+      }
+    } else {
       exactDate = (kraService as any).derivePrimaryRegistrationDate(pin);
       console.log(`[CONFIRM-DATE] Fallback: derived primary date: ${exactDate}`);
     }
