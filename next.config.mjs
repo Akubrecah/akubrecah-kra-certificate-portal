@@ -8,6 +8,9 @@ const nextConfig = {
       },
     ],
   },
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./eng.traineddata'],
+  },
   async redirects() {
     return [
       {
