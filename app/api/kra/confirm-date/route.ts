@@ -37,8 +37,12 @@ export async function GET(req: NextRequest) {
         console.error('[CONFIRM-DATE] Failed to update cache with exact date:', dbErr.message);
       }
     } else {
-      exactDate = (kraService as any).derivePrimaryRegistrationDate(pin);
-      console.log(`[CONFIRM-DATE] Fallback: derived primary date: ${exactDate}`);
+      const today = new Date();
+      const d = String(today.getDate()).padStart(2, '0');
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const y = today.getFullYear();
+      exactDate = `${d}/${m}/${y}`;
+      console.log(`[CONFIRM-DATE] Fallback: current date: ${exactDate}`);
     }
 
     return NextResponse.json({ 
