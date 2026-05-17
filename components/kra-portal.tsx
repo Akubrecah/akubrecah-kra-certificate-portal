@@ -55,9 +55,11 @@ export function KRAPortal() {
     postalCode: "",
     building: "",
     street: "",
-    poBox: ""
+    poBox: "",
+    registeredDate: ""
   })
   const [isVerified, setIsVerified] = useState(false)
+  const [isVerifyingDate, setIsVerifyingDate] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleInputChange = (field: string, value: string) => {
@@ -84,10 +86,11 @@ export function KRAPortal() {
       const result = await response.json()
 
       if (result.success) {
+        const retrievedPin = result.data?.pin;
         setFormData(prev => ({
           ...prev,
           fullName: result.data?.name || prev.fullName,
-          pin: result.data?.pin || prev.pin,
+          pin: retrievedPin || prev.pin,
           email: result.data?.email || prev.email,
           building: result.data?.building || prev.building,
           street: result.data?.street || prev.street,
@@ -99,10 +102,33 @@ export function KRAPortal() {
           poBox: result.data?.poBox || prev.poBox,
           postalCode: result.data?.postalCode || prev.postalCode,
           phoneNumber: result.data?.phoneNumber || prev.phoneNumber,
+          registeredDate: result.data?.registeredDate || prev.registeredDate,
         }))
         setIdSearchStatus("found")
         setIsVerified(true)
         toast.success("Certificate Identity Found")
+
+        // Trigger non-blocking lazy registration date verification in background if not already verified
+        if (retrievedPin && !result.data?.registeredDate) {
+          setIsVerifyingDate(true);
+          fetch(`/api/kra/confirm-date?pin=${retrievedPin}`)
+            .then(res => res.json())
+            .then(dateResult => {
+              if (dateResult.success && dateResult.registeredDate) {
+                setFormData(prev => ({
+                  ...prev,
+                  registeredDate: dateResult.registeredDate
+                }));
+                toast.success("Exact registration date verified!");
+              }
+            })
+            .catch(err => {
+              console.error("Error confirming registration date:", err);
+            })
+            .finally(() => {
+              setIsVerifyingDate(false);
+            });
+        }
       } else {
         setIdSearchStatus("error")
         setError(result.error || "Details not found. Please check your credentials.")
@@ -137,6 +163,7 @@ export function KRAPortal() {
         poBox: formData.poBox,
         postalCode: formData.postalCode,
         mobileNumber: formData.phoneNumber,
+        registeredDate: formData.registeredDate,
       };
 
       const response = await fetch('/api/generate-certificate', {
@@ -218,6 +245,14 @@ export function KRAPortal() {
                             <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">KRA PIN</span>
                               <span className="text-[11px] font-black text-primary text-right uppercase tracking-widest">{formData.pin}</span>
+                            </div>
+                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Reg Date</span>
+                              {isVerifyingDate ? (
+                                <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.registeredDate || 'N/A'}</span>
+                              )}
                             </div>
                             <div className="flex justify-between items-center gap-4">
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>
@@ -332,6 +367,10 @@ export function KRAPortal() {
                       <div className="space-y-1.5 text-center">
                         <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email Address</Label>
                         <Input value={formData.email} onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} placeholder="EMAIL@EXAMPLE.COM" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
+                      </div>
+                      <div className="space-y-1.5 text-center">
+                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Registration Date</Label>
+                        <Input value={formData.registeredDate} onChange={(e) => handleInputChange('registeredDate', e.target.value)} placeholder="DD/MM/YYYY" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
@@ -448,6 +487,14 @@ export function KRAPortal() {
                       <div className="flex items-center justify-between border-b border-white/5 pb-3">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email</span>
                         <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Reg Date</span>
+                        {isVerifyingDate ? (
+                          <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.registeredDate || 'N/A'}</span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between border-b border-white/5 pb-3">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>

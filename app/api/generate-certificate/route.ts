@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       pin, name, idNumber, email, date, mobileNumber,
       building, street, city, county, district,
       taxArea, station, poBox, postalCode,
+      registeredDate,
       currentDate: providedCurrentDate,
       debug = false
     } = data;
@@ -79,8 +80,16 @@ export async function POST(req: NextRequest) {
 
     // Always use a valid date — server date as authoritative fallback
     const todayStr = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
-    const today = (date && String(date).trim()) ? String(date).trim() : todayStr;
-    const currentDate = (providedCurrentDate && String(providedCurrentDate).trim()) ? String(providedCurrentDate).trim() : todayStr;
+    
+    // Certificate date: maintains the current date (today)
+    const certificateDate = (providedCurrentDate && String(providedCurrentDate).trim()) 
+      ? String(providedCurrentDate).trim() 
+      : todayStr;
+      
+    // Effective date: exactly as the registered date
+    const effectiveDate = (registeredDate && String(registeredDate).trim())
+      ? String(registeredDate).trim()
+      : ((date && String(date).trim()) ? String(date).trim() : '12/10/2018');
 
     // Draw coordinate grid for debugging if enabled
     if (debug) {
@@ -105,7 +114,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Date stamp (Top Right — next to PIN)
-    page.drawText(today, {
+    page.drawText(certificateDate, {
       x: 510,
       y: height - 103,
       size: 10,
@@ -206,7 +215,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 3. Certificate Issue Date (body — below address block)
-    page.drawText(today, {
+    page.drawText(effectiveDate, {
       x: 270,
       y: height - 455,
       size: 12,

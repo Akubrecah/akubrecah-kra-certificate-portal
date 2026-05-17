@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
     };
 
     const today = new Date().toLocaleDateString('en-GB');
+    const testRegDate = '12/10/2018';
 
     // Draw coordinate grid so we can see exact positions
     for (let x = 0; x < width; x += 50) {
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
       page.drawText(value, { x, y, size: 11, font: regularFont, color: rgb(0, 0, 0) });
     });
 
-    page.drawText(today, { x: 270, y: height - 455, size: 12, font: regularFont, color: rgb(0, 0, 0) });
+    page.drawText(testRegDate, { x: 270, y: height - 455, size: 12, font: regularFont, color: rgb(0, 0, 0) });
 
     const modifiedPdfBytes = await pdfDoc.save();
 
