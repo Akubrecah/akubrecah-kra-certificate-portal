@@ -1,0 +1,494 @@
+
+<html>
+<head>
+	<LINK rel=Stylesheet type=text/css href="/KRA-Portal/themes/styles/common/content.css">
+	<link rel="shortcut icon" type="image/ico" href="/KRA-Portal/themes/images/favicon.ico" >
+	<link rel="stylesheet" href="/KRA-Portal/themes/styles/common/newHomeTemplate_kra.css" type="text/css"/>
+	
+	<title> Kenya Revenue Authority</title>
+	
+	<script type="text/javascript">
+	function displayParentChild(link)
+	{
+		document.forms[0].action="main.htm?actionCode=displayChildMenus&&parentMenuId="+link+"&&menyType=HOMELINK";
+		document.forms[0].submit();
+	}
+	function showTCCChecker()
+	{
+
+		 document.forms[0].action="complianceMonitoring.htm?actionCode=validateTCC";
+	  
+		document.forms[0].submit();
+	}
+	function whtChecker()
+	{
+		  /*if(disableEServicesLinks=='Y')
+		  {
+			document.forms[0].action ="main.htm?actionCode=comingSoon&viewType=static";
+		  }
+		  else
+		  {
+			  document.forms[0].action="complianceMonitoring.htm?actionCode=showVerifyWithholdingCertificate&viewType=static";
+		  }*/
+		  document.forms[0].action="complianceMonitoring.htm?actionCode=showVerifyWithholdingCertificate";
+		  document.forms[0].submit();
+	}
+	function openFAQ()
+	{
+//		if(disableAdminManagedLinks=='Y')
+//		{
+//			document.forms[0].action ="main.htm?actionCode=comingSoon&viewType=static";
+//		}
+//		else
+//		{
+			document.forms[0].action="faq.htm?actionCode=faqManagement&operation=viewCategory&viewType=static";
+//		}
+		document.forms[0].submit();
+	}
+	function reportProblem()
+	{
+		/* document.forms[0].action ="postQuery.htm?actionCode=showPostQuery&viewType=static";
+		document.forms[0].submit(); */
+		window.open("https://kenya-revenue-authority.custhelp.com/app/ask/session/L3RpbWUvMTY3NjQ1NTY3Ny9nZW4vMTY3NjQ1NTY3Ny9zaWQvZlVpTUZHbHIwbEFTUVNhWU80QzRMek9IRk9ZZyU3RW85eTglN0V0bUdlZTZrQUhwVWhYUjdRdGFsaEdBcHZ4UjJLeGh2aVNvNTNaTzlhJTdFZmJ0aVo0JTdFa2xvUlo0bmI3eUdzVUdualJqMUJybnA2bTBZVnhGOHd2VXBwcWclMjElMjE=","_blank");
+	}
+	function checkVATWHTPIN()
+	{
+		document.forms[0].action ="pinChecker.htm?actionCode=loadVATWHTPage&viewType=static";	
+		document.forms[0].submit();
+	}
+	function pinchecker(){
+		  /*if(disableEServicesLinks=='Y')
+		  {
+			document.forms[0].action ="main.htm?actionCode=comingSoon&viewType=static";
+		  }
+		  else
+		  {
+			document.forms[0].action ="pinChecker.htm?actionCode=loadPage&viewType=static";
+		  }*/
+		document.forms[0].action ="pinChecker.htm?actionCode=loadPage&viewType=static";
+		document.forms[0].submit();
+		}
+	function contactUs()
+	{
+		document.forms[0].action="main.htm?actionCode=showContactUs&viewType=static&linkFrom=LP";
+		document.forms[0].submit();
+	}
+		
+	
+		var disableAdminManagedLinks = "Y";
+		var disableEServicesLinks = "Y";
+	</script>
+	<script type="text/javascript" src="/KRA-Portal/scripts/common/newHomeTemplate.js"></script>
+	
+	<script type="text/javascript" src="/KRA-Portal/scripts/common/commonValidationCombined.js"></script>
+	<script type="text/javascript" src="/KRA-Portal/scripts/common/eService_General.js"></script>
+	<script type='text/javascript' src="/KRA-Portal/dwr/engine.js"></script>
+	<script type='text/javascript' src="/KRA-Portal/dwr/util.js"></script>
+	<script>
+		dwr.engine.setPreHook(_showDynamicDiv);
+		dwr.engine.setPostHook(_hideDynamicDiv);
+	</script>
+<script src="https://itax.kra.go.ke/elastic-apm-rum.umd.min.js" crossorigin></script>
+<script>
+var parts = window.location.href.split('&'); 
+var pageHref = window.location.href;
+if (parts.length > 0) {
+    pageHref = parts[0] 
+}
+  elasticApm.init({
+    serviceName: 'itax-portal-prod-ux-internal',
+    serverUrl: 'https://itax.kra.go.ke',
+    pageLoadTransactionName: pageHref,
+    environment: 'itax-portal-prod'
+  })
+</script></head>
+
+<body topmargin="0">
+	<!-- <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> -->
+<script type="text/javascript" src="/KRA-Portal/scripts/common/common.js"></script>
+
+<center>
+<div id='statusbar'>
+<table class="img">
+<tr>
+<td id='imgtd'>
+<img src="/KRA-Portal/themes/images/pageLoader.gif" height="60px" width="60px" alt="image is not supported."></img>
+</td>
+<td id='statuBarTd1' class="showProgressBar"></td>
+</tr>
+</table>
+</div>
+</center>
+<div id="fadeBackground"  class="fade_background"></div>
+
+
+	
+	<div align="center" id="top-band-1">
+<table width="960px" height="100%" id="top-band-table-1"><tbody>
+<tr>
+<td class="textAlignLeft">Welcome to iTax Online Service Area
+</td>
+<td class="textAlignRight top-link"><A href="#" onclick="javascript:displayParentChild('Checkers');">Checkers</A>&nbsp;|&nbsp;<A href="#" onclick="javascript:openFAQ();">FAQs</A>&nbsp;|&nbsp;<A href="#" onclick="javascript:downloads();">Forms</A>&nbsp;|&nbsp;<A href="#" onclick="javascript:reportProblem();">Report Problem</A>&nbsp;|&nbsp;<a href="#" onclick="javascript:contactUs();">Contact us</a>&nbsp;|&nbsp;<A href="#" onclick="javascript:window.open('http://www.kra.go.ke/web-help/index.htm','_blank','directories=0,titlebar=0,toolbar=0,location=0,status=0,menubar=0,resizable=yes');">Online Help</A>&nbsp;|&nbsp;<A href="#" onclick="javascript:displayParentChild('ITAX Videos');">iTax Videos</A>
+</td>
+</tr></tbody>
+</table>
+</div>
+<!-- 	<a href="#" onclick="javascript:showHomePage();">Home</a>&nbsp;|&nbsp; -->
+
+	
+	<!-- Main DIV Started  -->
+	<div class="templateMainDiv" align="center">
+		<!-- Header DIV Started  --> 
+		<div class="templateHeaderDiv">
+			
+
+<!-- Header Image DIV Started -->
+<div class="mainHeaderDIV">
+	<table class="mainHeaderTable" id="header_TD" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<img usemap="#KRALogo" title="KRA" src="/KRA-Portal/themes/images/P1Head.jpg" height="122px">
+				
+				
+				<map name="KRALogo">
+	  				<area shape="rect" coords="62,26,300,118" href="main.htm?actionCode=showOnlineServicesHomeLnclick" />
+	  			</map>
+	  			
+			</td>
+		</tr>
+	</table>
+</div>
+<!-- Header Image DIV ended -->
+
+		</div>
+		<!-- Header DIV Ended  -->
+		<!-- Menu DIV Started  -->
+		<div class="templateMenuDiv">
+			
+<!-- <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> -->
+<html>
+<head>
+
+<title>Insert title here</title>
+<script src="https://itax.kra.go.ke/elastic-apm-rum.umd.min.js" crossorigin></script>
+<script>
+var parts = window.location.href.split('&'); 
+var pageHref = window.location.href;
+if (parts.length > 0) {
+    pageHref = parts[0] 
+}
+  elasticApm.init({
+    serviceName: 'itax-portal-prod-ux-internal',
+    serverUrl: 'https://itax.kra.go.ke',
+    pageLoadTransactionName: pageHref,
+    environment: 'itax-portal-prod'
+  })
+</script></head>
+<body>
+
+</body>
+</html>	
+		</div>
+		<!-- Menu DIV Ended  -->
+		<!-- Banner DIV Started  -->
+		
+		<!-- Banner DIV Ended  -->
+		<!-- Content DIV Started  -->
+		<div class="templateContentDiv" align="left">
+			<table class="templateContentDivTable">
+				<tr>
+					<td class="templateContentDivTableMainPanel">
+						<div class="templateContentDivTableMainPanelDiv">
+							
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+
+<script type="text/javascript">
+
+function pinchecker(){
+	document.forms[0].action ="pinChecker.htm?actionCode=loadPage&viewType=static";
+	
+	document.forms[0].submit();
+	}
+
+function searchPIN(){
+	if(document.getElementById("vo.pinNo").value=="")
+	{
+		alert("PIN is required");
+		return false;
+	}else if(document.getElementById("vo.pinNo").value.length !=11){
+		alert("Invalid PIN. PIN length should be 11 characters.");
+		return false;
+	}
+	
+	document.getElementById("consult").disabled="true";
+	document.getElementById("back").disabled="true";
+	document.pinCheckerForm.actionCode.value="checkPin";
+	if(""=='OS')
+	{
+		document.pinCheckerForm.action=document.pinCheckerForm.action+"?linkFrom=OS";
+	}
+	document.pinCheckerForm.submit();
+}
+function ajaxCaptchaLoad(){
+	var randomnumber=Math.floor(Math.random()*1001);
+	document.getElementById("captcha_img").src = "/KRA-Portal/GenerateCaptchaServlet.do?sourcePage=LOGIN&rand="+randomnumber;
+}
+function toUpper(a){var b=document.getElementById(a.id).value;b=b.toUpperCase();document.getElementById(a.id).value=b;return;}
+</script>
+<script src="https://itax.kra.go.ke/elastic-apm-rum.umd.min.js" crossorigin></script>
+<script>
+var parts = window.location.href.split('&'); 
+var pageHref = window.location.href;
+if (parts.length > 0) {
+    pageHref = parts[0] 
+}
+  elasticApm.init({
+    serviceName: 'itax-portal-prod-ux-internal',
+    serverUrl: 'https://itax.kra.go.ke',
+    pageLoadTransactionName: pageHref,
+    environment: 'itax-portal-prod'
+  })
+</script></head>
+<body onload="setViewType()">
+<form id="pinCheckerForm" name="pinCheckerForm" action="pinChecker.htm" method="POST" autocomplete="off">
+<!-- Hidden Input Fields started -->
+<input type="hidden" name="viewType" id="viewType" value=""/>
+<input type="hidden" name="actionCode" id="actionCode" />
+<!-- Hidden Input Fields ended -->
+		
+<!-- Bread Crumb starts -->
+
+<div class="textAlignLeft"> <!-- Bread Crumb Alignment -->
+<table>
+	<tr class="youAreHere"> <!-- Bread Crumb css -->
+		
+ 
+
+
+
+
+<script type="text/javascript">
+function getBack()
+{
+   
+   
+   var siteMapJsp="";
+   var linkFrom="";
+   //alert('');
+   siteMapJsp='';
+   linkFrom='';
+   if(siteMapJsp!=null && siteMapJsp!="" && siteMapJsp=='siteMap')	 
+	   window.location.href ="/KRA-Portal/main.htm?actionCode=showSiteMap";	 
+   else if(linkFrom!=null && linkFrom!="" && linkFrom=='OS') //OS - Online Services Page
+	   window.location.href ="/KRA-Portal/main.htm?actionCode=showOnlineServices&viewType=static";
+   else if(linkFrom!=null && linkFrom!="" && linkFrom=='LP') //LP - Login Page
+	   window.location.href = "/KRA-Portal/main.htm?actionCode=loadOnlineServicesPage";
+   else	 
+	   getBackHome();
+}
+function getBackHome()
+{
+	
+	//alert('static');
+	var viewType='static';
+	if(viewType == "static")
+		window.location.href = "/KRA-Portal/main.htm?actionCode=showHomePageLnclick";
+	else
+		window.location.href = "/KRA-Portal/main.htm?actionCode=showOnlineServicesHomeLnclick";
+}
+</script>
+<!-- Bread Crumb - General Message/Link - starts -->
+<td>
+	&nbsp;&nbsp;<a href="#" onClick="javascript:getBackHome();"><img src="/KRA-Portal/themes/images/home.png" alt="Home"/></a>
+</td>
+
+<!-- Bread Crumb ends -->
+		<td>&gt;&gt;&nbsp;PIN Checker</td>
+	</tr>
+</table>
+</div>
+
+<!-- Bread Crumb ends -->
+	
+<br />
+
+<!-- Content Table - Enter details for searching users - starts -->
+
+<div> <!-- Content Table main div -->
+<center> <!-- center main div content -->
+	<div class="divBorder"> <!-- Content Table Div for Border -->
+		<table class="tab3 whitepapartdBig"> <!-- Content Table with css -->
+			<tr>
+				<td class="tablerowhead" colspan="4">PIN Checker</td>
+			</tr>
+			<tr>
+				<td colspan="4" class="textAlignLeft">&nbsp;</td>
+			</tr>
+			<tr>
+				<td colspan="4" class="textAlignJustify">The PIN Checker allows you to confirm whether or not a particular PIN is genuine. A genuine PIN is generated by the KRA - Domestic Taxes Department System and is in Active status. The Information provided by the PIN Checker is limited to basic details of the taxpayer.</td>
+			</tr>
+			<tr>
+				<td colspan="4" class="textAlignLeft">&nbsp;</td>
+			</tr>
+			<tr>
+				<td class="textAlignLeft" colspan="1">PIN<font class="mandatoryField">*</font></td> 
+				<td class="textAlignLeft" colspan="3">
+					<input id="vo.pinNo" name="vo.pinNo" class="form101_textfcurr form101_textfcurr_width" onchange="javascript:toUpper(this);" type="text" value="A016881319Q" maxlength="11"/>			
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4" class="textAlignLeft">&nbsp;</td>
+			</tr>
+						<TR>
+							<TD width="150px;"
+								style="FONT-SIZE: 13px; VERTICAL-ALIGN: bottom; PADDING-TOP: 5px"
+								class=textAlignLeft>Security Stamp<FONT style="COLOR: red">*</FONT></TD>
+							<TD width="200px;" style="PADDING-TOP: 5px"><a
+								style="float: left; padding-right: 5px;"
+								href="javascript:ajaxCaptchaLoad()" class="refresh_captcha"
+								title="Refresh Captcha"></a> <img alt="Captcha Image"
+								id="captcha_img" name="captcha_img" title="Captcha" width="65"
+								height="15" style='vertical-align: middle;'
+								src="/KRA-Portal/GenerateCaptchaServlet.do?sourcePage=LOGIN&rand=844.0">
+								<input tabindex="3"
+								title="Please enter the result of arithmatic expression in Security Stamp"
+								name="captcahText" type="text" id="captcahText" maxlength="11"
+								class="tb10Smaller" style='vertical-align: bottom' /></TD>
+						</TR>
+		</table>
+	</div>
+</center>
+</div>
+
+<!-- Content Table ends -->
+		
+<br />
+
+<!-- Buttons started -->
+<div>
+<center>
+	
+	<input type="button" value="Consult" id="consult" onclick="javascript:searchPIN();" class="submit" /> &nbsp;
+	<input type="button" value="Home" id="back" class="submit" onclick="javascript:getBack();" />&nbsp;
+	<input type="button" value="Reset" id="reset" class="submit" onclick="javascript:pinchecker();" />
+</center>
+</div>
+<!-- Buttons ended -->
+
+<br />
+		
+			<div>
+				<!-- Content Table main div -->
+				<center>
+					<!-- center main div content -->
+					<div class="divBorder">
+						<!-- Content Table Div for Border -->
+						<table class="tab3 whitepapartdBig">
+							<!-- Content Table with css -->
+							<tr>
+								<td class="textAlignLeft">
+									<div>
+										<b>System is not able to process your request. Please try again.</b>
+									</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</center>
+			</div>
+		
+
+</form>
+</body>
+</html>
+<script type="text/javascript">
+function setViewType()
+{
+	if("static" == "static")
+		document.getElementById("viewType").value="static";
+	else
+		document.getElementById("viewType").value="";
+}</script>
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>	
+		<!-- Content DIV Ended  -->
+		<!-- Footer DIV Started  -->
+		<div class="templateFooterDiv">
+			<table class="templateFooterDivTable">
+				<tr>
+					<td class="templateFooterDivTableFooter">
+						
+
+
+
+
+<HTML>
+
+
+
+
+
+<body>
+<form name="frmFooter" method="post">
+
+
+<!-- Footer DIV Started-->
+   	
+ <div> <!-- Footer Main DIV-->
+   	<table width="100%"> <!-- Footer Content Table -->
+   		<tr>
+			<!-- TCSLogo and Message Part Started -->
+			<td class="textAlignCenter">
+				<div>
+					<table width="100%">
+						<tr>
+							<td class="textAlignCenter"><img title="KRA VISION 2030.jpg" src="/KRA-Portal/themes/images/KRA_VISION_2030.png" height="70"></td>
+							<td class="manageSite">Times Tower, Haile Selassie Avenue, <br/> P.O.Box 48240 - 00100 GPO Nairobi Tel: 020-310300, 020-281000 Fax: 341342 <br/><br/>Call Center details Tel:020-4999999,020-4998000 Cell:0711-099999 Email: 	callcentre@kra.go.ke<br/>
+									<font class="bestViewMsg">Site best viewed in 1024 X 768 resolution with IE 7.0 and above.&nbsp;&copy;2011-2026</font>
+							</td>
+							<td class="textAlignCenter manageSite">Powered By<br><img title="Kenya Revenue Authority" src="/KRA-Portal/themes/images/kra_logo.png" height="70"></td>
+						</tr>
+					</table>
+				</div>
+			</td>
+		</tr>
+	</table>
+</div>
+   	
+<!-- Footer DIV Ended-->
+
+
+</form>
+</body>
+<script type="text/javascript">
+	supressEnterKeySubmit();
+//	ddlevelsmenu.setup("ddtopmenubar", "topbar");
+</script>
+</HTML>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<!-- Footer DIV Ended  -->
+	</div>
+	<!-- Main DIV Ended  -->
+	<script>
+		hideProgressbar();
+	</script>		
+</body>
+<script type="text/javascript">
+setRowOddEvenBackColor();
+setSelectObjAltText();
+setTextAreaObjLengthText();
+</script>
+</html>
