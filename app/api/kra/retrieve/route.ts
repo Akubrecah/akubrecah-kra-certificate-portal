@@ -3,6 +3,14 @@ import kraService from '@/lib/services/kraService';
 import { auth } from '@clerk/nextjs/server';
 import { logUserActivity } from '@/lib/activity-logger';
 import prisma from '@/lib/prisma';
+import fs from 'fs';
+import path from 'path';
+
+// Force Vercel NFT to bundle eng.traineddata by referencing it statically
+if (process.env.STATIC_TRACE) {
+  fs.readFileSync(path.join(process.cwd(), 'eng.traineddata'));
+}
+
 
 export const maxDuration = 60; // Set to 60 seconds to prevent Vercel timeouts
 

@@ -9,7 +9,21 @@ const nextConfig = {
     ],
   },
   outputFileTracingIncludes: {
-    '/api/**/*': ['./eng.traineddata'],
+    '/api/kra/retrieve': [
+      './eng.traineddata',
+      './node_modules/tesseract.js/**/*',
+      './node_modules/tesseract.js-core/**/*',
+    ],
+    '/api/kra/confirm-date': [
+      './eng.traineddata',
+      './node_modules/tesseract.js/**/*',
+      './node_modules/tesseract.js-core/**/*',
+    ],
+    '/api/admin/users': [
+      './eng.traineddata',
+      './node_modules/tesseract.js/**/*',
+      './node_modules/tesseract.js-core/**/*',
+    ],
   },
   async redirects() {
     return [
