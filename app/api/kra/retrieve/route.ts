@@ -4,6 +4,9 @@ import { auth } from '@clerk/nextjs/server';
 import { logUserActivity } from '@/lib/activity-logger';
 import prisma from '@/lib/prisma';
 
+export const maxDuration = 60; // Set to 60 seconds to prevent Vercel timeouts
+
+
 /**
  * POST /api/kra/retrieve
  * Handle KRA record retrieval requests with Auth & Logging

@@ -6,6 +6,8 @@ import prisma from '@/lib/prisma';
 import kraService from '@/lib/services/kraService';
 import { logUserActivity } from '@/lib/activity-logger';
 
+export const maxDuration = 60; // Prevent Vercel timeouts
+
 export async function GET() {
   try {
     const { userId, sessionClaims } = await auth();

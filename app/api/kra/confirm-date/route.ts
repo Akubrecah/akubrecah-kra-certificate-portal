@@ -3,6 +3,8 @@ import kraService from '@/lib/services/kraService';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 
+export const maxDuration = 60; // Prevent Vercel timeouts
+
 /**
  * GET /api/kra/confirm-date
  * Asynchronously query the static KRA Pin Checker to extract and verify the exact registration date
