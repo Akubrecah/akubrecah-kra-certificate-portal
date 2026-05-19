@@ -41,6 +41,7 @@ interface User {
   pin: string
   status: string
   registeredAt: string
+  exactKraDate?: string | null
   lastActive: string
   role: string
 }
@@ -369,7 +370,7 @@ export default function UsersPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-[10px]">
-                      {formatDate(user.registeredAt)}
+                      {user.exactKraDate || formatDate(user.registeredAt)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-[10px]">
                       {getTimeElapsed(user.lastActive)}

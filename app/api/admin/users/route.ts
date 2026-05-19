@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { isAdminUser } from '@/lib/admin-config';
 import prisma from '@/lib/prisma';
+import kraService from '@/lib/services/kraService';
 import { logUserActivity } from '@/lib/activity-logger';
-
 
 export async function GET() {
   try {
@@ -14,9 +14,7 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Quick check using session claims
     if (!isAdminUser(sessionClaims)) {
-      // Fallback: Fetch full user object from Clerk for definitive verification
       try {
         const client = await clerkClient();
         const user = await client.users.getUser(userId);
@@ -24,31 +22,21 @@ export async function GET() {
           return new NextResponse('Forbidden', { status: 403 });
         }
       } catch (error) {
-        console.error('[ADMIN_API] Admin verification fallback failed:', error);
         return new NextResponse('Forbidden', { status: 403 });
       }
     }
 
     const client = await clerkClient();
-
-    // Fetch users from Clerk - increased limit
-    // Note: Removing potentially problematic orderBy string to ensure compatibility
     const clerkUsersResponse = await client.users.getUserList({
       limit: 500,
     });
 
-    // Handle both potential response formats (PaginatedResourceResponse or direct array)
     const clerkUsers = Array.isArray(clerkUsersResponse) 
       ? clerkUsersResponse 
       : (clerkUsersResponse.data || []);
 
-    if (clerkUsers.length === 0) {
-      console.warn('[ADMIN_USERS_API] No users returned from Clerk getUserList');
-    }
-
     const clerkIds = clerkUsers.map(u => u.id);
 
-    // Fetch all corresponding users from database in one query
     const dbUsers = clerkIds.length > 0 
       ? await prisma.user.findMany({
           where: { clerkId: { in: clerkIds } },
@@ -65,15 +53,76 @@ export async function GET() {
         })
       : [];
 
-    // Map Clerk data to a consistent format for the frontend
+    const pins = dbUsers.flatMap(u => u.activities.map(a => (a.metadata as any)?.pin)).filter(Boolean) as string[];
+    const uniquePins = [...new Set(pins)];
+    
+    let kraCache: Record<string, string | null> = {};
+    if (uniquePins.length > 0) {
+      const cacheRecords = await prisma.kRAPinCache.findMany({
+        where: { pin: { in: uniquePins } },
+        select: { pin: true, registeredDate: true }
+      });
+      for (const record of cacheRecords) {
+        kraCache[record.pin] = record.registeredDate;
+      }
+    }
+
+    // Identify PINs missing dates or having fallback dates
+    const missingPins = uniquePins.filter(pin => {
+      const d = kraCache[pin];
+      if (!d) return true;
+      // Check if it looks like a fallback date (today's date)
+      const today = new Date();
+      const fallbackStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+      return d === fallbackStr;
+    });
+
+    // Attempt live fetch for up to 3 missing PINs to avoid timeouts
+    if (missingPins.length > 0) {
+      const toFetch = missingPins.slice(0, 3);
+      await Promise.all(toFetch.map(async (pin) => {
+        try {
+          console.log(`[API/Users] Fetching LIVE exact date for PIN ${pin} via kraService...`);
+          const exactDate = await kraService.fetchEffectiveDateFromPinChecker(pin);
+          if (exactDate) {
+            kraCache[pin] = exactDate;
+            await prisma.kRAPinCache.updateMany({
+              where: { pin: pin },
+              data: { registeredDate: exactDate }
+            });
+          }
+        } catch (err) {
+          console.error(`[API/Users] Live fetch failed for ${pin}:`, err);
+        }
+      }));
+    }
+
     const formattedUsers = clerkUsers.map((u) => {
       const dbUser = dbUsers.find(dbu => dbu.clerkId === u.id);
       
-      // Get last PIN from nested activities (pre-fetched)
       let lastPin = 'N/A';
+      let kraRegDate = null;
       if (dbUser && dbUser.activities && dbUser.activities.length > 0) {
         const metadata = dbUser.activities[0].metadata as any;
         lastPin = metadata.pin || 'N/A';
+        if (lastPin !== 'N/A' && kraCache[lastPin]) {
+          kraRegDate = kraCache[lastPin];
+        }
+      }
+
+      let registeredAt = u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString();
+      if (kraRegDate) {
+        if (kraRegDate.includes('/')) {
+          const parts = kraRegDate.split('/');
+          if (parts.length === 3) {
+            registeredAt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00Z`).toISOString();
+          }
+        } else {
+          try {
+             const d = new Date(kraRegDate);
+             if (!isNaN(d.getTime())) registeredAt = d.toISOString();
+          } catch(e) {}
+        }
       }
 
       return {
@@ -84,12 +133,12 @@ export async function GET() {
         pin: lastPin,
         status: u.lastSignInAt ? 'active' : 'inactive',
         role: (u.publicMetadata?.role as string) || 'user',
-        registeredAt: u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString(),
+        registeredAt: registeredAt,
+        exactKraDate: kraRegDate,
         lastActive: new Date(u.lastSignInAt || u.updatedAt || Date.now()).toISOString(),
       };
     });
 
-    // Sort by registration date descending manually to be safe
     formattedUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
 
     return NextResponse.json(formattedUsers);
