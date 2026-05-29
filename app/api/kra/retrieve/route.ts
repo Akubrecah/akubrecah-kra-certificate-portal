@@ -297,6 +297,11 @@ interface ManufacturerResult {
   building: string;
   street: string;
   town: string;
+  county: string;
+  district: string;
+  taxArea: string;
+  poBox: string;
+  postalCode: string;
 }
 
 async function fetchManufacturerDetails(pin: string, cookieString: string): Promise<ManufacturerResult | null> {
@@ -367,6 +372,11 @@ async function fetchManufacturerDetails(pin: string, cookieString: string): Prom
         building: get('buildingName', 'building', 'bldgName', 'building_name', 'physicalAddress', 'bldName', 'buildingNameEn', 'buldgNo'),
         street: get('streetName', 'street', 'roadName', 'street_name', 'road_name', 'roadEn', 'streetEn', 'streetRoad'),
         town: get('city', 'town', 'cityName', 'townName', 'city_name', 'town_name', 'cityEn', 'townEn', 'cityNameEn', 'cityTown'),
+        county: get('county', 'countyName', 'county_name', 'countyDesc', 'county_desc', 'countyNameEn'),
+        district: get('district', 'districtName', 'subCounty', 'district_name', 'distName', 'subCountyEn', 'districtEn'),
+        taxArea: get('taxArea', 'taxAreaName', 'taxAreaDesc', 'tax_area', 'tax_area_name', 'taxAreaEn', 'localityEn', 'taxAreaLocality'),
+        poBox: get('poBox', 'pobox', 'postBox', 'boxNumber', 'pBox', 'poBoxEn'),
+        postalCode: get('postalCode', 'postalcode', 'postCode', 'post_code', 'pCode', 'postCodeEn'),
       };
     }
   } catch (e: any) {
@@ -578,11 +588,13 @@ export async function POST(req: NextRequest) {
 
     // PIN Checker primary, falling back to DWR / Manufacturer
     const station     = first(pc?.station, dw?.station, '');
-    const county      = first(pc?.county, dw?.county, '');
-    const district    = first(pc?.district, dw?.district, '');
-    const taxArea     = first(pc?.taxArea, dw?.taxArea, '');
-    const poBox       = first(pc?.poBox, dw?.poBox, '');
-    const postalCode  = first(pc?.postalCode, dw?.postalCode, '');
+    
+    // Manufacturer primary, falling back to PIN checker / DWR
+    const county      = first(man?.county, pc?.county, dw?.county, '');
+    const district    = first(man?.district, pc?.district, dw?.district, '');
+    const taxArea     = first(man?.taxArea, pc?.taxArea, dw?.taxArea, '');
+    const poBox       = first(man?.poBox, pc?.poBox, dw?.poBox, '');
+    const postalCode  = first(man?.postalCode, pc?.postalCode, dw?.postalCode, '');
     
     // Effective Date: prioritized from Obligation Details (obligationDate) over registeredDate
     const registeredDate = first(pc?.obligationDate, pc?.registeredDate, dw?.registeredDate, '');
