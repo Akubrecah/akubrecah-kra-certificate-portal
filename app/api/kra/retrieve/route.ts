@@ -242,10 +242,37 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
   // Extract obligation effective date (first date in Obligation Details)
   const oblIdx = fullSection.toLowerCase().indexOf('obligation details');
   if (oblIdx !== -1) {
-    const oblSection = fullSection.substring(oblIdx, oblIdx + 2000);
-    const dateMatches = oblSection.match(/(\d{2}\/\d{2}\/\d{4})/g);
-    if (dateMatches && dateMatches.length > 0) {
-      result.obligationDate = dateMatches[0];
+    const oblsEndIndex = fullSection.indexOf('</fieldset>', oblIdx);
+    const oblsSection = fullSection.substring(oblIdx, oblsEndIndex !== -1 ? oblsEndIndex : oblIdx + 2000);
+    
+    // Pattern to match 4 columns in each row: Name, Status, Effective From, Effective To
+    const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi;
+    let match;
+    const obligations = [];
+    while ((match = rowRegex.exec(oblsSection)) !== null) {
+      const name = stripTags(match[1]).trim();
+      const status = stripTags(match[2]).trim();
+      const effectiveFrom = stripTags(match[3]).trim();
+      const effectiveTo = stripTags(match[4]).trim();
+      
+      if (name && name.toLowerCase() !== 'obligation name') {
+        obligations.push({ name, status, effectiveFrom, effectiveTo });
+      }
+    }
+
+    if (obligations.length > 0) {
+      // Find the first obligation that is Registered/Active
+      const activeObl = obligations.find(o => 
+        o.status.toLowerCase() === 'registered' || 
+        o.status.toLowerCase() === 'active'
+      ) || obligations[0];
+      
+      if (activeObl && activeObl.effectiveFrom) {
+        const m = activeObl.effectiveFrom.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (m) {
+          result.obligationDate = m[1];
+        }
+      }
     }
   }
 
@@ -260,7 +287,96 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 3: DWR for taxpayer details (fallback for fields pin checker might miss)
+// Step 3: Fetch details from Manufacturer endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ManufacturerResult {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  building: string;
+  street: string;
+  town: string;
+}
+
+async function fetchManufacturerDetails(pin: string, cookieString: string): Promise<ManufacturerResult | null> {
+  const body = `manPin=${encodeURIComponent(pin)}`;
+  try {
+    const raw = await httpsPost(
+      '/KRA-Portal/manufacturerAuthorizationController.htm?actionCode=fetchManDtl',
+      body,
+      cookieString,
+      'application/x-www-form-urlencoded; charset=UTF-8'
+    );
+    console.log('[retrieve] Manufacturer raw response length:', raw.length);
+    
+    if (!raw || raw.trim().length === 0) return null;
+    
+    const parsedData = JSON.parse(raw);
+    if (parsedData) {
+      // Merge all nested DTOs into a single flat object
+      const mergedData: Record<string, any> = {};
+      Object.values(parsedData).forEach(val => {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          Object.assign(mergedData, val);
+        }
+      });
+      
+      const get = (...keys: string[]) => {
+        for (const k of keys) {
+          const val = mergedData[k];
+          if (val !== undefined && val !== null && val !== 'null' && val !== 'undefined') {
+            const sVal = String(val).trim();
+            if (sVal.length > 0) return sVal;
+          }
+        }
+        // Case-insensitive fallback
+        const objKeys = Object.keys(mergedData);
+        for (const k of keys) {
+          const match = objKeys.find(ok => ok.toLowerCase() === k.toLowerCase());
+          if (match) {
+            const val = mergedData[match];
+            if (val !== undefined && val !== null && val !== 'null' && val !== 'undefined') {
+              const sVal = String(val).trim();
+              if (sVal.length > 0) return sVal;
+            }
+          }
+        }
+        return '';
+      };
+
+      const firstName = get('firstName', 'first_name', 'fName', 'f_name');
+      const middleName = get('middleName', 'middle_name', 'secondName', 'mName', 'm_name');
+      const lastName = get('lastName', 'last_name', 'surname', 'lName', 'l_name');
+      const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ')
+        || get('taxpayerName', 'fullName', 'manufacturerName', 'name', 'taxpayer_name', 'tp_name', 'tax_payer_name');
+
+      let email = get('emailAddress', 'emailId', 'email', 'email_id', 'email_address', 'mainEmail', 'secondaryEmail');
+      if (!email) {
+        const allStrings = JSON.stringify(mergedData);
+        const emailMatch = allStrings.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (emailMatch) email = emailMatch[0];
+      }
+
+      const phoneNumber = get('mobileNo', 'phoneNumber', 'phone', 'telNo', 'contactNo', 'mobile_no', 'phone_number');
+
+      return {
+        name: fullName || '',
+        email: email || '',
+        phoneNumber: phoneNumber || '',
+        building: get('buildingName', 'building', 'bldgName', 'building_name', 'physicalAddress', 'bldName', 'buildingNameEn', 'buldgNo'),
+        street: get('streetName', 'street', 'roadName', 'street_name', 'road_name', 'roadEn', 'streetEn', 'streetRoad'),
+        town: get('city', 'town', 'cityName', 'townName', 'city_name', 'town_name', 'cityEn', 'townEn', 'cityNameEn', 'cityTown'),
+      };
+    }
+  } catch (e: any) {
+    console.error('[retrieve] Error fetching/parsing manufacturer details:', e.message);
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 4: DWR for taxpayer details (fallback for fields pin checker might miss)
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function fetchTaxpayerByDWR(pin: string, cookieString: string): Promise<Record<string, string> | null> {
@@ -360,7 +476,7 @@ function randHex(len: number) {
   return [...Array(len)].map(() => Math.floor(Math.random() * 16).toString(16).toUpperCase()).join('');
 }
 
-function first(...vals: string[]): string {
+function first(...vals: (string | undefined | null)[]): string {
   for (const v of vals) if (v && v.trim()) return v.trim();
   return '';
 }
@@ -407,15 +523,23 @@ export async function POST(req: NextRequest) {
     }
     console.log('[retrieve] Resolved PIN:', fullPin);
 
-    // ── 2. Pin Checker (primary source — gives everything including station) ─
+    // ── 2. Run Concurrent Lookups: Pin Checker, Manufacturer, and DWR ──────
     let pinCheckerData: PinCheckerResult | null = null;
+    let manData: ManufacturerResult | null = null;
+    let dwrData: Record<string, string> | null = null;
+
     if (captchaAnswer && captchaAnswer.trim()) {
       const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin!)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
-      const html = await httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString).catch(() => '');
-      console.log('[retrieve] Pin checker HTML length:', html.length);
-      if (html.length > 100) {
-        console.log('[retrieve] Pin checker HTML snippet:', html.substring(0, 300).replace(/\s+/g, ' '));
-        pinCheckerData = parsePinCheckerHtml(html);
+      
+      const [pcHtml, manResult, dwrResult] = await Promise.all([
+        httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString).catch(() => ''),
+        fetchManufacturerDetails(fullPin!, cookieString).catch(() => null),
+        fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null),
+      ]);
+
+      console.log('[retrieve] Pin checker HTML length:', pcHtml.length);
+      if (pcHtml.length > 100) {
+        pinCheckerData = parsePinCheckerHtml(pcHtml);
         if (pinCheckerData.captchaWrong) {
           return NextResponse.json({
             success: false,
@@ -424,29 +548,44 @@ export async function POST(req: NextRequest) {
           }, { status: 422 });
         }
       }
+      manData = manResult;
+      dwrData = dwrResult;
+    } else {
+      // If captcha answer is not provided (e.g. debugging/dry run), do DWR and manufacturer lookup only
+      const [manResult, dwrResult] = await Promise.all([
+        fetchManufacturerDetails(fullPin!, cookieString).catch(() => null),
+        fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null),
+      ]);
+      manData = manResult;
+      dwrData = dwrResult;
     }
 
-    // ── 3. DWR (secondary — fills gaps if pin checker missed anything) ──────
-    const dwrData = await fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null);
+    console.log('[retrieve] Manufacturer data:', JSON.stringify(manData));
     console.log('[retrieve] DWR data:', JSON.stringify(dwrData));
 
-    // ── 4. Merge: pin checker first, DWR as fallback ─────────────────────
+    // ── 3. Merge fields according to exact split requirements ──────────────
     const pc = pinCheckerData;
+    const man = manData;
     const dw = dwrData;
 
-    const name        = first(pc?.name, dw?.name, '');
-    const email       = first(pc?.email, dw?.email, '');
-    const building    = first(pc?.building, dw?.building, '');
-    const street      = first(pc?.street, dw?.street, '');
-    const town        = first(pc?.town, dw?.city, '');
+    // Manufacturer primary, falling back to PIN checker / DWR
+    const name        = first(man?.name, pc?.name, dw?.name, '');
+    const email       = first(man?.email, pc?.email, dw?.email, '');
+    const phoneNumber = first(man?.phoneNumber, pc?.phoneNumber, dw?.phoneNumber, '');
+    const building    = first(man?.building, pc?.building, dw?.building, '');
+    const street      = first(man?.street, pc?.street, dw?.street, '');
+    const town        = first(man?.town, pc?.town, dw?.city, '');
+
+    // PIN Checker primary, falling back to DWR / Manufacturer
+    const station     = first(pc?.station, dw?.station, '');
     const county      = first(pc?.county, dw?.county, '');
     const district    = first(pc?.district, dw?.district, '');
     const taxArea     = first(pc?.taxArea, dw?.taxArea, '');
-    const station     = first(pc?.station, dw?.station, '');
     const poBox       = first(pc?.poBox, dw?.poBox, '');
     const postalCode  = first(pc?.postalCode, dw?.postalCode, '');
-    const phoneNumber = first(pc?.phoneNumber, dw?.phoneNumber, '');
-    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, '');
+    
+    // Effective Date: prioritized from Obligation Details (obligationDate) over registeredDate
+    const registeredDate = first(pc?.obligationDate, pc?.registeredDate, dw?.registeredDate, '');
 
     const result = {
       success: true,
