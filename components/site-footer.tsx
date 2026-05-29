@@ -2,18 +2,12 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { useUser } from "@clerk/nextjs"
-import { isAdminUser } from "@/lib/admin-config"
 import { Logo } from "@/components/logo"
-import { cn } from "@/lib/utils"
 
 export function SiteFooter(): JSX.Element {
   useEffect(() => {
     // Component mounted
   }, [])
-  
-  const { user } = useUser()
-  const isAdmin = isAdminUser(user)
 
   const navigation = [
     {
@@ -21,25 +15,6 @@ export function SiteFooter(): JSX.Element {
       links: [
         { label: "Home", href: "/" },
         { label: "Retrieval Portal", href: "/retrieval-portal" },
-        { label: "File Return", href: "#", disabled: true },
-        { label: "Security Protocol", href: "/security" },
-      ],
-    },
-    {
-      title: "Resources",
-      links: [
-        { label: "Blog Intel", href: "/blog" },
-        { label: "Careers", href: "/careers" },
-        { label: "FAQ Intel", href: "/faq" },
-      ],
-    },
-    {
-      title: "Company",
-      links: [
-        { label: "About Intel", href: "/about" },
-        { label: "Privacy Policy", href: "/privacy" },
-        { label: "Terms of Use", href: "/terms" },
-        ...(isAdmin ? [{ label: "Admin Console", href: "/admin/dashboard" }] : []),
       ],
     },
   ]
@@ -59,7 +34,7 @@ export function SiteFooter(): JSX.Element {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6 w-full max-w-4xl mx-auto border-t border-border pt-8">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-6 w-full max-w-4xl mx-auto border-t border-border pt-8">
             {navigation.map((group) => (
               <div key={group.title} className="flex flex-col items-center gap-3">
                 <h3 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{group.title}</h3>
@@ -67,11 +42,8 @@ export function SiteFooter(): JSX.Element {
                   {group.links.map((link) => (
                     <li key={link.label}>
                       <Link 
-                        href={link.disabled ? "#" : link.href} 
-                        className={cn(
-                          "text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100",
-                          link.disabled && "opacity-30 cursor-not-allowed pointer-events-none"
-                        )}
+                        href={link.href} 
+                        className="text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100"
                       >
                         {link.label}
                       </Link>
