@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 import { createWorker } from "tesseract.js";
 import { supabase } from "@/lib/supabaseClient";
+import kraService from "@/lib/services/kraService";
 
 const downloadFolderPath = path.join(process.cwd(), "temp", "terminations");
 
@@ -112,9 +113,9 @@ async function navigateToObligationManagement(page) {
     console.log('[TERMINATE] Loaded obligation management page');
 }
 
-async function submitTerminationRequest(page, company, obligationId, reason) {
+async function submitTerminationRequest(page, company, obligationId, reason, targetEffectiveDate) {
     const obligationName = OBLIGATION_NAMES[obligationId] || `Obligation ${obligationId}`;
-    console.log(`[TERMINATE] Submitting termination for ${obligationName}, reason: ${reason}`);
+    console.log(`[TERMINATE] Submitting termination for ${obligationName}, reason: ${reason}, targetEffectiveDate: ${targetEffectiveDate}`);
 
     try {
         await navigateToObligationManagement(page);
@@ -144,11 +145,15 @@ async function submitTerminationRequest(page, company, obligationId, reason) {
             await page.locator('textarea[name*="reason"], input[name*="reason"], #reason, #remarks').first().fill(reason);
         }
 
-        // Set effective date to today
+        // Set effective date
         const dateField = await page.locator('input[name*="effectiveDate"], input[name*="deregDate"], #effectiveDate').first().isVisible().catch(() => false);
         if (dateField) {
-            const today = new Date();
-            const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+            let dateStr = targetEffectiveDate;
+            if (!dateStr) {
+                const today = new Date();
+                dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+            }
+            console.log(`[TERMINATE] Filling effective date: ${dateStr}`);
             await page.locator('input[name*="effectiveDate"], input[name*="deregDate"], #effectiveDate').first().fill(dateStr);
         }
 
@@ -253,12 +258,40 @@ export async function POST(req) {
 
         const results = [];
 
+        // Fetch active obligation dates from static PIN Checker to validate/use the effective date
+        const obligationDates = {};
+        try {
+            console.log(`[TERMINATE] Querying static PIN Checker for active obligation dates of PIN ${kra_pin}...`);
+            const pinCheckerObligations = await kraService.fetchObligationsFromPinChecker(kra_pin);
+            if (pinCheckerObligations && Array.isArray(pinCheckerObligations)) {
+                pinCheckerObligations.forEach(obl => {
+                    const name = obl.name.toLowerCase();
+                    let matchedId = null;
+                    if (name.includes('paye')) matchedId = '7';
+                    else if (name.includes('vat') || name.includes('value added')) matchedId = '9';
+                    else if (name.includes('company')) matchedId = '4';
+                    else if (name.includes('mri') || name.includes('rent')) matchedId = '5';
+                    else if (name.includes('resident individual')) matchedId = '1';
+                    else if (name.includes('turnover')) matchedId = '8';
+                    
+                    if (matchedId && obl.effectiveFrom) {
+                        obligationDates[matchedId] = obl.effectiveFrom;
+                    }
+                });
+                console.log(`[TERMINATE] Resolved obligation dates from PIN Checker:`, JSON.stringify(obligationDates));
+            }
+        } catch (pcError) {
+            console.error(`[TERMINATE] Failed to fetch dates from static PIN Checker:`, pcError.message);
+        }
+
         try {
             await loginToKRA(page, company);
 
             for (let i = 0; i < obligation_ids.length; i++) {
-                console.log(`[TERMINATE] Processing ${i + 1}/${obligation_ids.length}: ${obligation_ids[i]}`);
-                const result = await submitTerminationRequest(page, company, obligation_ids[i], reason);
+                const obligationId = obligation_ids[i];
+                console.log(`[TERMINATE] Processing ${i + 1}/${obligation_ids.length}: ${obligationId}`);
+                const targetEffectiveDate = obligationDates[obligationId] || null;
+                const result = await submitTerminationRequest(page, company, obligationId, reason, targetEffectiveDate);
                 results.push(result);
                 if (i < obligation_ids.length - 1) await page.waitForTimeout(2000);
             }
