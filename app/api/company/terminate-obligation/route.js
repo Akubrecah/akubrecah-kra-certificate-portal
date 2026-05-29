@@ -5,6 +5,8 @@ import path from "path";
 import { createWorker } from "tesseract.js";
 import { supabase } from "@/lib/supabaseClient";
 import kraService from "@/lib/services/kraService";
+import 'node-fetch';
+import 'wasm-feature-detect';
 
 const downloadFolderPath = path.join(process.cwd(), "temp", "terminations");
 
