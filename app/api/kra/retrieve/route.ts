@@ -5,34 +5,28 @@ import { auth } from '@clerk/nextjs/server';
 export const maxDuration = 60;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Internal helpers — raw HTTPS only, no Playwright, no Tesseract, no DB
+// Raw HTTPS helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initKraSession(): Promise<Record<string, string>> {
   return new Promise((resolve, reject) => {
-    const options = {
+    const req = https.request({
       hostname: 'itax.kra.go.ke',
       port: 443,
       path: '/KRA-Portal/pinChecker.htm?actionCode=loadPage&viewType=static',
       method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      timeout: 20000
-    } as any;
-
-    const req = https.request(options, (res) => {
-      const rawCookies = res.headers['set-cookie'] || [];
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
+      timeout: 20000,
+      rejectUnauthorized: false,
+    } as any, (res) => {
       const cookieMap: Record<string, string> = {};
-      (rawCookies as string[]).forEach((cookie) => {
-        const [nameValue] = cookie.split(';');
-        const eqIdx = nameValue.indexOf('=');
-        if (eqIdx > 0) {
-          const name = nameValue.substring(0, eqIdx).trim();
-          const value = nameValue.substring(eqIdx + 1).trim();
-          if (name && value) cookieMap[name] = value;
-        }
+      ((res.headers['set-cookie'] as string[]) || []).forEach((c) => {
+        const [nv] = c.split(';');
+        const idx = nv.indexOf('=');
+        if (idx > 0) cookieMap[nv.substring(0, idx).trim()] = nv.substring(idx + 1).trim();
       });
+      // consume body so socket can be reused
+      res.resume();
       resolve(cookieMap);
     });
     req.on('error', reject);
@@ -40,240 +34,272 @@ function initKraSession(): Promise<Record<string, string>> {
   });
 }
 
-function rawPost(options: any, postData: string): Promise<string> {
+function httpsPost(path: string, body: string, cookieString: string, contentType = 'application/x-www-form-urlencoded'): Promise<string> {
   return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk: string) => data += chunk);
-      res.on('end', () => resolve(data));
+    const buf = Buffer.from(body, 'utf8');
+    const req = https.request({
+      hostname: 'itax.kra.go.ke',
+      port: 443,
+      path,
+      method: 'POST',
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': buf.length,
+        'Cookie': cookieString,
+        'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      timeout: 25000,
+      rejectUnauthorized: false,
+    } as any, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     });
     req.on('error', reject);
-    req.write(postData);
+    req.write(buf);
     req.end();
   });
 }
 
-/**
- * Look up PIN from ID number via DWR
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 1: Resolve PIN from ID via DWR
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function lookupPinByIdNumber(idNumber: string, cookieString: string): Promise<string | null> {
-  const scriptSessionId = `${Math.random().toString(36).substr(2, 12).toUpperCase()}/${Math.random().toString(36).substr(2, 12).toUpperCase()}`;
-  const windowName = `F${Date.now()}`;
+  const sid = `${randHex(12)}/${randHex(12)}`;
+  const wn  = `W${Date.now()}`;
 
   const body = [
-    'callCount=1',
-    `windowName=${windowName}`,
-    'c0-scriptName=findPinByIdno',
-    'c0-methodName=findPinByIdnumber',
-    'c0-id=0',
-    `c0-param0=string:${idNumber}`,
-    'batchId=0',
-    'instanceId=0',
-    'page=%2FKRA-Portal%2FpinChecker.htm',
-    'httpSessionId=',
-    `scriptSessionId=${scriptSessionId}`
+    'callCount=1', `windowName=${wn}`,
+    'c0-scriptName=findPinByIdno', 'c0-methodName=findPinByIdnumber', 'c0-id=0',
+    `c0-param0=string:${idNumber}`, 'batchId=0', 'instanceId=0',
+    'page=%2FKRA-Portal%2FpinChecker.htm', 'httpSessionId=', `scriptSessionId=${sid}`,
   ].join('\n') + '\n';
 
-  const options = {
-    hostname: 'itax.kra.go.ke',
-    port: 443,
-    path: '/KRA-Portal/dwr/call/plaincall/findPinByIdno.findPinByIdnumber.dwr',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain',
-      'Content-Length': Buffer.byteLength(body),
-      'Cookie': cookieString,
-      'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    timeout: 20000,
-    rejectUnauthorized: false
-  } as any;
+  const raw = await httpsPost(
+    '/KRA-Portal/dwr/call/plaincall/findPinByIdno.findPinByIdnumber.dwr',
+    body, cookieString, 'text/plain'
+  );
+  console.log('[retrieve] PIN lookup raw:', raw.substring(0, 350));
 
-  const raw = await rawPost(options, body);
-  console.log('[retrieve] PIN lookup raw:', raw.substring(0, 400));
-
-  const callbackMatch = raw.match(/handleCallback\([^,]+,[^,]+,"([^"]+)"\)/);
-  if (callbackMatch) {
-    const maskedResponse = callbackMatch[1];
-    if (maskedResponse.includes('#$')) {
-      const [maskedPin, reversedDigits] = maskedResponse.split('#$');
-      const actualDigits = reversedDigits.split('').reverse().join('');
-      return maskedPin.replace('*****', actualDigits).trim().toUpperCase();
+  const m = raw.match(/handleCallback\([^,]+,[^,]+,"([^"]+)"\)/);
+  if (m) {
+    const val = m[1];
+    if (val.includes('#$')) {
+      const [masked, rev] = val.split('#$');
+      return masked.replace('*****', rev.split('').reverse().join('')).trim().toUpperCase();
     }
-    return maskedResponse.trim().toUpperCase();
+    return val.trim().toUpperCase();
   }
   return null;
 }
 
-/**
- * Fetch taxpayer details by PIN via DWR (address, name, email, phone)
- */
-async function fetchTaxpayerByDWR(pin: string, cookieString: string): Promise<any> {
-  const scriptSessionId = `${Math.random().toString(36).substr(2, 12).toUpperCase()}/${Math.random().toString(36).substr(2, 12).toUpperCase()}`;
-  const windowName = `F${Date.now()}`;
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 2: Parse ALL taxpayer details from the KRA Pin Checker HTML response
+// The HTML returned after CAPTCHA submission contains:
+//   - Taxpayer Name, PIN, Registration Date
+//   - Physical Address: Building, Street, Town, County, District
+//   - Tax Area, Station, PO Box, Postal Code
+//   - Phone Number, Email
+//   - Obligation Details table (effective dates)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PinCheckerResult {
+  name: string;
+  pin: string;
+  registeredDate: string;
+  obligationDate: string;
+  building: string;
+  street: string;
+  town: string;
+  county: string;
+  district: string;
+  taxArea: string;
+  station: string;
+  poBox: string;
+  postalCode: string;
+  phoneNumber: string;
+  email: string;
+  captchaWrong: boolean;
+}
+
+function parsePinCheckerHtml(html: string): PinCheckerResult {
+  const result: PinCheckerResult = {
+    name: '', pin: '', registeredDate: '', obligationDate: '',
+    building: '', street: '', town: '', county: '', district: '',
+    taxArea: '', station: '', poBox: '', postalCode: '',
+    phoneNumber: '', email: '', captchaWrong: false,
+  };
+
+  if (html.includes('Wrong result of the arithmetic operation.') ||
+      html.includes('wrong result') ||
+      html.includes('captchaError')) {
+    result.captchaWrong = true;
+    return result;
+  }
+
+  // Strip HTML tags for easier text extraction
+  const stripTags = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Helper: extract value after a label inside table cells
+  // KRA HTML structure: <td>Label</td><td>Value</td>
+  const extractAfterLabel = (label: string, searchArea: string): string => {
+    const lc = searchArea.toLowerCase();
+    const idx = lc.indexOf(label.toLowerCase());
+    if (idx === -1) return '';
+    // Find the closing </td> after the label, then grab the next <td>
+    const afterLabel = searchArea.substring(idx);
+    const tdClose = afterLabel.indexOf('</td>');
+    if (tdClose === -1) return '';
+    const afterClose = afterLabel.substring(tdClose + 5);
+    const nextTdOpen = afterClose.indexOf('<td');
+    if (nextTdOpen === -1) return '';
+    const nextTd = afterClose.substring(nextTdOpen);
+    const nextTdClose = nextTd.indexOf('</td>');
+    if (nextTdClose === -1) return '';
+    return stripTags(nextTd.substring(0, nextTdClose));
+  };
+
+  // Find PIN Details section
+  const pinDetailsIdx = html.indexOf('PIN Details');
+  if (pinDetailsIdx === -1) {
+    console.log('[retrieve][parse] PIN Details section not found in HTML');
+    return result;
+  }
+
+  // Work within the PIN Details section (up to next major section or end)
+  const fullSection = html.substring(pinDetailsIdx);
+  console.log('[retrieve][parse] fullSection length:', fullSection.length);
+  console.log('[retrieve][parse] fullSection snippet:', stripTags(fullSection.substring(0, 800)));
+
+  // Extract Taxpayer Name
+  result.name = extractAfterLabel('Taxpayer Name', fullSection)
+    || extractAfterLabel('Tax Payer Name', fullSection)
+    || extractAfterLabel('Full Name', fullSection);
+
+  // Extract PIN
+  result.pin = extractAfterLabel('PIN Number', fullSection)
+    || extractAfterLabel('KRA PIN', fullSection)
+    || extractAfterLabel('PIN', fullSection);
+
+  // Extract Registration Date (PIN Registration Date or Effective Date)
+  result.registeredDate = extractAfterLabel('PIN Registration Date', fullSection)
+    || extractAfterLabel('Registration Date', fullSection)
+    || extractAfterLabel('Effective Date', fullSection);
+
+  // Validate date format DD/MM/YYYY
+  if (result.registeredDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(result.registeredDate)) {
+    const m = result.registeredDate.match(/(\d{2}\/\d{2}\/\d{4})/);
+    result.registeredDate = m ? m[1] : '';
+  }
+
+  // Address fields
+  result.building = extractAfterLabel('Building Name', fullSection)
+    || extractAfterLabel('Building', fullSection)
+    || extractAfterLabel('Plot No', fullSection);
+
+  result.street = extractAfterLabel('Street Name', fullSection)
+    || extractAfterLabel('Street', fullSection)
+    || extractAfterLabel('Road', fullSection);
+
+  result.town = extractAfterLabel('City/Town', fullSection)
+    || extractAfterLabel('Town', fullSection)
+    || extractAfterLabel('City', fullSection);
+
+  result.county = extractAfterLabel('County', fullSection);
+
+  result.district = extractAfterLabel('District', fullSection)
+    || extractAfterLabel('Sub County', fullSection);
+
+  result.taxArea = extractAfterLabel('Tax Area', fullSection)
+    || extractAfterLabel('Tax Area Locality', fullSection)
+    || extractAfterLabel('Locality', fullSection);
+
+  result.station = extractAfterLabel('Station', fullSection)
+    || extractAfterLabel('KRA Station', fullSection);
+
+  result.poBox = extractAfterLabel('P.O. Box', fullSection)
+    || extractAfterLabel('PO Box', fullSection)
+    || extractAfterLabel('Post Box', fullSection)
+    || extractAfterLabel('Box No', fullSection);
+
+  result.postalCode = extractAfterLabel('Postal Code', fullSection)
+    || extractAfterLabel('Post Code', fullSection);
+
+  result.phoneNumber = extractAfterLabel('Mobile No', fullSection)
+    || extractAfterLabel('Phone No', fullSection)
+    || extractAfterLabel('Telephone', fullSection)
+    || extractAfterLabel('Contact No', fullSection);
+
+  result.email = extractAfterLabel('Email', fullSection)
+    || extractAfterLabel('Email Address', fullSection);
+
+  // Validate email
+  if (result.email && !result.email.includes('@')) result.email = '';
+
+  // Extract obligation effective date (first date in Obligation Details)
+  const oblIdx = fullSection.toLowerCase().indexOf('obligation details');
+  if (oblIdx !== -1) {
+    const oblSection = fullSection.substring(oblIdx, oblIdx + 2000);
+    const dateMatches = oblSection.match(/(\d{2}\/\d{2}\/\d{4})/g);
+    if (dateMatches && dateMatches.length > 0) {
+      result.obligationDate = dateMatches[0];
+    }
+  }
+
+  // If registration date is still missing, try finding ANY date in PIN Details
+  if (!result.registeredDate) {
+    const m = fullSection.match(/(\d{2}\/\d{2}\/\d{4})/);
+    if (m) result.registeredDate = m[1];
+  }
+
+  console.log('[retrieve][parse] Parsed result:', JSON.stringify(result));
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3: DWR for taxpayer details (fallback for fields pin checker might miss)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function fetchTaxpayerByDWR(pin: string, cookieString: string): Promise<Record<string, string> | null> {
+  const sid = `${randHex(12)}/${randHex(12)}`;
+  const wn  = `W${Date.now()}`;
 
   const body = [
-    'callCount=1',
-    `windowName=${windowName}`,
-    'c0-scriptName=TaxPayerRDWR',
-    'c0-methodName=getTaxpayerBasicRdtlsByPin',
-    'c0-id=0',
-    `c0-param0=string:${pin}`,
-    'batchId=1',
-    'instanceId=0',
-    'page=%2FKRA-Portal%2FpinChecker.htm',
-    'httpSessionId=',
-    `scriptSessionId=${scriptSessionId}`
+    'callCount=1', `windowName=${wn}`,
+    'c0-scriptName=TaxPayerRDWR', 'c0-methodName=getTaxpayerBasicRdtlsByPin', 'c0-id=0',
+    `c0-param0=string:${pin}`, 'batchId=1', 'instanceId=0',
+    'page=%2FKRA-Portal%2FpinChecker.htm', 'httpSessionId=', `scriptSessionId=${sid}`,
   ].join('\n') + '\n';
 
-  const options = {
-    hostname: 'itax.kra.go.ke',
-    port: 443,
-    path: '/KRA-Portal/dwr/call/plaincall/TaxPayerRDWR.getTaxpayerBasicRdtlsByPin.dwr',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain',
-      'Content-Length': Buffer.byteLength(body),
-      'Cookie': cookieString,
-      'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    timeout: 20000,
-    rejectUnauthorized: false
-  } as any;
-
-  const raw = await rawPost(options, body);
-  console.log('[retrieve] DWR raw:', raw.substring(0, 600));
+  const raw = await httpsPost(
+    '/KRA-Portal/dwr/call/plaincall/TaxPayerRDWR.getTaxpayerBasicRdtlsByPin.dwr',
+    body, cookieString, 'text/plain'
+  );
+  console.log('[retrieve] DWR raw (first 600):', raw.substring(0, 600));
   return parseDWR(raw);
 }
 
-/**
- * Fetch manufacturer details via JSON endpoint
- */
-async function fetchManufacturerDetails(pin: string, cookieString: string): Promise<any> {
-  const body = `manPin=${encodeURIComponent(pin)}`;
-  const options = {
-    hostname: 'itax.kra.go.ke',
-    port: 443,
-    path: '/KRA-Portal/manufacturerAuthorizationController.htm?actionCode=fetchManDtl',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'Content-Length': Buffer.byteLength(body),
-      'Cookie': cookieString,
-      'Referer': 'https://itax.kra.go.ke/KRA-Portal/',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    },
-    timeout: 20000,
-    rejectUnauthorized: false
-  } as any;
-
-  const raw = await rawPost(options, body);
-  try {
-    const parsed = JSON.parse(raw);
-    const merged: any = {};
-    if (parsed && typeof parsed === 'object') {
-      Object.values(parsed).forEach((val: any) => {
-        if (val && typeof val === 'object' && !Array.isArray(val)) {
-          Object.assign(merged, val);
-        }
-      });
-    }
-    return Object.keys(merged).length > 0 ? merged : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Submit PIN checker form with the user-provided CAPTCHA answer and parse results
- */
-async function fetchPinCheckerData(pin: string, captchaAnswer: string, cookieString: string): Promise<{ registeredDate: string | null; obligationDate: string | null }> {
-  const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(pin)}&captcahText=${encodeURIComponent(captchaAnswer)}`;
-
-  const options = {
-    hostname: 'itax.kra.go.ke',
-    port: 443,
-    path: '/KRA-Portal/pinChecker.htm',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': Buffer.byteLength(postData),
-      'Cookie': cookieString,
-      'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm?actionCode=loadPage&viewType=static',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    },
-    rejectUnauthorized: false,
-    timeout: 20000
-  } as any;
-
-  const html = await rawPost(options, postData);
-  console.log('[retrieve] Pin checker response length:', html.length);
-
-  if (html.includes('Wrong result of the arithmetic operation.')) {
-    throw new Error('CAPTCHA_WRONG');
-  }
-
-  let registeredDate: string | null = null;
-  let obligationDate: string | null = null;
-
-  const pinDetailsIdx = html.indexOf('PIN Details');
-  if (pinDetailsIdx !== -1) {
-    const section = html.substring(pinDetailsIdx);
-
-    // Try "Registration Date" label in PIN Details section
-    const regLabelIdx = section.toLowerCase().indexOf('registration date');
-    if (regLabelIdx !== -1) {
-      const regSection = section.substring(regLabelIdx, regLabelIdx + 300);
-      const m = regSection.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (m) registeredDate = m[1];
-    }
-
-    // Also check Obligation Details for effective date
-    const oblIdx = section.toLowerCase().indexOf('obligation details');
-    if (oblIdx !== -1) {
-      const oblSection = section.substring(oblIdx, oblIdx + 1000);
-      const m = oblSection.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (m) obligationDate = m[1];
-    }
-
-    // Fallback: first date anywhere in PIN Details
-    if (!registeredDate) {
-      const m = section.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (m) registeredDate = m[1];
-    }
-  }
-
-  return { registeredDate, obligationDate };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DWR parser (standalone, no kraService dependency)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function parseDWR(raw: string): any {
+function parseDWR(raw: string): Record<string, string> | null {
   if (!raw || raw.trim().length === 0) return null;
 
   const stringVars: Record<string, string> = {};
-  const strVarPattern = /(?:var\s+)?(s\d+)\s*=\s*"([^"]*)"/g;
   let m: RegExpExecArray | null;
-  while ((m = strVarPattern.exec(raw)) !== null) {
-    stringVars[m[1]] = m[2];
-  }
+  const svp = /(?:var\s+)?(s\d+)\s*=\s*"([^"]*)"/g;
+  while ((m = svp.exec(raw)) !== null) stringVars[m[1]] = m[2];
 
   const objectFields: Record<string, Record<string, string>> = {};
-  const propPattern = /(s\d+)\.(\w+)\s*=\s*([^;\n]+)/g;
-  while ((m = propPattern.exec(raw)) !== null) {
-    const objVar = m[1], key = m[2];
-    let val = m[3].trim();
+  const pp = /(s\d+)\.(\w+)\s*=\s*([^;\n]+)/g;
+  while ((m = pp.exec(raw)) !== null) {
+    const [, obj, key, rawVal] = m;
+    let val = rawVal.trim();
     if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
     else if (stringVars[val] !== undefined) val = stringVars[val];
     else if (val === 'null' || val === 'undefined') val = '';
-    if (!objectFields[objVar]) objectFields[objVar] = {};
-    objectFields[objVar][key] = val;
+    if (!objectFields[obj]) objectFields[obj] = {};
+    objectFields[obj][key] = val;
   }
 
   const cbMatch = raw.match(/handleCallback\([^,]*,[^,]*,\s*(s\d+|\{[^}]*\})\s*\)/);
@@ -287,69 +313,56 @@ function parseDWR(raw: string): any {
     }
   }
   if (Object.keys(fields).length === 0) {
-    for (const vars of Object.values(objectFields)) Object.assign(fields, vars);
+    for (const v of Object.values(objectFields)) Object.assign(fields, v);
   }
 
   if (Object.keys(fields).length === 0) return null;
 
   const get = (...keys: string[]) => {
     for (const k of keys) {
-      const v = fields[k] || Object.entries(fields).find(([ok]) => ok.toLowerCase() === k.toLowerCase())?.[1];
-      if (v && v !== 'null' && v !== 'undefined' && String(v).trim()) return String(v).trim();
+      for (const [fk, fv] of Object.entries(fields)) {
+        if (fk.toLowerCase() === k.toLowerCase() && fv && fv !== 'null' && fv.trim()) return fv.trim();
+      }
     }
     return '';
   };
 
-  const firstName = get('firstName', 'first_name', 'fName');
+  const firstName  = get('firstName', 'fName', 'first_name');
   const middleName = get('middleName', 'secondName', 'mName');
-  const lastName = get('lastName', 'last_name', 'surname', 'lName');
-  const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ')
+  const lastName   = get('lastName', 'lName', 'surname');
+  const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ')
     || get('taxpayerName', 'fullName', 'name', 'manufacturerName');
 
   let email = get('emailAddress', 'emailId', 'email');
-  if (!email) {
-    const m2 = JSON.stringify(fields).match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    if (m2) email = m2[0];
-  }
+  if (!email) { const em = JSON.stringify(fields).match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/); if (em) email = em[0]; }
 
   return {
-    name: fullName || null,
+    name: fullName,
     email,
-    building: get('buildingName', 'building', 'bldgName', 'physicalAddress'),
-    street: get('streetName', 'street', 'roadName'),
-    city: get('city', 'town', 'cityName', 'townName'),
-    county: get('county', 'countyName'),
-    district: get('district', 'districtName', 'subCounty'),
-    taxArea: get('taxArea', 'taxAreaName', 'taxAreaDesc'),
-    poBox: get('poBox', 'pobox', 'postBox', 'boxNumber'),
-    postalCode: get('postalCode', 'postalcode', 'postCode'),
-    station: get('station', 'stationName', 'stationDesc'),
+    building:    get('buildingName', 'building', 'bldgName', 'physicalAddress'),
+    street:      get('streetName', 'street', 'roadName'),
+    city:        get('city', 'town', 'cityName', 'townName'),
+    county:      get('county', 'countyName'),
+    district:    get('district', 'districtName', 'subCounty'),
+    taxArea:     get('taxArea', 'taxAreaName', 'taxAreaDesc'),
+    poBox:       get('poBox', 'pobox', 'postBox', 'boxNumber'),
+    postalCode:  get('postalCode', 'postCode', 'postalcode'),
+    station:     get('station', 'stationName', 'stationDesc'),
     phoneNumber: get('mobileNo', 'phoneNumber', 'phone', 'telNo'),
   };
 }
 
-function mergeFields(...sources: (any | null)[]) {
-  const get = (key: string) => {
-    for (const src of sources) {
-      const v = src?.[key];
-      if (v && String(v).trim()) return String(v).trim();
-    }
-    return '';
-  };
-  return {
-    name: get('name'),
-    email: get('email'),
-    building: get('building'),
-    street: get('street'),
-    city: get('city'),
-    county: get('county'),
-    district: get('district'),
-    taxArea: get('taxArea'),
-    poBox: get('poBox'),
-    postalCode: get('postalCode'),
-    station: get('station'),
-    phoneNumber: get('phoneNumber'),
-  };
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────────────────────────────────────────
+
+function randHex(len: number) {
+  return [...Array(len)].map(() => Math.floor(Math.random() * 16).toString(16).toUpperCase()).join('');
+}
+
+function first(...vals: string[]): string {
+  for (const v of vals) if (v && v.trim()) return v.trim();
+  return '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,81 +383,89 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'ID Number or PIN is required' }, { status: 400 });
     }
 
-    // Decode the session token (base64-encoded cookie string from /api/kra/captcha)
+    // Decode session cookies from the CAPTCHA step
     let cookieString = '';
     if (sessionToken) {
-      try {
-        cookieString = Buffer.from(sessionToken, 'base64').toString('utf-8');
-      } catch {
-        cookieString = '';
-      }
+      try { cookieString = Buffer.from(sessionToken, 'base64').toString('utf-8'); } catch {}
     }
-
-    // If no session token, initialize a fresh session
     if (!cookieString) {
       const cookies = await initKraSession();
       cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
     }
+    console.log('[retrieve] Cookies:', cookieString.substring(0, 80));
 
+    // ── 1. Resolve PIN ──────────────────────────────────────────────────────
     let fullPin = directPin ? String(directPin).trim().toUpperCase() : null;
-
-    // Step 1: Resolve PIN from ID number if needed
     if (!fullPin && idNumber) {
       fullPin = await lookupPinByIdNumber(String(idNumber).trim(), cookieString);
       if (!fullPin) {
-        return NextResponse.json({ success: false, error: 'KRA PIN not found for the provided ID number. Please verify your ID.' }, { status: 404 });
+        return NextResponse.json({
+          success: false,
+          error: 'KRA PIN not found for this ID number. Please verify and try again.'
+        }, { status: 404 });
       }
     }
-
     console.log('[retrieve] Resolved PIN:', fullPin);
 
-    // Step 2: Run DWR + Manufacturer lookups concurrently
-    const [dwrData, manData] = await Promise.all([
-      fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null),
-      fetchManufacturerDetails(fullPin!, cookieString).catch(() => null),
-    ]);
-
-    const merged = mergeFields(dwrData, manData);
-
-    // Step 3: If captchaAnswer provided, submit pin checker to get exact registration date
-    let registeredDate = '';
-    let captchaError = '';
-
+    // ── 2. Pin Checker (primary source — gives everything including station) ─
+    let pinCheckerData: PinCheckerResult | null = null;
     if (captchaAnswer && captchaAnswer.trim()) {
-      try {
-        const pinCheckerData = await fetchPinCheckerData(fullPin!, captchaAnswer.trim(), cookieString);
-        registeredDate = pinCheckerData.registeredDate || pinCheckerData.obligationDate || '';
-        console.log('[retrieve] Exact date from pin checker:', registeredDate);
-      } catch (err: any) {
-        if (err.message === 'CAPTCHA_WRONG') {
-          captchaError = 'Wrong CAPTCHA answer. Please reload and try again.';
-        } else {
-          console.warn('[retrieve] Pin checker failed:', err.message);
+      const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin!)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
+      const html = await httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString).catch(() => '');
+      console.log('[retrieve] Pin checker HTML length:', html.length);
+      if (html.length > 100) {
+        console.log('[retrieve] Pin checker HTML snippet:', html.substring(0, 300).replace(/\s+/g, ' '));
+        pinCheckerData = parsePinCheckerHtml(html);
+        if (pinCheckerData.captchaWrong) {
+          return NextResponse.json({
+            success: false,
+            captchaWrong: true,
+            error: 'Wrong CAPTCHA answer. Please reload and try again.',
+          }, { status: 422 });
         }
       }
     }
 
-    const name = merged.name || (idNumber ? '' : '');
+    // ── 3. DWR (secondary — fills gaps if pin checker missed anything) ──────
+    const dwrData = await fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null);
+    console.log('[retrieve] DWR data:', JSON.stringify(dwrData));
+
+    // ── 4. Merge: pin checker first, DWR as fallback ─────────────────────
+    const pc = pinCheckerData;
+    const dw = dwrData;
+
+    const name        = first(pc?.name, dw?.name, '');
+    const email       = first(pc?.email, dw?.email, '');
+    const building    = first(pc?.building, dw?.building, '');
+    const street      = first(pc?.street, dw?.street, '');
+    const town        = first(pc?.town, dw?.city, '');
+    const county      = first(pc?.county, dw?.county, '');
+    const district    = first(pc?.district, dw?.district, '');
+    const taxArea     = first(pc?.taxArea, dw?.taxArea, '');
+    const station     = first(pc?.station, dw?.station, '');
+    const poBox       = first(pc?.poBox, dw?.poBox, '');
+    const postalCode  = first(pc?.postalCode, dw?.postalCode, '');
+    const phoneNumber = first(pc?.phoneNumber, dw?.phoneNumber, '');
+    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, '');
 
     const result = {
       success: true,
-      captchaError: captchaError || undefined,
       data: {
-        pin: fullPin,
+        pin:           fullPin,
         name,
-        email: merged.email,
-        status: 'Active',
+        email,
+        status:        'Active',
         certificate_url: `https://itax.kra.go.ke/KRA-Portal/dotDownloadCertificate.htm?pin=${fullPin}`,
-        building: merged.building,
-        street: merged.street,
-        town: merged.city,
-        county: merged.county,
-        district: merged.district,
-        taxArea: merged.taxArea,
-        station: merged.station,
-        poBox: merged.poBox,
-        postalCode: merged.postalCode,
-        phoneNumber: merged.phoneNumber,
+        building,
+        street,
+        town,
+        county,
+        district,
+        taxArea,
+        station,
+        poBox,
+        postalCode,
+        phoneNumber,
         registeredDate,
       }
     };

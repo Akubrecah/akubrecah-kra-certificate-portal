@@ -127,15 +127,16 @@ export function KRAPortal() {
 
       const result = await response.json()
 
-      if (result.success) {
-        // If CAPTCHA was wrong (but API still returned address data), show warning and reload
-        if (result.captchaError) {
-          toast.error(result.captchaError)
-          await loadCaptcha()
-          setIdSearchStatus("idle")
-          return
-        }
+      // CAPTCHA wrong answer
+      if (result.captchaWrong || response.status === 422) {
+        toast.error("Wrong verification answer. Please try again.")
+        setError("Wrong answer. A new verification image has been loaded.")
+        setIdSearchStatus("idle")
+        await loadCaptcha()
+        return
+      }
 
+      if (result.success) {
         setFormData(prev => ({
           ...prev,
           fullName: result.data?.name || prev.fullName,
@@ -163,7 +164,6 @@ export function KRAPortal() {
         setIdSearchStatus("error")
         setError(result.error || "Details not found. Please check your credentials.")
         toast.error("Certificate Retrieval Failed")
-        // Reload CAPTCHA for retry
         await loadCaptcha()
         setIdSearchStatus("idle")
       }
@@ -173,6 +173,7 @@ export function KRAPortal() {
       setCaptchaStatus("idle")
     }
   }
+
 
   const handleDownload = async () => {
     const loadingToast = toast.loading("Securely generating your certificate...")
