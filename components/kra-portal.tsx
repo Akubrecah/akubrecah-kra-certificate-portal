@@ -62,13 +62,53 @@ export function KRAPortal() {
   const [isVerifyingDate, setIsVerifyingDate] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // CAPTCHA state
+  const [captchaImage, setCaptchaImage] = useState<string | null>(null)
+  const [sessionToken, setSessionToken] = useState<string | null>(null)
+  const [captchaAnswer, setCaptchaAnswer] = useState("")
+  const [captchaStatus, setCaptchaStatus] = useState<"idle" | "loading" | "ready" | "error">("idle")
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const loadCaptcha = async () => {
+    setCaptchaStatus("loading")
+    setCaptchaAnswer("")
+    setCaptchaImage(null)
+    try {
+      const res = await fetch('/api/kra/captcha')
+      const data = await res.json()
+      if (data.success) {
+        setCaptchaImage(data.captchaImage)
+        setSessionToken(data.sessionToken)
+        setCaptchaStatus("ready")
+      } else {
+        setCaptchaStatus("error")
+        setError("Failed to load verification image. Please try again.")
+      }
+    } catch {
+      setCaptchaStatus("error")
+      setError("Cannot connect to KRA server. Please try again.")
+    }
   }
 
   const handleIdSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!formData.idNumber && !formData.pin) return
+
+    // Step 1: If no CAPTCHA loaded yet, load it first
+    if (captchaStatus !== "ready") {
+      setError(null)
+      await loadCaptcha()
+      return
+    }
+
+    // Step 2: Require CAPTCHA answer before submitting
+    if (!captchaAnswer.trim()) {
+      setError("Please enter the verification code shown in the image.")
+      return
+    }
 
     setIdSearchStatus("searching")
     setError(null)
@@ -79,18 +119,27 @@ export function KRAPortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           idNumber: formData.idNumber,
-          pin: formData.pin
+          pin: formData.pin,
+          captchaAnswer: captchaAnswer.trim(),
+          sessionToken,
         }),
       })
 
       const result = await response.json()
 
       if (result.success) {
-        const retrievedPin = result.data?.pin;
+        // If CAPTCHA was wrong (but API still returned address data), show warning and reload
+        if (result.captchaError) {
+          toast.error(result.captchaError)
+          await loadCaptcha()
+          setIdSearchStatus("idle")
+          return
+        }
+
         setFormData(prev => ({
           ...prev,
           fullName: result.data?.name || prev.fullName,
-          pin: retrievedPin || prev.pin,
+          pin: result.data?.pin || prev.pin,
           email: result.data?.email || prev.email,
           building: result.data?.building || prev.building,
           street: result.data?.street || prev.street,
@@ -106,37 +155,22 @@ export function KRAPortal() {
         }))
         setIdSearchStatus("found")
         setIsVerified(true)
-        toast.success("Certificate Identity Found")
-
-        // Trigger non-blocking lazy registration date verification in background if not already verified
-        if (retrievedPin && !result.data?.registeredDate) {
-          setIsVerifyingDate(true);
-          fetch(`/api/kra/confirm-date?pin=${retrievedPin}`)
-            .then(res => res.json())
-            .then(dateResult => {
-              if (dateResult.success && dateResult.registeredDate) {
-                setFormData(prev => ({
-                  ...prev,
-                  registeredDate: dateResult.registeredDate
-                }));
-                toast.success("Exact registration date verified!");
-              }
-            })
-            .catch(err => {
-              console.error("Error confirming registration date:", err);
-            })
-            .finally(() => {
-              setIsVerifyingDate(false);
-            });
-        }
+        setCaptchaStatus("idle")
+        setCaptchaImage(null)
+        setCaptchaAnswer("")
+        toast.success("KRA Certificate Identity Found!")
       } else {
         setIdSearchStatus("error")
         setError(result.error || "Details not found. Please check your credentials.")
         toast.error("Certificate Retrieval Failed")
+        // Reload CAPTCHA for retry
+        await loadCaptcha()
+        setIdSearchStatus("idle")
       }
-    } catch (err: any) {
+    } catch {
       setIdSearchStatus("error")
-      setError("Connection failed. Please try manual entry.")
+      setError("Connection failed. Please try again.")
+      setCaptchaStatus("idle")
     }
   }
 
@@ -271,8 +305,8 @@ export function KRAPortal() {
                           </div>
                         </motion.div>
                       ) : (
-                        <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                          <div className="space-y-6">
+                        <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                          <div className="space-y-4">
                             <div className="space-y-3">
                               <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Search Mode</Label>
                               <div className="flex items-center justify-center gap-2">
@@ -282,7 +316,7 @@ export function KRAPortal() {
                                     "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
                                     formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
                                   )} 
-                                  onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); }}
+                                  onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
                                 >
                                   ID NUMBER
                                 </Button>
@@ -292,7 +326,7 @@ export function KRAPortal() {
                                     "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
                                     formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
                                   )} 
-                                  onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); }}
+                                  onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
                                 >
                                   KRA PIN
                                 </Button>
@@ -302,12 +336,47 @@ export function KRAPortal() {
                               <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formData.pin ? 'KRA PIN NUMBER' : 'ID NUMBER'}</Label>
                               <Input 
                                 value={formData.pin || formData.idNumber} 
-                                onChange={(e) => handleInputChange(formData.pin ? 'pin' : 'idNumber', e.target.value.toUpperCase())} 
+                                onChange={(e) => { handleInputChange(formData.pin ? 'pin' : 'idNumber', e.target.value.toUpperCase()); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }} 
                                 placeholder={formData.pin ? 'A00XXXXXXXXB' : '12345678'} 
                                 className="h-10 rounded-full border-white/10 precision-outline focus:border-primary px-8 text-[11px] text-center font-medium transition-all uppercase bg-black/5" 
                               />
                             </div>
                           </div>
+
+                          {/* CAPTCHA section — shown after first click */}
+                          <AnimatePresence>
+                            {captchaStatus === "loading" && (
+                              <motion.div key="captcha-loading" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex flex-col items-center gap-2 py-2">
+                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Loading verification...</span>
+                              </motion.div>
+                            )}
+                            {captchaStatus === "ready" && captchaImage && (
+                              <motion.div key="captcha-ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex flex-col items-center gap-3">
+                                <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Solve Verification Code</Label>
+                                <div className="relative">
+                                  <img src={captchaImage} alt="KRA CAPTCHA" className="rounded-xl border border-white/10 shadow-inner h-14 mx-auto object-contain bg-white/5" />
+                                  <button
+                                    type="button"
+                                    onClick={loadCaptcha}
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary/20 hover:bg-primary/40 flex items-center justify-center transition-all"
+                                    title="Refresh CAPTCHA"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                  </button>
+                                </div>
+                                <Input 
+                                  value={captchaAnswer}
+                                  onChange={(e) => setCaptchaAnswer(e.target.value)}
+                                  placeholder="Enter the answer"
+                                  className="h-9 rounded-full border-white/10 precision-outline focus:border-primary px-6 text-[12px] text-center font-bold tracking-widest bg-black/5 max-w-[160px] mx-auto"
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearch(); }}
+                                  autoFocus
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
                           {error && (
                             <Alert variant="destructive" className="bg-red-500/5 border-red-500/10 rounded-full p-3">
                               <AlertCircle className="h-4 w-4 text-red-500 mx-auto" />
@@ -318,14 +387,20 @@ export function KRAPortal() {
                             <Button 
                               className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-auto min-w-[140px]" 
                               onClick={handleIdSearch} 
-                              disabled={idSearchStatus === "searching"}
+                              disabled={idSearchStatus === "searching" || captchaStatus === "loading"}
                             >
                               {idSearchStatus === "searching" ? (
                                 <div className="flex items-center gap-2">
                                   <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>GENERATING...</span>
+                                  <span>RETRIEVING...</span>
                                 </div>
-                              ) : <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>}
+                              ) : captchaStatus === "ready" ? (
+                                <>SUBMIT <ArrowRight className="ml-2 w-3 h-3" /></>
+                              ) : captchaStatus === "loading" ? (
+                                <div className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /><span>LOADING...</span></div>
+                              ) : (
+                                <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>
+                              )}
                             </Button>
                             <Button 
                               variant="ghost" 
