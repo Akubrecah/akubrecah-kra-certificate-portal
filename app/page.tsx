@@ -73,12 +73,19 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
                 {isLoaded && isSignedIn ? (
-                  <Link href="/retrieval-portal" className="w-full sm:w-auto">
-                    <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                      Get Your Certificate
-                      <ArrowRight className="ml-2 h-3 w-3" />
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/retrieval-portal" className="w-full sm:w-auto">
+                      <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
+                        Get Your Certificate
+                        <ArrowRight className="ml-2 h-3 w-3" />
+                      </Button>
+                    </Link>
+                    <Link href="/change-particulars" className="w-full sm:w-auto">
+                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
+                        Change Particulars
+                      </Button>
+                    </Link>
+                  </>
                 ) : isLoaded && (
                   <>
                     <Link href="/sign-in" className="w-full sm:w-auto">
@@ -92,9 +99,15 @@ export default function Home() {
                         Create Account
                       </Button>
                     </Link>
+                    <Link href="/change-particulars" className="w-full sm:w-auto">
+                      <Button variant="ghost" className="w-full sm:w-auto h-8 px-4 rounded-full font-bold text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
+                        Change Particulars
+                      </Button>
+                    </Link>
                   </>
                 )}
               </div>
+
             </motion.div>
 
           </section>

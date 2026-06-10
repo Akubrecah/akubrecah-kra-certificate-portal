@@ -11,26 +11,17 @@ import {
   useUser
 } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
-import { isAdminUser } from "@/lib/admin-config"
-import { ArrowLeft } from "lucide-react"
 
 const navItems = [
   { name: "HOME", href: "/" },
   { name: "KRA CERTIFICATE", href: "/retrieval-portal" },
-  { name: "SECURITY", href: "/security" },
-  { name: "BLOGS", href: "/blog" },
-  { name: "FAQS", href: "/faq" },
-  { name: "CAREERS", href: "/careers", highlight: true },
-  { name: "ABOUT", href: "/about" },
+  { name: "CHANGE PARTICULARS", href: "/change-particulars" },
 ]
 
 export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isLoaded, isSignedIn } = useUser()
-
-  // Check if user is admin using the central utility
-  const isAdmin = isAdminUser(user)
+  const { isLoaded, isSignedIn } = useUser()
 
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border py-4">
@@ -53,8 +44,6 @@ export function SiteHeader() {
                   "h-8 px-4 text-[10px] font-extrabold tracking-[0.2em] uppercase rounded-full transition-all",
                   pathname === item.href 
                     ? "bg-primary/15 text-primary shadow-sm" 
-                    : item.name === "CAREERS"
-                    ? "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
                     : "text-foreground hover:text-primary hover:bg-primary/5"
                 )}
               >
@@ -62,42 +51,6 @@ export function SiteHeader() {
               </Button>
             </Link>
           ))}
-
-          {/* Special Disabled Return Button */}
-          <Button 
-            disabled 
-            variant="outline"
-            className="h-8 px-4 text-[10px] font-extrabold tracking-[0.2em] uppercase rounded-full opacity-40 grayscale cursor-not-allowed border-white/10"
-          >
-            FILE RETURN
-          </Button>
-
-          {/* Conditional Dashboard Access */}
-          {isLoaded && isSignedIn && (
-            <Link href="/dashboard">
-              <Button 
-                variant="outline"
-                className={cn(
-                  "h-8 px-5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] hover:bg-primary/10 hover:text-primary transition-all",
-                  pathname === "/dashboard" ? "bg-primary/15 text-primary border-primary/20" : "border-border"
-                )}
-              >
-                DASHBOARD
-              </Button>
-            </Link>
-          )}
-
-          {/* Conditional Admin Access */}
-          {isLoaded && isSignedIn && isAdmin && (
-            <Link href="/admin/dashboard">
-              <Button 
-                variant="default"
-                className="h-8 px-5 rounded-full bg-accent text-accent-foreground font-black uppercase tracking-[0.2em] text-[9px] hover:opacity-90 shadow-lg shadow-accent/20"
-              >
-                ADMIN PANEL
-              </Button>
-            </Link>
-          )}
 
           {/* User / Auth Actions */}
           <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-border">
@@ -128,5 +81,5 @@ export function SiteHeader() {
         </nav>
       </div>
     </header>
-  );
+  )
 }
