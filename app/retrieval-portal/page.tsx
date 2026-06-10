@@ -21,7 +21,7 @@ export default function PortalPage() {
             <Link href="/change-particulars">
               <Button
                 variant="ghost"
-                className="h-8 px-5 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold text-[9px] uppercase tracking-widest transition-all border border-white/5"
+                className="h-8 px-5 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest transition-all border border-white/5"
               >
                 <RefreshCw className="mr-2 w-3 h-3" />
                 Change Particulars (Email / Mobile)

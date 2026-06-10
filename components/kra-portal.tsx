@@ -300,7 +300,7 @@ export function KRAPortal() {
                               DOWNLOAD
                               <Download className="ml-2 w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" className="w-full h-8 text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
+                            <Button variant="ghost" className="w-full h-8 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" onClick={() => { setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                               SEARCH ANOTHER
                             </Button>
                           </div>
@@ -360,7 +360,7 @@ export function KRAPortal() {
                                   <button
                                     type="button"
                                     onClick={loadCaptcha}
-                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary/20 hover:bg-primary/40 flex items-center justify-center transition-all"
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-amber-400/20 hover:bg-amber-400/40 flex items-center justify-center transition-all"
                                     title="Refresh CAPTCHA"
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
@@ -386,7 +386,7 @@ export function KRAPortal() {
                           )}
                           <div className="flex flex-col items-center gap-3">
                             <Button 
-                              className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-auto min-w-[140px]" 
+                              className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-amber-300 w-auto min-w-[140px]" 
                               onClick={handleIdSearch} 
                               disabled={idSearchStatus === "searching" || captchaStatus === "loading"}
                             >
@@ -405,7 +405,7 @@ export function KRAPortal() {
                             </Button>
                             <Button 
                               variant="ghost" 
-                              className="h-8 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" 
+                              className="h-8 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" 
                               onClick={() => setCurrentStep(2)}
                             >
                               I'LL ENTER DETAILS MYSELF
@@ -450,7 +450,7 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20" onClick={() => setCurrentStep(3)}>CONTINUE <ArrowRight className="ml-2 w-3 h-3" /></Button>
+                      <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(3)}>CONTINUE <ArrowRight className="ml-2 w-3 h-3" /></Button>
                       <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(1)}>BACK</Button>
                     </div>
                   </CardContent>
@@ -527,7 +527,7 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20" onClick={() => setCurrentStep(4)}>REVIEW <ArrowRight className="ml-2 w-3 h-3" /></Button>
+                      <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(4)}>REVIEW <ArrowRight className="ml-2 w-3 h-3" /></Button>
                       <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(2)}>BACK</Button>
                     </div>
                   </CardContent>
@@ -582,8 +582,8 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-10 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
+                      <Button className="h-10 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
+                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
                     </div>
                   </CardContent>
                 </Card>

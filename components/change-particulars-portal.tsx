@@ -345,7 +345,7 @@ export function ChangeParticularsPortal() {
                         "w-full flex items-center gap-4 p-5 rounded-2xl border transition-all text-left",
                         form.changeType === type
                           ? "border-primary bg-primary/10 shadow-inner shadow-primary/5"
-                          : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                          : "border-white/10 hover:border-amber-400/30 hover:bg-amber-400/5"
                       )}
                     >
                       <div className={cn("p-2.5 rounded-xl transition-all", form.changeType === type ? "bg-primary text-white" : "bg-white/5 text-muted-foreground")}>
@@ -370,7 +370,7 @@ export function ChangeParticularsPortal() {
                 )}
 
                 <Button
-                  className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                  className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors"
                   onClick={goNext}
                 >
                   CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
@@ -426,7 +426,7 @@ export function ChangeParticularsPortal() {
                 )}
 
                 <div className="flex flex-col gap-2">
-                  <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" onClick={goNext}>
+                  <Button className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors" onClick={goNext}>
                     CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
                   </Button>
                   <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
@@ -507,7 +507,7 @@ export function ChangeParticularsPortal() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-amber-400 transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -615,7 +615,7 @@ export function ChangeParticularsPortal() {
                   <div
                     className={cn(
                       "border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all",
-                      isDragging ? "border-primary bg-primary/10" : "border-white/15 hover:border-white/30 hover:bg-white/3"
+                      isDragging ? "border-amber-400 bg-amber-400/10" : "border-white/15 hover:border-amber-400/40 hover:bg-amber-400/5"
                     )}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                     onDragLeave={() => setIsDragging(false)}
@@ -771,7 +771,7 @@ export function ChangeParticularsPortal() {
 
                 <div className="flex flex-col gap-2">
                   <Button
-                    className="w-full h-11 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                    className="w-full h-11 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors"
                     onClick={handleSubmit}
                     disabled={isSubmitting || isUploading}
                   >
@@ -835,7 +835,7 @@ export function ChangeParticularsPortal() {
 
                 <Button
                   variant="outline"
-                  className="w-full h-9 rounded-full border-white/10 font-bold text-[9px] uppercase tracking-widest hover:bg-white/5"
+                  className="w-full h-9 rounded-full border-amber-400/20 text-amber-400 font-bold text-[9px] uppercase tracking-widest hover:bg-amber-400/10 hover:border-amber-400/40 transition-all"
                   onClick={resetAll}
                 >
                   MAKE ANOTHER REQUEST

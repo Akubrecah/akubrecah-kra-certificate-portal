@@ -43,7 +43,7 @@ export function SiteFooter(): JSX.Element {
                     <li key={link.label}>
                       <Link 
                         href={link.href} 
-                        className="text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100"
+                        className="text-[11px] text-muted-foreground hover:text-amber-400 transition-all uppercase tracking-wide opacity-80 hover:opacity-100"
                       >
                         {link.label}
                       </Link>
