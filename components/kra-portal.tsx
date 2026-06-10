@@ -61,6 +61,7 @@ export function KRAPortal() {
   const [isVerified, setIsVerified] = useState(false)
   const [isVerifyingDate, setIsVerifyingDate] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasConsented, setHasConsented] = useState(false)
 
   // CAPTCHA state
   const [captchaImage, setCaptchaImage] = useState<string | null>(null)
@@ -384,11 +385,29 @@ export function KRAPortal() {
                               <AlertDescription className="text-[10px] font-medium opacity-80 leading-normal uppercase text-center mt-1">{error}</AlertDescription>
                             </Alert>
                           )}
+                          
+                          {/* Consent checkbox — legally required */}
+                          <div className="flex items-start gap-2.5 max-w-xs mx-auto text-left">
+                            <input
+                              type="checkbox"
+                              id="kra-consent"
+                              checked={hasConsented}
+                              onChange={(e) => setHasConsented(e.target.checked)}
+                              className="mt-0.5 w-3.5 h-3.5 accent-amber-400 flex-shrink-0 cursor-pointer"
+                            />
+                            <label htmlFor="kra-consent" className="text-[9px] text-muted-foreground leading-relaxed cursor-pointer">
+                              I confirm I am the rightful owner of these credentials and I agree to the{" "}
+                              <a href="/legal/terms" target="_blank" className="text-amber-400 underline underline-offset-2">Terms of Service</a>,{" "}
+                              <a href="/legal/privacy" target="_blank" className="text-amber-400 underline underline-offset-2">Privacy Policy</a>, and{" "}
+                              <a href="/legal/disclaimer" target="_blank" className="text-amber-400 underline underline-offset-2">Disclaimer</a>.
+                            </label>
+                          </div>
+
                           <div className="flex flex-col items-center gap-3">
                             <Button 
-                              className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-amber-300 w-auto min-w-[140px]" 
+                              className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-amber-300 w-auto min-w-[140px] disabled:opacity-40 disabled:cursor-not-allowed" 
                               onClick={handleIdSearch} 
-                              disabled={idSearchStatus === "searching" || captchaStatus === "loading"}
+                              disabled={idSearchStatus === "searching" || captchaStatus === "loading" || !hasConsented}
                             >
                               {idSearchStatus === "searching" ? (
                                 <div className="flex items-center gap-2">

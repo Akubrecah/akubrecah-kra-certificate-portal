@@ -102,6 +102,7 @@ export function ChangeParticularsPortal() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [result, setResult] = useState<{ caseNumber: string; message: string } | null>(null)
+  const [hasConsented, setHasConsented] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const updateAccount = (field: keyof KraAccount, value: string) => {
@@ -369,9 +370,28 @@ export function ChangeParticularsPortal() {
                   </Alert>
                 )}
 
+                {/* Consent checkbox — legally required */}
+                <div className="flex items-start gap-2.5 text-left">
+                  <input
+                    type="checkbox"
+                    id="cp-consent"
+                    checked={hasConsented}
+                    onChange={(e) => setHasConsented(e.target.checked)}
+                    className="mt-0.5 w-3.5 h-3.5 accent-amber-400 flex-shrink-0 cursor-pointer"
+                  />
+                  <label htmlFor="cp-consent" className="text-[9px] text-muted-foreground leading-relaxed cursor-pointer">
+                    I confirm these are my own KRA credentials and I consent to Akubrecah acting as my agent to submit this
+                    request to KRA on my behalf. I have read and agree to the{" "}
+                    <a href="/legal/terms" target="_blank" className="text-amber-400 underline underline-offset-2">Terms of Service</a>,{" "}
+                    <a href="/legal/privacy" target="_blank" className="text-amber-400 underline underline-offset-2">Privacy Policy</a>, and{" "}
+                    <a href="/legal/disclaimer" target="_blank" className="text-amber-400 underline underline-offset-2">Disclaimer</a>.
+                  </label>
+                </div>
+
                 <Button
-                  className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors"
+                  className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={goNext}
+                  disabled={!hasConsented}
                 >
                   CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
                 </Button>

@@ -21,9 +21,12 @@ export function SiteFooter(): JSX.Element {
     {
       title: "Legal",
       links: [
+        { label: "Legal Center", href: "/legal" },
         { label: "Privacy Policy", href: "/legal/privacy" },
         { label: "Terms of Service", href: "/legal/terms" },
         { label: "Disclaimer", href: "/legal/disclaimer" },
+        { label: "Refund Policy", href: "/legal/refund" },
+        { label: "Acceptable Use", href: "/legal/aup" },
         { label: "Cookie Policy", href: "/legal/cookies" },
       ],
     },
