@@ -43,8 +43,8 @@ export function SiteHeader() {
                 className={cn(
                   "h-8 px-4 text-[10px] font-extrabold tracking-[0.2em] uppercase rounded-full transition-all",
                   pathname === item.href 
-                    ? "bg-primary/15 text-primary shadow-sm" 
-                    : "text-foreground hover:text-primary hover:bg-primary/5"
+                    ? "bg-amber-400/15 text-amber-400 shadow-sm" 
+                    : "text-foreground hover:text-amber-400 hover:bg-amber-400/10"
                 )}
               >
                 {item.name}
@@ -64,13 +64,13 @@ export function SiteHeader() {
               <div className="flex items-center gap-1.5">
                 <Button 
                   variant="ghost"
-                  className="h-7 px-3 rounded-full text-foreground/80 font-bold uppercase tracking-widest text-[8px] hover:text-foreground"
+                  className="h-7 px-3 rounded-full text-foreground/80 font-bold uppercase tracking-widest text-[8px] hover:text-amber-400 hover:bg-amber-400/10"
                   onClick={() => router.push("/sign-in")}
                 >
                   LOGIN
                 </Button>
                 <Button 
-                  className="h-7 px-4 rounded-full bg-primary text-white font-bold uppercase tracking-widest text-[8px] shadow-none hover:opacity-90"
+                  className="h-7 px-4 rounded-full bg-amber-400 text-black font-bold uppercase tracking-widest text-[8px] shadow-none hover:bg-amber-300 transition-colors"
                   onClick={() => router.push("/sign-up")}
                 >
                   JOIN

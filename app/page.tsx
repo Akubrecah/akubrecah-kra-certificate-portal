@@ -75,13 +75,13 @@ export default function Home() {
                 {isLoaded && isSignedIn ? (
                   <>
                     <Link href="/retrieval-portal" className="w-full sm:w-auto">
-                      <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
+                      <Button className="w-full sm:w-auto h-8 px-6 bg-amber-400 text-black rounded-full transition-all hover:bg-amber-300 font-bold text-[9px] uppercase tracking-widest border border-amber-300/20 shadow-none">
                         Get Your Certificate
                         <ArrowRight className="ml-2 h-3 w-3" />
                       </Button>
                     </Link>
                     <Link href="/change-particulars" className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
+                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-amber-400/20 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/40 transition-all">
                         Change Particulars
                       </Button>
                     </Link>
@@ -100,7 +100,7 @@ export default function Home() {
                       </Button>
                     </Link>
                     <Link href="/change-particulars" className="w-full sm:w-auto">
-                      <Button variant="ghost" className="w-full sm:w-auto h-8 px-4 rounded-full font-bold text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
+                      <Button variant="ghost" className="w-full sm:w-auto h-8 px-4 rounded-full font-bold text-[9px] uppercase tracking-widest text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-all">
                         Change Particulars
                       </Button>
                     </Link>
@@ -233,7 +233,7 @@ export default function Home() {
               ].map((faq, i) => (
                 <div 
                   key={i}
-                  className="glass rounded-2xl p-3 border border-white/5 transition-all"
+                  className="glass rounded-2xl p-3 border border-white/5 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all cursor-default"
                 >
                   <h4 className="text-[8px] font-bold uppercase tracking-[0.2em] mb-0.5 text-primary">{faq.q}</h4>
                   <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide opacity-80">
