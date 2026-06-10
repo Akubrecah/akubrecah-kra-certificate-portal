@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { name: "HOME", href: "/" },
   { name: "KRA CERTIFICATE", href: "/retrieval-portal" },
+  { name: "CHANGE PARTICULARS", href: "/change-particulars" },
 ]
 
 export function SiteHeader() {
