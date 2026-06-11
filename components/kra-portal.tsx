@@ -238,6 +238,24 @@ export function KRAPortal() {
       animate={{ opacity: 1 }}
       className="w-full flex flex-col space-y-0 py-0 max-w-7xl mx-auto"
     >
+      {/* Step Progress Bar */}
+      <div className="w-full max-w-md mx-auto mb-6 px-4">
+        <div className="flex justify-between items-center text-[7px] md:text-[8px] font-black tracking-widest text-muted-foreground uppercase mb-2">
+          <span className={cn(currentStep >= 1 ? "text-amber-400" : "")}>01. IDENTITY</span>
+          <span className={cn(currentStep >= 2 ? "text-amber-400" : "")}>02. PERSONAL</span>
+          <span className={cn(currentStep >= 3 ? "text-amber-400" : "")}>03. ADDRESS</span>
+          <span className={cn(currentStep >= 4 ? "text-amber-400" : "")}>04. REVIEW</span>
+        </div>
+        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+          <motion.div 
+            className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full"
+            initial={{ width: "25%" }}
+            animate={{ width: `${(currentStep / 4) * 100}%` }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          />
+        </div>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div 
           key="portal-content"
@@ -312,26 +330,30 @@ export function KRAPortal() {
                             <div className="space-y-3">
                               <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Search Mode</Label>
                               <div className="flex items-center justify-center gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  className={cn(
-                                    "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
-                                  )} 
-                                  onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
-                                >
-                                  ID NUMBER
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  className={cn(
-                                    "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
-                                  )} 
-                                  onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
-                                >
-                                  KRA PIN
-                                </Button>
+                                <motion.div whileTap={{ scale: 0.97 }}>
+                                  <Button 
+                                    variant="outline" 
+                                    className={cn(
+                                      "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
+                                      formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
+                                    )} 
+                                    onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
+                                  >
+                                    ID NUMBER
+                                  </Button>
+                                </motion.div>
+                                <motion.div whileTap={{ scale: 0.97 }}>
+                                  <Button 
+                                    variant="outline" 
+                                    className={cn(
+                                      "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
+                                      formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
+                                    )} 
+                                    onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
+                                  >
+                                    KRA PIN
+                                  </Button>
+                                </motion.div>
                               </div>
                             </div>
                             <div className="space-y-2 max-w-xs mx-auto">
@@ -404,31 +426,35 @@ export function KRAPortal() {
                           </div>
 
                           <div className="flex flex-col items-center gap-3">
-                            <Button 
-                              className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-amber-300 w-auto min-w-[140px] disabled:opacity-40 disabled:cursor-not-allowed" 
-                              onClick={handleIdSearch} 
-                              disabled={idSearchStatus === "searching" || captchaStatus === "loading" || !hasConsented}
-                            >
-                              {idSearchStatus === "searching" ? (
-                                <div className="flex items-center gap-2">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>RETRIEVING...</span>
-                                </div>
-                              ) : captchaStatus === "ready" ? (
-                                <>SUBMIT <ArrowRight className="ml-2 w-3 h-3" /></>
-                              ) : captchaStatus === "loading" ? (
-                                <div className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /><span>LOADING...</span></div>
-                              ) : (
-                                <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>
-                              )}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              className="h-8 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" 
-                              onClick={() => setCurrentStep(2)}
-                            >
-                              I'LL ENTER DETAILS MYSELF
-                            </Button>
+                            <motion.div whileTap={{ scale: 0.97 }}>
+                              <Button 
+                                className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-amber-300 w-auto min-w-[140px] disabled:opacity-40 disabled:cursor-not-allowed" 
+                                onClick={handleIdSearch} 
+                                disabled={idSearchStatus === "searching" || captchaStatus === "loading" || !hasConsented}
+                              >
+                                {idSearchStatus === "searching" ? (
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>RETRIEVING...</span>
+                                  </div>
+                                ) : captchaStatus === "ready" ? (
+                                  <>SUBMIT <ArrowRight className="ml-2 w-3 h-3" /></>
+                                ) : captchaStatus === "loading" ? (
+                                  <div className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /><span>LOADING...</span></div>
+                                ) : (
+                                  <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>
+                                )}
+                              </Button>
+                            </motion.div>
+                            <motion.div whileTap={{ scale: 0.97 }}>
+                              <Button 
+                                variant="ghost" 
+                                className="h-8 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" 
+                                onClick={() => setCurrentStep(2)}
+                              >
+                                I'LL ENTER DETAILS MYSELF
+                              </Button>
+                            </motion.div>
                           </div>
                         </motion.div>
                       )}
@@ -469,8 +495,12 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(3)}>CONTINUE <ArrowRight className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(1)}>BACK</Button>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(3)}>CONTINUE <ArrowRight className="ml-2 w-3 h-3" /></Button>
+                      </motion.div>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(1)}>BACK</Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>
@@ -546,8 +576,12 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(4)}>REVIEW <ArrowRight className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(2)}>BACK</Button>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button className="h-9 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300" onClick={() => setCurrentStep(4)}>REVIEW <ArrowRight className="ml-2 w-3 h-3" /></Button>
+                      </motion.div>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(2)}>BACK</Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>
@@ -601,8 +635,12 @@ export function KRAPortal() {
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-4">
-                      <Button className="h-10 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button className="h-10 px-8 bg-amber-400 text-black rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-amber-300 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
+                      </motion.div>
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>

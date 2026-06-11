@@ -4,154 +4,153 @@
 
 /* Akubrecah Design System - High-End Premium Theme */
 :root {
-  /* Light Mode - Clean Professional */
   --background: 0 0% 100%;
   --foreground: 165 40% 6%;
-  
-  --primary: 165 56% 28%; /* #1F6F5B */
+  --primary: 165 56% 28%;
   --primary-foreground: 0 0% 100%;
-  
-  --secondary: 166 50% 36%; /* #2E8B75 */
+  --secondary: 166 50% 36%;
   --secondary-foreground: 0 0% 100%;
-  
-  --accent: 57 100% 47%; /* #F2E600 */
+  --accent: 57 100% 47%;
   --accent-foreground: 165 40% 6%;
-
   --muted: 165 10% 95%;
   --muted-foreground: 165 20% 25%;
-
   --card: 0 0% 100%;
   --card-foreground: 165 40% 6%;
-
   --border: 165 20% 45%;
   --input: 165 20% 92%;
   --ring: 165 56% 28%;
-
   --radius: 1rem;
+  scroll-behavior: smooth;
 }
 
 .dark {
-  /* Dark Mode - Deep Emerald / Charcoal "Dev Cave" */
   --background: 165 40% 4%;
   --foreground: 0 0% 98%;
-  
   --primary: 165 56% 35%;
   --primary-foreground: 0 0% 100%;
-  
   --accent: 57 100% 47%;
   --accent-foreground: 165 40% 6%;
- 
   --muted: 165 30% 10%;
   --muted-foreground: 159 29% 56%;
- 
   --card: 165 40% 3%;
   --card-foreground: 0 0% 98%;
- 
   --border: 165 20% 20%;
   --input: 165 20% 12%;
   --ring: 57 100% 47%;
 }
- 
+
 @layer base {
-  * {
-    @apply border-border/80;
-  }
+  * { @apply border-border/80; }
   body {
     @apply bg-background text-foreground;
-    font-size: 11px; /* Even smaller, formal font size */
+    font-size: 11px;
     font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.4;
   }
-  
   input, textarea, select {
     @apply rounded-full border border-primary/40 bg-background px-4 py-2 text-[11px] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20;
   }
-
-  button {
-    @apply rounded-full transition-all active:scale-[0.98];
-  }
-}
- 
-@layer base {
+  button { @apply rounded-full transition-all active:scale-[0.98]; }
   h1 { @apply text-xl font-bold tracking-tight uppercase; }
   h2 { @apply text-lg font-bold tracking-tight uppercase; }
   h3 { @apply text-base font-bold tracking-tight uppercase; }
   h4 { @apply text-[11px] font-bold tracking-widest uppercase; }
 }
- 
+
 @layer utilities {
-  /* Glassmorphism Utilities - Premium Rounded */
   .glass {
     @apply bg-background/60 backdrop-blur-md border border-border shadow-sm rounded-2xl dark:border-white/10;
   }
- 
   .glass-card {
     @apply bg-card/60 backdrop-blur-sm border border-border rounded-2xl dark:border-white/10;
   }
- 
   .glass-panel {
     @apply bg-background/80 backdrop-blur-xl border border-border/80 rounded-2xl dark:border-white/10;
   }
- 
-  /* Precision Outline Utilities */
   .precision-outline {
     @apply border-2 border-primary/40 rounded-full transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-primary/60;
   }
-
-  /* Animations */
-  @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-
-  .animate-marquee {
-    animation: marquee 30s linear infinite;
-  }
-
-  @keyframes bounce-slow {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .animate-bounce-slow {
-    animation: bounce-slow 3s ease-in-out infinite;
-  }
-
   .mask-marquee {
     mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
   }
+
+  /* ─── Keyframes ─── */
+  @keyframes blob {
+    0%   { transform: translate(0px,0px) scale(1); }
+    33%  { transform: translate(30px,-50px) scale(1.1); }
+    66%  { transform: translate(-20px,20px) scale(0.9); }
+    100% { transform: translate(0px,0px) scale(1); }
+  }
+  .animate-blob { animation: blob 7s infinite; }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0px) scale(1); }
+    50%     { transform: translateY(-28px) scale(1.04); }
+  }
+  .animate-float       { animation: float 8s ease-in-out infinite; }
+  .animate-float-slow  { animation: float 12s ease-in-out infinite; }
+  .animate-float-delay { animation: float 8s ease-in-out 3s infinite; }
+
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
+    50%  { opacity: 0.06; }
+    100% { transform: translateX(200%) skewX(-12deg); opacity: 0; }
+  }
+  .animate-shimmer { animation: shimmer 4s ease-in-out infinite; }
+
+  @keyframes pulse-ring {
+    0%  { transform: scale(0.9); opacity: 0.8; }
+    70% { transform: scale(1.4); opacity: 0; }
+    100%{ transform: scale(1.4); opacity: 0; }
+  }
+  .animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+  @keyframes scan-line {
+    0%   { top: 0%;   opacity: 0.4; }
+    100% { top: 100%; opacity: 0;   }
+  }
+  .animate-scan { animation: scan-line 3s linear infinite; }
+
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee { animation: marquee 40s linear infinite; }
+
+  @keyframes bounce-slow {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-10px); }
+  }
+  .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--primary) / 0.2);
   @apply rounded-full;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.4);
-}
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.4); }
 
-/* KRA Custom Brand Utilities */
 .btn-primary {
   @apply bg-primary text-white rounded-full font-bold transition-all hover:opacity-90;
+}
+
+/* ─── Reduced Motion — Accessibility ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

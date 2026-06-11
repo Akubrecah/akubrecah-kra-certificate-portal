@@ -60,19 +60,24 @@ const stepVariants: Variants = {
 const PIN_REGEX = /^[AP]\d{9}[A-Z]$/
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
+  const stepNames = ["TYPE", "VALUE", "ACCOUNT", "UPLOAD ID", "SUBMIT"]
   return (
-    <div className="flex items-center justify-center gap-1.5 mb-6">
-      {Array.from({ length: total }).map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            width: i + 1 === current ? 24 : 6,
-            backgroundColor: i + 1 <= current ? "hsl(var(--primary))" : "hsl(var(--border))",
-          }}
-          transition={{ duration: 0.3 }}
-          className="h-1.5 rounded-full"
+    <div className="w-full max-w-sm mx-auto mb-6 px-4">
+      <div className="flex justify-between items-center text-[7px] font-black tracking-widest text-muted-foreground uppercase mb-2">
+        {stepNames.map((name, i) => (
+          <span key={name} className={cn(i + 1 <= current ? "text-amber-400" : "")}>
+            {name}
+          </span>
+        ))}
+      </div>
+      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+        <motion.div 
+          className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full"
+          initial={{ width: "20%" }}
+          animate={{ width: `${(current / total) * 100}%` }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
         />
-      ))}
+      </div>
     </div>
   )
 }
@@ -388,13 +393,15 @@ export function ChangeParticularsPortal() {
                   </label>
                 </div>
 
-                <Button
-                  className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  onClick={goNext}
-                  disabled={!hasConsented}
-                >
-                  CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
-                </Button>
+                <motion.div whileTap={{ scale: 0.97 }}>
+                  <Button
+                    className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={goNext}
+                    disabled={!hasConsented}
+                  >
+                    CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                  </Button>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>
@@ -446,12 +453,16 @@ export function ChangeParticularsPortal() {
                 )}
 
                 <div className="flex flex-col gap-2">
-                  <Button className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors" onClick={goNext}>
-                    CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
-                  </Button>
-                  <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
-                    <ArrowLeft className="mr-2 w-3 h-3" /> BACK
-                  </Button>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button className="w-full h-10 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors" onClick={goNext}>
+                      CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                    </Button>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
+                      <ArrowLeft className="mr-2 w-3 h-3" /> BACK
+                    </Button>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
@@ -596,12 +607,16 @@ export function ChangeParticularsPortal() {
                 )}
 
                 <div className="flex flex-col gap-2 pt-1">
-                  <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" onClick={goNext}>
-                    CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
-                  </Button>
-                  <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
-                    <ArrowLeft className="mr-2 w-3 h-3" /> BACK
-                  </Button>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" onClick={goNext}>
+                      CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                    </Button>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
+                      <ArrowLeft className="mr-2 w-3 h-3" /> BACK
+                    </Button>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
@@ -708,12 +723,16 @@ export function ChangeParticularsPortal() {
                 )}
 
                 <div className="flex flex-col gap-2">
-                  <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" onClick={goNext}>
-                    CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
-                  </Button>
-                  <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
-                    <ArrowLeft className="mr-2 w-3 h-3" /> BACK
-                  </Button>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" onClick={goNext}>
+                      CONTINUE <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                    </Button>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button variant="ghost" className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={goBack}>
+                      <ArrowLeft className="mr-2 w-3 h-3" /> BACK
+                    </Button>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
@@ -789,29 +808,33 @@ export function ChangeParticularsPortal() {
                   </Alert>
                 )}
 
-                <div className="flex flex-col gap-2">
-                  <Button
-                    className="w-full h-11 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || isUploading}
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        SUBMITTING TO KRA...
-                      </span>
-                    ) : (
-                      <>SUBMIT REQUEST <ArrowRight className="ml-2 w-3.5 h-3.5" /></>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest"
-                    onClick={goBack}
-                    disabled={isSubmitting}
-                  >
-                    <ArrowLeft className="mr-2 w-3 h-3" /> BACK
-                  </Button>
+                 <div className="flex flex-col gap-2">
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button
+                      className="w-full h-11 bg-amber-400 text-black rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-amber-300 transition-colors"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || isUploading}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          SUBMITTING TO KRA...
+                        </span>
+                      ) : (
+                        <>SUBMIT REQUEST <ArrowRight className="ml-2 w-3.5 h-3.5" /></>
+                      )}
+                    </Button>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Button
+                      variant="ghost"
+                      className="w-full h-9 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest"
+                      onClick={goBack}
+                      disabled={isSubmitting}
+                    >
+                      <ArrowLeft className="mr-2 w-3 h-3" /> BACK
+                    </Button>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
@@ -853,13 +876,15 @@ export function ChangeParticularsPortal() {
                   </p>
                 </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full h-9 rounded-full border-amber-400/20 text-amber-400 font-bold text-[9px] uppercase tracking-widest hover:bg-amber-400/10 hover:border-amber-400/40 transition-all"
-                  onClick={resetAll}
-                >
-                  MAKE ANOTHER REQUEST
-                </Button>
+                 <motion.div whileTap={{ scale: 0.97 }}>
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 rounded-full border-amber-400/20 text-amber-400 font-bold text-[9px] uppercase tracking-widest hover:bg-amber-400/10 hover:border-amber-400/40 transition-all"
+                    onClick={resetAll}
+                  >
+                    MAKE ANOTHER REQUEST
+                  </Button>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>
