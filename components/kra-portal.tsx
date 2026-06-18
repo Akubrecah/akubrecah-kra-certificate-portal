@@ -36,9 +36,10 @@ import {
 } from "@/lib/kenya-data"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
-import { UserButton } from "@clerk/nextjs"
+import { UserButton, useUser } from "@clerk/nextjs"
 
 export function KRAPortal() {
+  const { isLoaded: authLoaded, isSignedIn } = useUser()
   const [currentStep, setCurrentStep] = useState(1)
   const [idSearchStatus, setIdSearchStatus] = useState<"idle" | "searching" | "found" | "error">("idle")
   const [formData, setFormData] = useState({
@@ -184,6 +185,11 @@ export function KRAPortal() {
         return
       }
 
+      if (authLoaded && !isSignedIn) {
+        toast.error("Authentication required. Please sign in to download your certificate.", { id: loadingToast })
+        return
+      }
+
       const payload = {
         pin: formData.pin,
         name: formData.fullName,
@@ -208,7 +214,10 @@ export function KRAPortal() {
         body: JSON.stringify(payload),
       })
 
-      if (!response.ok) throw new Error("Generation failed")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Generation failed")
+      }
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -221,8 +230,8 @@ export function KRAPortal() {
       window.URL.revokeObjectURL(url)
       
       toast.success("Certificate downloaded successfully", { id: loadingToast })
-    } catch (err) {
-      toast.error("Download failed. Please check your connection.", { id: loadingToast })
+    } catch (err: any) {
+      toast.error(err.message || "Download failed. Please check your connection.", { id: loadingToast })
     }
   }
 

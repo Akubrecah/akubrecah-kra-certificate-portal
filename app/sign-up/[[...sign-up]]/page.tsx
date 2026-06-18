@@ -1,8 +1,17 @@
+"use client"
+
+import { useState, useEffect } from "react";
 import { SignUp } from "@clerk/nextjs";
 import { PageBackground } from "@/components/ui/page-background";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2 } from "lucide-react";
 
 export default function SignUpPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <PageBackground className="flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
@@ -26,33 +35,40 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          <SignUp
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden",
-                header: "hidden", // Custom header used above
-                formButtonPrimary: "bg-brand-cyan hover:bg-brand-cyan/90 text-black font-black uppercase tracking-[0.2em] text-[10px] h-12 rounded-xl transition-all active:scale-[0.98]",
-                formFieldInput: "bg-white/5 border-white/10 focus:border-brand-cyan/30 focus:ring-brand-cyan/10 h-11 text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all",
-                formFieldLabel: "text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mb-1.5 ml-1",
-                footerActionLink: "text-brand-cyan hover:opacity-80 transition-opacity font-bold uppercase text-[10px] tracking-wider",
-                socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 h-11 rounded-xl transition-all",
-                socialButtonsBlockButtonText: "text-[10px] font-black uppercase tracking-widest text-foreground/70",
-                dividerLine: "bg-white/10",
-                dividerText: "text-[9px] font-black uppercase tracking-widest text-muted-foreground/40",
-                footer: "bg-transparent border-none",
-                identityPreviewText: "text-[11px] font-bold text-foreground",
-                identityPreviewEditButtonIcon: "text-brand-cyan",
-              },
-              variables: {
-                colorPrimary: "#1F6F5B",
-                colorBackground: "transparent",
-                colorText: "white",
-                colorTextSecondary: "#a1a1aa",
-                borderRadius: "1rem",
-              }
-            }}
-          />
+          {mounted ? (
+            <SignUp
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  card: "bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden",
+                  header: "hidden", // Custom header used above
+                  formButtonPrimary: "bg-brand-cyan hover:bg-brand-cyan/90 text-black font-black uppercase tracking-[0.2em] text-[10px] h-12 rounded-xl transition-all active:scale-[0.98]",
+                  formFieldInput: "bg-white/5 border-white/10 focus:border-brand-cyan/30 focus:ring-brand-cyan/10 h-11 text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all",
+                  formFieldLabel: "text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mb-1.5 ml-1",
+                  footerActionLink: "text-brand-cyan hover:opacity-80 transition-opacity font-bold uppercase text-[10px] tracking-wider",
+                  socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 h-11 rounded-xl transition-all",
+                  socialButtonsBlockButtonText: "text-[10px] font-black uppercase tracking-widest text-foreground/70",
+                  dividerLine: "bg-white/10",
+                  dividerText: "text-[9px] font-black uppercase tracking-widest text-muted-foreground/40",
+                  footer: "bg-transparent border-none",
+                  identityPreviewText: "text-[11px] font-bold text-foreground",
+                  identityPreviewEditButtonIcon: "text-brand-cyan",
+                },
+                variables: {
+                  colorPrimary: "#1F6F5B",
+                  colorBackground: "transparent",
+                  colorText: "white",
+                  colorTextSecondary: "#a1a1aa",
+                  borderRadius: "1rem",
+                }
+              }}
+            />
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-xl border border-white/10 rounded-2xl">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-cyan" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Loading Gateway...</span>
+            </div>
+          )}
           
           <div className="flex justify-center items-center gap-6 opacity-20 pt-4">
             <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white" />

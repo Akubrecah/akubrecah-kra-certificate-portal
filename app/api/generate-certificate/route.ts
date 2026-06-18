@@ -39,11 +39,23 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Resolve template PDF file path
-    const templatePath = path.join(process.cwd(), 'public', 'receipt-template.pdf');
+    let templatePath = path.join(process.cwd(), 'public', 'receipt-template.pdf');
     
     if (!fs.existsSync(templatePath)) {
-      console.error(`[generate-certificate] Template file not found at path: ${templatePath}`);
-      return NextResponse.json({ success: false, error: 'Certificate template file not found on server' }, { status: 500 });
+      // Fallback 1: check root directory
+      const rootFallback = path.join(process.cwd(), 'receipt-template.pdf');
+      if (fs.existsSync(rootFallback)) {
+        templatePath = rootFallback;
+      } else {
+        // Fallback 2: check relative to current dir
+        const relativeFallback = path.join(__dirname, '..', '..', '..', '..', 'public', 'receipt-template.pdf');
+        if (fs.existsSync(relativeFallback)) {
+          templatePath = relativeFallback;
+        } else {
+          console.error(`[generate-certificate] Template file not found at path: ${templatePath}`);
+          return NextResponse.json({ success: false, error: 'Certificate template file not found on server. Checked paths: ' + templatePath + ', ' + rootFallback + ', ' + relativeFallback }, { status: 500 });
+        }
+      }
     }
 
     // 4. Load the PDF document
