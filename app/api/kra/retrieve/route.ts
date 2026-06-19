@@ -162,15 +162,11 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     return stripTags(nextTd.substring(0, nextTdClose));
   };
 
-  // Find PIN Details section
-  const pinDetailsIdx = html.indexOf('PIN Details');
-  if (pinDetailsIdx === -1) {
-    console.log('[retrieve][parse] PIN Details section not found in HTML');
-    return result;
-  }
-
-  // Work within the PIN Details section (up to next major section or end)
-  const fullSection = html.substring(pinDetailsIdx);
+  // Find PIN Details section (case-insensitive search for flexibility)
+  const pinDetailsIdx = html.toLowerCase().indexOf('pin details');
+  
+  // Work within the PIN Details section, or fall back to the entire document if the layout section header differs
+  const fullSection = pinDetailsIdx !== -1 ? html.substring(pinDetailsIdx) : html;
   console.log('[retrieve][parse] fullSection length:', fullSection.length);
   console.log('[retrieve][parse] fullSection snippet:', stripTags(fullSection.substring(0, 800)));
 
@@ -184,9 +180,11 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     || extractAfterLabel('KRA PIN', fullSection)
     || extractAfterLabel('PIN', fullSection);
 
-  // Extract Registration Date (PIN Registration Date or Effective Date)
+  // Extract Registration Date (supports PIN Registration Date, Registration Date, Effective From Date, or generic Effective Date)
   result.registeredDate = extractAfterLabel('PIN Registration Date', fullSection)
     || extractAfterLabel('Registration Date', fullSection)
+    || extractAfterLabel('Effective From Date', fullSection)
+    || extractAfterLabel('Effective From', fullSection)
     || extractAfterLabel('Effective Date', fullSection);
 
   // Validate date format DD/MM/YYYY
@@ -241,42 +239,62 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
 
   // Extract obligation effective date (first date in Obligation Details)
   const oblIdx = fullSection.toLowerCase().indexOf('obligation details');
-  if (oblIdx !== -1) {
-    const oblsEndIndex = fullSection.indexOf('</fieldset>', oblIdx);
-    const oblsSection = fullSection.substring(oblIdx, oblsEndIndex !== -1 ? oblsEndIndex : oblIdx + 2000);
+  const targetOBLSection = oblIdx !== -1 ? fullSection.substring(oblIdx) : fullSection;
+  
+  // Find all table rows inside the obligation details section (split-based parsing for robustness)
+  const rows = targetOBLSection.split(/<tr[^>]*>/gi);
+  const obligations = [];
+  
+  for (let i = 1; i < rows.length; i++) {
+    const rowContent = rows[i].split(/<\/tr>/gi)[0];
+    if (!rowContent) continue;
     
-    // Pattern to match 4 columns in each row: Name, Status, Effective From, Effective To
-    const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi;
-    let match;
-    const obligations = [];
-    while ((match = rowRegex.exec(oblsSection)) !== null) {
-      const name = stripTags(match[1]).trim();
-      const status = stripTags(match[2]).trim();
-      const effectiveFrom = stripTags(match[3]).trim();
-      const effectiveTo = stripTags(match[4]).trim();
+    // Split the row content by standard td cells
+    const cellMatches = rowContent.split(/<\/td>/gi);
+    const cells = cellMatches
+      .map(cell => {
+        // Find opening <td...> tag index
+        const tdIdx = cell.toLowerCase().indexOf('<td');
+        if (tdIdx === -1) return '';
+        // Extract content inside the cell
+        const contentStart = cell.indexOf('>', tdIdx) + 1;
+        return stripTags(cell.substring(contentStart)).trim();
+      })
+      .filter((_, idx) => idx < cellMatches.length - 1); // omit final empty element
+      
+    if (cells.length >= 3) {
+      const name = cells[0];
+      const status = cells[1];
+      const effectiveFrom = cells[2];
+      const effectiveTo = cells[3] || '';
       
       if (name && name.toLowerCase() !== 'obligation name') {
         obligations.push({ name, status, effectiveFrom, effectiveTo });
       }
     }
+  }
 
-    if (obligations.length > 0) {
-      // Find the first obligation that is Registered/Active
-      const activeObl = obligations.find(o => 
-        o.status.toLowerCase() === 'registered' || 
-        o.status.toLowerCase() === 'active'
-      ) || obligations[0];
-      
-      if (activeObl && activeObl.effectiveFrom) {
-        const m = activeObl.effectiveFrom.match(/(\d{2}\/\d{2}\/\d{4})/);
-        if (m) {
-          result.obligationDate = m[1];
-        }
+  if (obligations.length > 0) {
+    // Find the first obligation that is Registered/Active
+    const activeObl = obligations.find(o => 
+      o.status.toLowerCase() === 'registered' || 
+      o.status.toLowerCase() === 'active'
+    ) || obligations[0];
+    
+    if (activeObl && activeObl.effectiveFrom) {
+      const m = activeObl.effectiveFrom.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if (m) {
+        result.obligationDate = m[1];
       }
     }
   }
 
-  // If registration date is still missing, try finding ANY date in PIN Details
+  // Prioritize using the obligation effective from date if direct registration date is missing
+  if (!result.registeredDate) {
+    result.registeredDate = result.obligationDate || '';
+  }
+
+  // Fallback to searching for ANY date on the page as last resort
   if (!result.registeredDate) {
     const m = fullSection.match(/(\d{2}\/\d{2}\/\d{4})/);
     if (m) result.registeredDate = m[1];
@@ -470,13 +488,72 @@ function parseDWR(raw: string): Record<string, string> | null {
     city:        get('city', 'town', 'cityName', 'townName'),
     county:      get('county', 'countyName'),
     district:    get('district', 'districtName', 'subCounty'),
-    taxArea:     get('taxArea', 'taxAreaName', 'taxAreaDesc'),
+    taxArea:     get('taxArea', 'taxAreaName', 'taxAreaDesc', 'tax_area', 'tax_area_name', 'taxAreaEn', 'localityEn', 'taxAreaLocality'),
     poBox:       get('poBox', 'pobox', 'postBox', 'boxNumber'),
     postalCode:  get('postalCode', 'postCode', 'postalcode'),
     station:     get('station', 'stationName', 'stationDesc'),
     phoneNumber: get('mobileNo', 'phoneNumber', 'phone', 'telNo'),
+    registeredDate: get('registeredDate', 'regDate', 'effectiveDate', 'pinRegistrationDate', 'pinRegDate', 'effectiveFromDate', 'effectiveFrom'),
   };
 }
+
+const COUNTY_TOWN_MAP: Record<string, string> = {
+  'mombasa': 'Mombasa',
+  'kwale': 'Kwale',
+  'kilifi': 'Kilifi',
+  'tana river': 'Hola',
+  'lamu': 'Lamu',
+  'taita taveta': 'Wundanyi',
+  'taita-taveta': 'Wundanyi',
+  'garissa': 'Garissa',
+  'wajir': 'Wajir',
+  'mandera': 'Mandera',
+  'marsabit': 'Marsabit',
+  'isiolo': 'Isiolo',
+  'meru': 'Meru',
+  'tharaka nithi': 'Chuka',
+  'tharaka-nithi': 'Chuka',
+  'embu': 'Embu',
+  'kitui': 'Kitui',
+  'machakos': 'Machakos',
+  'makueni': 'Wote',
+  'nyandarua': 'Ol Kalou',
+  'nyeri': 'Nyeri',
+  'kirinyaga': 'Kerugoya',
+  'murang\'a': 'Murang\'a',
+  'muranga': 'Murang\'a',
+  'kiambu': 'Kiambu',
+  'turkana': 'Lodwar',
+  'west pokot': 'Kapenguria',
+  'west-pokot': 'Kapenguria',
+  'samburu': 'Maralal',
+  'trans nzoia': 'Kitale',
+  'trans-nzoia': 'Kitale',
+  'uasin gishu': 'Eldoret',
+  'uasin-gishu': 'Eldoret',
+  'elgeyo marakwet': 'Iten',
+  'elgeyo-marakwet': 'Iten',
+  'nandi': 'Kapsabet',
+  'baringo': 'Kabarnet',
+  'laikipia': 'Nanyuki',
+  'nakuru': 'Nakuru',
+  'narok': 'Narok',
+  'kajiado': 'Kajiado',
+  'kericho': 'Kericho',
+  'bomet': 'Bomet',
+  'kakamega': 'Kakamega',
+  'vihiga': 'Mbale',
+  'bungoma': 'Bungoma',
+  'busia': 'Busia',
+  'siaya': 'Siaya',
+  'kisumu': 'Kisumu',
+  'homa bay': 'Homa Bay',
+  'homa-bay': 'Homa Bay',
+  'migori': 'Migori',
+  'kisii': 'Kisii',
+  'nyamira': 'Nyamira',
+  'nairobi': 'Nairobi',
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility
@@ -592,12 +669,26 @@ export async function POST(req: NextRequest) {
     // Manufacturer primary, falling back to PIN checker / DWR
     const county      = first(man?.county, pc?.county, dw?.county, '');
     const district    = first(man?.district, pc?.district, dw?.district, '');
-    const taxArea     = first(man?.taxArea, pc?.taxArea, dw?.taxArea, '');
+    
+    let taxArea       = first(man?.taxArea, pc?.taxArea, dw?.taxArea, '');
+    if (county) {
+      const normalizedCounty = county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim();
+      const mappedTown = COUNTY_TOWN_MAP[normalizedCounty] || '';
+      if (mappedTown) {
+        taxArea = mappedTown;
+      } else {
+        const foundKey = Object.keys(COUNTY_TOWN_MAP).find(k => normalizedCounty.includes(k) || k.includes(normalizedCounty));
+        if (foundKey) {
+          taxArea = COUNTY_TOWN_MAP[foundKey];
+        }
+      }
+    }
+    
     const poBox       = first(man?.poBox, pc?.poBox, dw?.poBox, '');
     const postalCode  = first(man?.postalCode, pc?.postalCode, dw?.postalCode, '');
     
-    // Effective Date: prioritized from Obligation Details (obligationDate) over registeredDate
-    const registeredDate = first(pc?.obligationDate, pc?.registeredDate, dw?.registeredDate, '');
+    // Exact registration date prioritized, falling back to obligation details or DWR
+    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, dw?.registeredDate, '');
 
     const result = {
       success: true,

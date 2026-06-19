@@ -33,6 +33,7 @@ async function testCertificate() {
     station: 'Nairobi',
     poBox: '00100',
     postalCode: '30100',
+    registeredDate: '12/03/2018',
   };
 
   const drawText = (text, x, y, size = 11) => {
@@ -44,7 +45,7 @@ async function testCertificate() {
   drawText(testData.pin.toUpperCase(), 495, height - 130, 10);       // PIN top-right
   drawText(today, 510, height - 103, 10);                            // Date top-right
   drawText(testData.name.toUpperCase(), 245, height - 242, 12);      // Full Name
-  drawText(testData.idNumber, 150, height - 260, 12);                // ID Number
+  // ID Number is deliberately not printed on the certificate
   drawText(testData.email.toUpperCase(), 245, height - 257, 12);     // Email
 
   // Address
@@ -58,8 +59,8 @@ async function testCertificate() {
   drawText(testData.poBox, 112, height - 382, 12);
   drawText(testData.postalCode, 374, height - 382, 12);
 
-  // Date in address section (certificate issue date)
-  drawText(today, 270, height - 455, 12);
+  // Date in address section (Taxpayer registration date / effective date)
+  drawText(testData.registeredDate || today, 270, height - 455, 12);
 
   const outBytes = await pdfDoc.save();
   const outPath = path.resolve(__dirname, '../test-certificate-output.pdf');

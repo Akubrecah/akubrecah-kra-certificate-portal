@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     drawText(pin.toUpperCase(), 495, height - 130, 10);              // PIN top-right
     drawText(today, 510, height - 103, 10);                           // Date top-right
     drawText(name.toUpperCase(), 245, height - 242, 12);             // Full Name
-    drawText(idNumber, 150, height - 260, 12);                       // ID Number
+    // ID Number is deliberately not printed on the certificate
     drawText(email ? email.toUpperCase() : '', 245, height - 257, 12); // Email
 
     // Address
@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
     drawText(poBox, 112, height - 382, 12);
     drawText(postalCode, 374, height - 382, 12);
 
-    // Issue Date in address section
-    drawText(today, 270, height - 455, 12);
+    // Issue Date in address section (Taxpayer registration date / effective date)
+    drawText(registeredDate || today, 270, height - 455, 12);
 
     // 6. Serialize document
     const outBytes = await pdfDoc.save();
