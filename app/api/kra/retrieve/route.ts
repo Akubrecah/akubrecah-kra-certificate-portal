@@ -595,12 +595,17 @@ export async function POST(req: NextRequest) {
       const cookies = await initKraSession();
       cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
     }
-    console.log('[retrieve] Cookies:', cookieString.substring(0, 80));
+    console.log('[retrieve] CAPTCHA Cookies:', cookieString.substring(0, 80));
+
+    // Initialize a fresh session to ensure IP/session matches on this request invocation (preventing serverless IP mismatch)
+    const freshCookies = await initKraSession();
+    const freshCookieString = Object.entries(freshCookies).map(([k, v]) => `${k}=${v}`).join('; ');
+    console.log('[retrieve] Fresh local Cookies:', freshCookieString.substring(0, 80));
 
     // ── 1. Resolve PIN ──────────────────────────────────────────────────────
     let fullPin = directPin ? String(directPin).trim().toUpperCase() : null;
     if (!fullPin && idNumber) {
-      fullPin = await lookupPinByIdNumber(String(idNumber).trim(), cookieString);
+      fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString);
       if (!fullPin) {
         return NextResponse.json({
           success: false,
@@ -620,8 +625,8 @@ export async function POST(req: NextRequest) {
       
       const [pcHtml, manResult, dwrResult] = await Promise.all([
         httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString).catch(() => ''),
-        fetchManufacturerDetails(fullPin!, cookieString).catch(() => null),
-        fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null),
+        fetchManufacturerDetails(fullPin!, freshCookieString).catch(() => null),
+        fetchTaxpayerByDWR(fullPin!, freshCookieString).catch(() => null),
       ]);
 
       console.log('[retrieve] Pin checker HTML length:', pcHtml.length);
@@ -640,8 +645,8 @@ export async function POST(req: NextRequest) {
     } else {
       // If captcha answer is not provided (e.g. debugging/dry run), do DWR and manufacturer lookup only
       const [manResult, dwrResult] = await Promise.all([
-        fetchManufacturerDetails(fullPin!, cookieString).catch(() => null),
-        fetchTaxpayerByDWR(fullPin!, cookieString).catch(() => null),
+        fetchManufacturerDetails(fullPin!, freshCookieString).catch(() => null),
+        fetchTaxpayerByDWR(fullPin!, freshCookieString).catch(() => null),
       ]);
       manData = manResult;
       dwrData = dwrResult;
