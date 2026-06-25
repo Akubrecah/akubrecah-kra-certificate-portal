@@ -31,12 +31,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Enforce Super Admin email check (case-insensitive)
+  // Enforce Super Admin check (dynamic configuration & Clerk metadata roles)
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
-  const isSuperAdmin = userEmail === "poweldayck@gmail.com";
+  const userRole = user?.publicMetadata?.role as string;
+  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+
+  const isSuperAdmin = 
+    userEmail === "poweldayck@gmail.com" || 
+    userEmail === configPublicAdminEmail ||
+    userRole === "Super Admin" ||
+    userRole === "Admin";
   
   console.log("[Admin Authorization]", {
     userEmail,
+    userRole,
     isSuperAdmin,
     userId: user?.id
   });

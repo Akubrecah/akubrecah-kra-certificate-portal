@@ -38,7 +38,15 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     return <main className="flex-grow flex w-full">{children}</main>
   }
 
-  const isAdmin = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "poweldayck@gmail.com";
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const userRole = user?.publicMetadata?.role as string;
+  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+
+  const isAdmin = 
+    userEmail === "poweldayck@gmail.com" || 
+    userEmail === configPublicAdminEmail ||
+    userRole === "Super Admin" ||
+    userRole === "Admin";
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

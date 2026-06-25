@@ -96,7 +96,8 @@ export default function UserManagementPage() {
     if (!selectedUser) return;
     
     // Protect admin from stripping own role
-    if (selectedUser.email.toLowerCase() === "poweldayck@gmail.com" && formRole !== "Super Admin") {
+    const configAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+    if ((selectedUser.email.toLowerCase() === "poweldayck@gmail.com" || selectedUser.email.toLowerCase() === configAdminEmail) && formRole !== "Super Admin") {
       showToast("Cannot downgrade Super Admin role configuration.");
       setModal(null);
       return;
@@ -125,7 +126,8 @@ export default function UserManagementPage() {
     const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
 
-    if (targetUser.email.toLowerCase() === "poweldayck@gmail.com") {
+    const configAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+    if (targetUser.email.toLowerCase() === "poweldayck@gmail.com" || targetUser.email.toLowerCase() === configAdminEmail) {
       showToast("Cannot ban or deactivate the active Super Admin account.");
       setConfirmDeactivate(null);
       return;

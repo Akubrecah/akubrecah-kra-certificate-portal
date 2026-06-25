@@ -23,7 +23,10 @@ export function SiteHeader() {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <div className="flex items-center justify-end gap-2">
-                {user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "poweldayck@gmail.com" && (
+                {(user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "poweldayck@gmail.com" ||
+                  user?.primaryEmailAddress?.emailAddress?.toLowerCase() === (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase() ||
+                  user?.publicMetadata?.role === "Super Admin" ||
+                  user?.publicMetadata?.role === "Admin") && (
                   <Link href="/admin/system-health">
                     <span className="px-2.5 py-0.5 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 rounded hover:bg-primary hover:text-white transition-colors cursor-pointer mr-1.5">
                       Admin Central

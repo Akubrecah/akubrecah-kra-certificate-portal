@@ -1,7 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// Verify that the current user is the super admin (poweldayck@gmail.com)
+// Verify that the current user is the super admin or has admin role configuration
 async function verifySuperAdmin() {
   const { userId } = await auth();
   if (!userId) return null;
@@ -9,8 +9,17 @@ async function verifySuperAdmin() {
   const client = await clerkClient();
   const currentUser = await client.users.getUser(userId);
   const email = currentUser.primaryEmailAddress?.emailAddress?.toLowerCase();
-  
-  if (email === "poweldayck@gmail.com") {
+  const role = currentUser.publicMetadata?.role as string;
+  const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+
+  if (
+    email === "poweldayck@gmail.com" ||
+    email === configAdminEmail ||
+    email === configPublicAdminEmail ||
+    role === "Super Admin" ||
+    role === "Admin"
+  ) {
     return client;
   }
   return null;
@@ -31,7 +40,9 @@ export async function GET() {
     const rawUsers = Array.isArray(response) ? response : ((response as any).data || []);
 
     const formattedUsers = rawUsers.map(user => {
-      const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || "";
+      const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress 
+        || user.emailAddresses[0]?.emailAddress 
+        || "";
       const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || email.split("@")[0] || "Unknown User";
       const role = (user.publicMetadata?.role as string) || "Registered Taxpayer";
       const status = user.banned ? "Inactive" : "Active";

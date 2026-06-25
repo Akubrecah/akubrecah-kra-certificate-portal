@@ -35,7 +35,7 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 const BLOCKED_SCANNERS = [/sqlmap/i, /nikto/i, /nessus/i, /dirbuster/i, /acunetix/i, /havij/i];
-const SUPER_ADMIN_EMAIL = 'poweldayck@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com';
 
 // Simple in-memory rate limiter for edge
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
