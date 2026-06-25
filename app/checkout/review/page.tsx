@@ -11,11 +11,13 @@ export default function CheckoutReview() {
   const router = useRouter();
   const [amount, setAmount] = useState(15000);
   const [description, setDescription] = useState("Payment for Advance Tax 2026");
+  const [checkoutType, setCheckoutType] = useState("advance_tax");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       const type = searchParams.get("type") || "advance_tax";
+      setCheckoutType(type);
 
       const savedConfig = localStorage.getItem("admin_global_config");
       let rates = { nilFilingFee: 100, retrievalFee: 150 };
