@@ -1,112 +1,57 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { motion } from "framer-motion"
-import { 
-  UserButton, 
-  useUser
-} from "@clerk/nextjs"
-import { cn } from "@/lib/utils"
-
-const navItems = [
-  { name: "HOME", href: "/" },
-  { name: "KRA CERTIFICATE", href: "/retrieval-portal" },
-  { name: "CHANGE PARTICULARS", href: "/change-particulars" },
-]
+import { UserButton, useUser } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
 
 export function SiteHeader() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const { isLoaded, isSignedIn } = useUser()
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  const { isLoaded, isSignedIn, user } = useUser()
 
   return (
-    <header className={cn(
-      "sticky top-0 left-0 right-0 z-50 transition-all duration-300",
-      scrolled 
-        ? "bg-background/90 backdrop-blur-xl border-b border-border/80 py-2.5 shadow-lg shadow-black/5" 
-        : "bg-background/95 backdrop-blur-xl border-b border-border py-4"
-    )}>
-      <div className="container mx-auto max-w-7xl px-6 flex flex-col items-center gap-3">
-        {/* Row 1: Logo with entrance spring */}
-        <motion.div
-          initial={{ opacity: 0, y: -5, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: "spring", stiffness: 120, damping: 14 }}
-        >
-          <Link href="/" className="group flex items-center gap-4">
-            <div className="relative">
-              <Logo width={360} height={108} className="transition-transform duration-500 group-hover:scale-[1.02]" />
-              <span className="absolute -top-2 -right-12 bg-primary/20 text-primary text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter border border-primary/30 backdrop-blur-md">BETA</span>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Row 2: Navigation & Actions */}
-        <nav className="flex flex-wrap items-center justify-center gap-2 w-full">
-          {navItems.map((item) => (
-            <Link key={item.name} href={item.href} className="relative">
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "h-8 px-4 text-[10px] font-extrabold tracking-[0.2em] uppercase rounded-full transition-all relative z-10",
-                  pathname === item.href 
-                    ? "text-amber-400" 
-                    : "text-foreground hover:text-amber-400 hover:bg-amber-400/10"
+    <header className="fixed top-0 w-full bg-surface-container-lowest border-b border-outline-variant dark:border-outline z-50 h-16 flex items-center px-4 md:px-8 justify-between">
+      <div className="flex items-center gap-4">
+        {/* Optional mobile menu toggle could go here */}
+        <Link href="/">
+          <Logo width={160} height={48} className="h-8 md:h-10 w-auto" />
+        </Link>
+      </div>
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        {isLoaded && isSignedIn ? (
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <div className="flex items-center justify-end gap-2">
+                {user?.primaryEmailAddress?.emailAddress?.toLowerCase() === "poweldayck@gmail.com" && (
+                  <Link href="/admin/system-health">
+                    <span className="px-2.5 py-0.5 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 rounded hover:bg-primary hover:text-white transition-colors cursor-pointer mr-1.5">
+                      Admin Central
+                    </span>
+                  </Link>
                 )}
-              >
-                {item.name}
-              </Button>
-              {pathname === item.href && (
-                <motion.div
-                  layoutId="activeNavIndicator"
-                  className="absolute inset-0 bg-amber-400/15 rounded-full z-0"
-                  transition={{ type: "spring", stiffness: 350, damping: 26 }}
-                />
-              )}
-            </Link>
-          ))}
-
-          {/* User / Auth Actions */}
-          <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-border relative z-10">
-            <ThemeToggle />
-            
-            {isLoaded && isSignedIn ? (
-              <div className="flex items-center gap-1.5">
-                <UserButton />
+                <p className="font-label-md text-label-md text-on-surface">{user?.fullName || "User"}</p>
               </div>
-            ) : isLoaded ? (
-              <div className="flex items-center gap-1.5">
-                <Button 
-                  variant="ghost"
-                  className="h-7 px-3 rounded-full text-foreground/80 font-bold uppercase tracking-widest text-[8px] hover:text-amber-400 hover:bg-amber-400/10"
-                  onClick={() => router.push("/sign-in")}
-                >
-                  LOGIN
-                </Button>
-                <Button 
-                  className="h-7 px-4 rounded-full bg-amber-400 text-black font-bold uppercase tracking-widest text-[8px] shadow-none hover:bg-amber-300 transition-colors"
-                  onClick={() => router.push("/sign-up")}
-                >
-                  JOIN
-                </Button>
-              </div>
-            ) : null}
+              <p className="font-label-sm text-label-sm text-on-surface-variant">{user?.primaryEmailAddress?.emailAddress || "user@example.com"}</p>
+            </div>
+            <UserButton 
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10 rounded-full"
+                }
+              }}
+            />
           </div>
-        </nav>
+        ) : isLoaded && !isSignedIn ? (
+          <div className="flex items-center gap-2">
+            <Link href="/sign-in">
+              <Button variant="ghost" className="font-label-md text-label-md text-primary">Log in</Button>
+            </Link>
+            <Link href="/sign-up">
+              <Button className="bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary">Join Now</Button>
+            </Link>
+          </div>
+        ) : null}
       </div>
     </header>
   )

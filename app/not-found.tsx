@@ -2,75 +2,65 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Home, FileText, ShieldAlert, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { PageBackground } from "@/components/ui/page-background"
+import { Home, ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function NotFound() {
-  return (
-    <PageBackground>
-      <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
-        <div className="absolute top-8 left-8">
-          <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-colors group">
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            BACK TO SAFETY
-          </Link>
-        </div>
+  const router = useRouter()
 
+  return (
+    <div className="min-h-screen bg-background text-on-background pt-16 flex flex-col items-center justify-center">
+      <div className="relative z-10 w-full max-w-lg mx-auto px-4 text-center">
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-lg text-center space-y-8"
+          className="space-y-6"
         >
-          {/* Error Visual */}
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-red-500/20 blur-[60px] rounded-full animate-pulse" />
-            <div className="relative w-32 h-32 rounded-3xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-16 h-16 text-red-500" />
+          {/* Error Code */}
+          <div className="relative">
+            <h1 className="font-display-lg text-[120px] md:text-[150px] font-bold text-primary/20 leading-none tracking-tighter">
+              404
+            </h1>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-surface-container-highest border border-outline-muted px-4 py-2 rounded-full shadow-soft">
+                <span className="font-label-sm text-label-sm uppercase tracking-widest text-primary font-bold">
+                  Page Not Found
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* Error Message */}
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">Error 404: Path Obstructed</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground uppercase leading-none">
-              Lost in the <br />
-              <span className="text-primary">Labyrinth.</span>
-            </h1>
-            
-            <p className="max-w-md mx-auto text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-relaxed opacity-70">
-              The requested protocol has been terminated or relocated. Access to this sector is restricted.
+            <h2 className="font-headline-lg text-headline-lg text-on-surface">
+              Lost in the System
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-md mx-auto">
+              The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <button
+              onClick={() => router.back()}
+              className="w-full sm:w-auto bg-surface-container border border-outline-muted text-on-surface font-label-md text-label-md py-3 px-6 rounded hover:bg-surface-variant transition-colors flex justify-center items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Go Back
+            </button>
             <Link href="/" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto h-12 px-8 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all">
-                <Home className="mr-3 h-4 w-4" />
-                HOME TERMINAL
-              </Button>
+              <button className="w-full sm:w-auto bg-primary-container text-on-primary font-label-md text-label-md py-3 px-8 rounded hover:bg-primary transition-colors flex justify-center items-center gap-2">
+                <Home className="w-4 h-4" />
+                Return Home
+              </button>
             </Link>
-            
-            <Link href="/retrieval-portal" className="w-full sm:w-auto">
-              <Button variant="outline" className="w-full sm:w-auto h-12 px-8 glass border-white/10 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:bg-white/5 transition-all">
-                <FileText className="mr-3 h-4 w-4" />
-                RETRIEVAL GATE
-              </Button>
-            </Link>
-          </div>
-
-          {/* Security Footer */}
-          <div className="pt-12 flex justify-center items-center gap-6 opacity-20">
-            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white" />
-            <span className="text-[8px] font-black uppercase tracking-[0.4em]">Secure Session Monitoring Active</span>
-            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white" />
           </div>
         </motion.div>
+        
       </div>
-    </PageBackground>
+    </div>
   )
 }

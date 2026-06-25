@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { SignIn } from "@clerk/nextjs";
-import { PageBackground } from "@/components/ui/page-background";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function SignInPage() {
   const [mounted, setMounted] = useState(false);
@@ -13,71 +13,75 @@ export default function SignInPage() {
   }, []);
 
   return (
-    <PageBackground className="flex items-center justify-center p-4">
-      <div className="w-full max-w-md relative">
-        {/* Background Glows */}
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-brand-cyan/10 blur-[100px] rounded-full animate-pulse" />
-        <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-primary/10 blur-[100px] rounded-full animate-pulse" />
+    <div className="flex flex-col lg:flex-row w-full min-h-screen font-body-md text-on-surface">
+      {/* Left Side: Visual Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-surface-container border-r border-outline-variant flex-col items-center justify-center overflow-hidden p-12">
+        {/* Decorative Grid Lines / Modern Backdrop */}
+        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
         
-        <div className="relative z-10 space-y-6">
-          <div className="flex flex-col items-center space-y-2 mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-brand-cyan/20 blur-xl rounded-full" />
-              <div className="relative w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center border border-white/10 backdrop-blur-md">
-                <ShieldCheck className="w-8 h-8 text-brand-cyan" />
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground uppercase mt-4">
-              Identity Gateway
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-md">
+          <Logo width={280} height={90} className="transition-transform hover:scale-105 duration-300" />
+          <div className="space-y-2 mt-4">
+            <h1 className="font-display-md text-headline-lg text-on-surface tracking-tight">
+              KRA Certificate Portal
             </h1>
-            <p className="text-muted-foreground uppercase text-[9px] tracking-[0.2em] font-black opacity-60">
-              Authorize your secure session
+            <p className="font-body-md text-on-surface-variant max-w-xs mx-auto">
+              Secure, instant access to your tax registrations and compliance status.
             </p>
           </div>
-
+        </div>
+      </div>
+      {/* Right Side: Login Form */}
+      <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 bg-surface relative">
+        <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-soft border border-outline-variant p-6 sm:p-8">
+          <div className="mb-6 text-center flex flex-col items-center">
+            <Logo width={160} height={48} className="mb-4" />
+            <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Sign In to Your Account</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant">Access your certificates and tax services</p>
+          </div>
           {mounted ? (
             <SignIn
               appearance={{
                 elements: {
-                  rootBox: "w-full",
-                  card: "bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden",
-                  header: "hidden", // Custom header used above
-                  formButtonPrimary: "bg-brand-cyan hover:bg-brand-cyan/90 text-black font-black uppercase tracking-[0.2em] text-[10px] h-12 rounded-xl transition-all active:scale-[0.98]",
-                  formFieldInput: "bg-white/5 border-white/10 focus:border-brand-cyan/30 focus:ring-brand-cyan/10 h-11 text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all",
-                  formFieldLabel: "text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mb-1.5 ml-1",
-                  footerActionLink: "text-brand-cyan hover:opacity-80 transition-opacity font-bold uppercase text-[10px] tracking-wider",
-                  socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 h-11 rounded-xl transition-all",
-                  socialButtonsBlockButtonText: "text-[10px] font-black uppercase tracking-widest text-foreground/70",
-                  dividerLine: "bg-white/10",
-                  dividerText: "text-[9px] font-black uppercase tracking-widest text-muted-foreground/40",
-                  formFieldAction: "text-brand-cyan hover:opacity-80 text-[10px] font-bold uppercase tracking-wider",
-                  footer: "bg-transparent border-none",
-                  identityPreviewText: "text-[11px] font-bold text-foreground",
-                  identityPreviewEditButtonIcon: "text-brand-cyan",
+                  rootBox: "w-full flex justify-center",
+                  card: "shadow-none p-0 bg-transparent border-none w-full",
+                  header: "hidden", 
+                  main: "w-full",
+                  form: "w-full flex flex-col gap-4",
+                  formField: "w-full flex flex-col gap-1.5",
+                  formFieldLabel: "block font-label-md text-label-md text-on-surface mb-1",
+                  formFieldInput: "w-full bg-surface-container-lowest border border-outline-variant rounded text-body-md text-on-surface placeholder-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary p-3 h-auto",
+                  formButtonPrimary: "w-full bg-primary text-on-primary font-label-md text-label-md py-3 px-4 rounded hover:bg-primary/90 transition-colors flex justify-center items-center h-auto mt-2",
+                  dividerRow: "w-full flex items-center justify-center my-4",
+                  dividerLine: "bg-outline-variant flex-grow h-[1px]",
+                  dividerText: "font-label-sm text-label-sm text-on-surface-variant px-3",
+                  socialButtonsBlockButton: "w-full bg-surface-container-lowest border border-outline-variant hover:bg-surface-container transition-colors py-2.5 px-4 rounded flex items-center justify-center gap-3 h-auto",
+                  socialButtonsBlockButtonText: "font-label-md text-label-md text-on-surface",
+                  footer: "bg-transparent border-none p-0 mt-6 flex flex-col items-center justify-center gap-2 text-center w-full",
+                  footerAction: "flex items-center justify-center gap-1 text-center w-full",
+                  footerActionLink: "font-label-md text-label-md text-primary hover:underline font-semibold text-center mx-auto",
+                  footerActionText: "font-label-md text-label-md text-on-surface-variant text-center",
+                  formFieldAction: "font-label-sm text-label-sm text-primary hover:text-primary/90 transition-colors",
                 },
                 variables: {
-                  colorPrimary: "#1F6F5B",
-                  colorBackground: "transparent", // Managed by elements.card
-                  colorText: "white",
-                  colorTextSecondary: "#a1a1aa",
-                  borderRadius: "1rem",
+                  colorPrimary: "var(--primary-container)",
+                  colorBackground: "transparent",
+                  colorText: "var(--on-surface)",
+                  colorTextSecondary: "var(--on-surface-variant)",
+                  borderRadius: "0.25rem",
                 }
               }}
             />
           ) : (
-            <div className="h-64 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-xl border border-white/10 rounded-2xl">
-              <Loader2 className="w-8 h-8 animate-spin text-brand-cyan" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Loading Gateway...</span>
+            <div className="h-64 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="text-sm font-medium text-on-surface-variant">Loading Gateway...</span>
             </div>
           )}
-          
-          <div className="flex justify-center items-center gap-6 opacity-20 pt-4">
-            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white" />
-            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white">SECURE AUTH</span>
-            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white" />
-          </div>
         </div>
       </div>
-    </PageBackground>
+    </div>
   );
 }
