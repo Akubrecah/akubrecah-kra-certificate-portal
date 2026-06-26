@@ -198,19 +198,16 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
   const stripTags = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
   const extractAfterLabel = (label: string, searchArea: string): string => {
-    const lc = searchArea.toLowerCase();
-    const idx = lc.indexOf(label.toLowerCase());
-    if (idx === -1) return '';
-    const afterLabel = searchArea.substring(idx);
-    const tdClose = afterLabel.indexOf('</td>');
-    if (tdClose === -1) return '';
-    const afterClose = afterLabel.substring(tdClose + 5);
-    const nextTdOpen = afterClose.indexOf('<td');
-    if (nextTdOpen === -1) return '';
-    const nextTd = afterClose.substring(nextTdOpen);
-    const nextTdClose = nextTd.indexOf('</td>');
-    if (nextTdClose === -1) return '';
-    return stripTags(nextTd.substring(0, nextTdClose));
+    const escapedLabel = label.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(
+      `<td[^>]*>(?:<[^>]+>)*\\s*${escapedLabel}\\s*(?:<[^>]+>)*\\s*<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\/td>`,
+      'i'
+    );
+    const match = searchArea.match(regex);
+    if (match) {
+      return stripTags(match[1]);
+    }
+    return '';
   };
 
   const pinDetailsIdx = html.toLowerCase().indexOf('pin details');
@@ -257,6 +254,7 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     || extractAfterLabel('Locality', fullSection);
 
   result.station = extractAfterLabel('Station', fullSection)
+    || extractAfterLabel('Taxpayer Station', fullSection)
     || extractAfterLabel('KRA Station', fullSection);
 
   result.poBox = extractAfterLabel('P.O. Box', fullSection)
@@ -511,7 +509,7 @@ function parseDWR(raw: string): Record<string, string> | null {
     postalCode:  get('postalCode', 'postCode'),
     station:     get('station', 'stationName'),
     phoneNumber: get('mobileNo', 'phoneNumber', 'phone'),
-    registeredDate: get('registeredDate', 'regDate', 'effectiveDate'),
+    registeredDate: get('registeredDate', 'regDate', 'effectiveDate', 'pinRegistrationDate', 'pinRegDate', 'effectiveFromDate', 'effectiveFrom', 'reg_date', 'registration_date'),
   };
 }
 
