@@ -38,6 +38,12 @@ export async function GET() {
     });
 
     const rawUsers = Array.isArray(response) ? response : ((response as any).data || []);
+    
+    console.log("[API Admin Users GET] Fetching users list:", {
+      totalReturned: rawUsers.length,
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      rawIds: rawUsers.map((u: any) => u.id)
+    });
 
     const formattedUsers = rawUsers.map(user => {
       const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress 
