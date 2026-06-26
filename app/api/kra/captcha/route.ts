@@ -56,7 +56,7 @@ function createProxyAgent(proxyUrl: string): any {
       socket.on('data', onData);
       socket.on('error', onError);
     }
-  });
+  } as any);
 }
 
 export async function GET(req: NextRequest) {

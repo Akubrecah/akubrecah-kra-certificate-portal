@@ -67,8 +67,8 @@ export async function GET() {
       : ((existingUsersList as any).data || []);
       
     const targetEmails = new Set<string>();
-    existingUsers.forEach(user => {
-      user.emailAddresses.forEach(e => {
+    existingUsers.forEach((user: { emailAddresses: { emailAddress: string }[] }) => {
+      user.emailAddresses.forEach((e: { emailAddress: string }) => {
         targetEmails.add(e.emailAddress.toLowerCase());
       });
     });

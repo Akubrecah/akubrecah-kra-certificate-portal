@@ -45,7 +45,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch logs from Neon Database via Prisma
-    const logs = await prisma.systemLog.findMany({
+    const db = prisma as any;
+    const logs = await db.systemLog.findMany({
       where,
       take: limit > 200 ? 200 : limit,
       orderBy: {

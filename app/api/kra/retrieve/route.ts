@@ -60,7 +60,7 @@ function createProxyAgent(proxyUrl: string): any {
       socket.on('data', onData);
       socket.on('error', onError);
     }
-  });
+  } as any);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

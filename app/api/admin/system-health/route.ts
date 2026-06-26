@@ -82,7 +82,7 @@ function createProxyAgent(proxyUrl: string): any {
       socket.on('data', onData);
       socket.on('error', onError);
     }
-  });
+  } as any);
 }
 
 // 1. Database connection latency check using net socket connect

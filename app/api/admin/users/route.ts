@@ -45,8 +45,18 @@ export async function GET() {
       rawIds: rawUsers.map((u: any) => u.id)
     });
 
-    const formattedUsers = rawUsers.map(user => {
-      const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress 
+    const formattedUsers = rawUsers.map((user: {
+      id: string;
+      emailAddresses: { id: string; emailAddress: string }[];
+      primaryEmailAddressId: string | null;
+      firstName: string | null;
+      lastName: string | null;
+      username: string | null;
+      publicMetadata: Record<string, unknown>;
+      banned: boolean;
+      lastSignInAt: number | null;
+    }) => {
+      const email = user.emailAddresses.find((e: { id: string; emailAddress: string }) => e.id === user.primaryEmailAddressId)?.emailAddress 
         || user.emailAddresses[0]?.emailAddress 
         || "";
       const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || email.split("@")[0] || "Unknown User";
@@ -63,7 +73,7 @@ export async function GET() {
         role,
         status,
         lastLogin,
-        initials: name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+        initials: name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2),
       };
     });
 

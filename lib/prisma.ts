@@ -23,10 +23,17 @@ export async function createSystemLog(data: {
   message: string;
   actor: string;
   ip?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }) {
   try {
-    const log = await prisma.systemLog.create({
+    // Use prisma as any to handle the case where Prisma Client hasn't been
+    // generated yet (schema not pushed), gracefully falling back to null.
+    const db = prisma as any;
+    if (typeof db.systemLog?.create !== "function") {
+      console.warn("[createSystemLog] systemLog model not available — schema may not be pushed yet.");
+      return null;
+    }
+    const log = await db.systemLog.create({
       data: {
         level: data.level,
         service: data.service,
