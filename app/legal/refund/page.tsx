@@ -10,13 +10,13 @@ export default function RefundPolicyPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Refund Policy</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated}
         </p>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-4">
+        <div className="bg-surface-container border border-outline-variant rounded-xl p-4 mt-4">
           <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wide">
             This policy applies to all paid services offered by Akubrecah and is governed by the Consumer Protection
             Act, 2012 (Kenya).
@@ -37,7 +37,7 @@ export default function RefundPolicyPage() {
         <p>
           Note: KRA services themselves are available <strong>free of charge</strong> directly from the KRA portal
           at{" "}
-          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
             itax.kra.go.ke
           </a>. Akubrecah's fee is solely for the convenience and automation service we provide.
         </p>
@@ -119,7 +119,7 @@ export default function RefundPolicyPage() {
           Nothing in this Refund Policy limits or excludes your statutory rights under the{" "}
           <strong>Consumer Protection Act, 2012 (Kenya)</strong>. If you believe your consumer rights have been
           violated, you may contact the <strong>Competition Authority of Kenya (CAK)</strong> at{" "}
-          <a href="https://www.cak.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://www.cak.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
             cak.go.ke
           </a>.
         </p>
@@ -139,10 +139,10 @@ export default function RefundPolicyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
         {children}
       </div>
     </section>

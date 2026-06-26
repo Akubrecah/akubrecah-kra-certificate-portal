@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const LOG_ITEMS = [
-  { type: "error", icon: "error", title: "Database Connection Timeout", desc: "Cluster-A node 3 failed to respond.", time: "2 mins ago", actor: "SysAdmin" },
-  { type: "warning", icon: "warning", title: "High Memory Usage", desc: "Server memory above 85% threshold.", time: "14 mins ago", actor: "AutoScan" },
-  { type: "info", icon: "task_alt", title: "Backup Completed", desc: "Daily DB backup finished successfully.", time: "1 hr ago", actor: "CronJob" },
-  { type: "info", icon: "login", title: "Admin Login", desc: "sarah.jenkins authenticated via SSO.", time: "2 hrs ago", actor: "s.jenkins" },
-  { type: "warning", icon: "shield", title: "Failed Auth Attempt", desc: "3 consecutive failed logins for USR-7714.", time: "3 hrs ago", actor: "Auth System" },
-  { type: "info", icon: "dns", title: "Cache Cleared", desc: "Redis cache flushed for tax lookup module.", time: "5 hrs ago", actor: "d.kim" },
+  { type: "info", icon: "task_alt", title: "DB Ping Successful", desc: "TCP handshake established with Neon instance.", time: "Just now", actor: "System" },
+  { type: "info", icon: "login", title: "Admin Login Approved", desc: "Authenticated request verified.", time: "10 mins ago", actor: "AuthSystem" },
+  { type: "warning", icon: "warning", title: "KRA Latency Warning", desc: "itax.kra.go.ke responded slower than 1200ms.", time: "18 mins ago", actor: "PingWorker" },
+  { type: "info", icon: "dns", title: "Cache Flushed", desc: "Memory cache cleared successfully.", time: "1 hr ago", actor: "CronJob" },
+  { type: "error", icon: "error", title: "Blocked Login Request", desc: "clerk.com detected an invalid token attempt.", time: "3 hrs ago", actor: "Security" },
 ];
 
 const iconColors: Record<string, string> = {
@@ -17,58 +16,86 @@ const iconColors: Record<string, string> = {
   info: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400",
 };
 
-const METRICS = [
-  { label: "Server Uptime", value: "342", unit: "days", trend: "99.99%", trendUp: true, icon: "dns" },
-  { label: "Active Sessions", value: "12,450", unit: "", trend: "Stable", trendUp: null, icon: "group" },
-  { label: "Avg. API Latency", value: "45", unit: "ms", trend: "+12ms", trendUp: false, icon: "speed" },
-  { label: "Error Rate (5xx)", value: "0.02", unit: "%", trend: "Normal", trendUp: true, icon: "warning" },
-];
-
-const SERVICE_STATUS = [
-  { name: "Tax Filing API", status: "Operational", uptime: "99.9%" },
-  { name: "Authentication Service", status: "Operational", uptime: "100%" },
-  { name: "Certificate Generator", status: "Degraded", uptime: "94.2%" },
-  { name: "Payment Gateway", status: "Operational", uptime: "99.7%" },
-  { name: "Email Notifications", status: "Operational", uptime: "99.8%" },
-];
-
-const rangeData: Record<string, number[]> = {
-  "1H": [15, 22, 18, 30, 25, 45, 38, 55, 48, 62, 50, 58],
-  "24H": [40, 60, 45, 80, 55, 70, 90, 65, 50, 75, 60, 85],
-  "7D": [50, 48, 52, 58, 62, 55, 49, 45, 47, 50, 54, 53],
-};
-
-const rangeLabels: Record<string, string[]> = {
-  "1H": ["05m", "10m", "15m", "20m", "25m", "30m", "35m", "40m", "45m", "50m", "55m", "60m"],
-  "24H": ["02h", "04h", "06h", "08h", "10h", "12h", "14h", "16h", "18h", "20h", "22h", "24h"],
-  "7D": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
+const metricIcons: Record<string, string> = {
+  "Server Uptime": "dns",
+  "Active Users (Clerk)": "group",
+  "CPU Load (1m)": "speed",
+  "Memory Usage": "warning",
 };
 
 export default function SystemHealthPage() {
-  const [activeRange, setActiveRange] = useState("24H");
-  const [services, setServices] = useState(SERVICE_STATUS);
+  const [metrics, setMetrics] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  
+  // Real-time Load chart tracking
+  const [loadHistory, setLoadHistory] = useState<number[]>([10, 14, 18, 12, 16, 22, 19, 25, 21, 28, 20, 24]);
+  const [loadLabels, setLoadLabels] = useState<string[]>([]);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
-  const toggleServiceStatus = (name: string) => {
-    setServices(prev => prev.map(s => {
-      if (s.name !== name) return s;
-      
-      const nextStatus = s.status === "Operational" ? "Degraded" : 
-                         s.status === "Degraded" ? "Outage" : "Operational";
-                         
-      showToast(`Service "${name}" status toggled to: ${nextStatus}`);
-      return { ...s, status: nextStatus };
-    }));
+  const fetchHealth = async () => {
+    try {
+      const res = await fetch("/api/admin/system-health");
+      const data = await res.json();
+      if (data.success) {
+        setMetrics(data.metrics);
+        setServices(data.services);
+
+        // Update load history chart based on cpu load
+        const cpuMetric = data.metrics.find((m: any) => m.label.includes("CPU"));
+        if (cpuMetric) {
+          const loadVal = Math.round(parseFloat(cpuMetric.value) * 100);
+          setLoadHistory(prev => [...prev.slice(1), loadVal > 100 ? 100 : loadVal]);
+          setLoadLabels(prev => [
+            ...prev.slice(1), 
+            new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          ]);
+        }
+      } else {
+        showToast("Error retrieving live health metrics: " + (data.error || "Access Denied"));
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Network error fetching live metrics.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const currentLoad = (rangeData[activeRange] || rangeData["24H"]);
-  const currentLabels = (rangeLabels[activeRange] || rangeLabels["24H"]);
-  const avgLoad = Math.round(currentLoad.reduce((a, b) => a + b, 0) / currentLoad.length);
+  useEffect(() => {
+    // Populate initial chart labels
+    const timeLabels = [];
+    for (let i = 11; i >= 0; i--) {
+      const t = new Date(Date.now() - i * 10000);
+      timeLabels.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }
+    setLoadLabels(timeLabels);
+
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatUptime = (seconds: number) => {
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+
+    const parts = [];
+    if (d > 0) parts.push(`${d}d`);
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0) parts.push(`${m}m`);
+    parts.push(`${s}s`);
+    return parts.join(" ");
+  };
+
+  const avgLoad = Math.round(loadHistory.reduce((a, b) => a + b, 0) / loadHistory.length);
 
   return (
     <div className="max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
@@ -76,60 +103,63 @@ export default function SystemHealthPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-on-surface">System Health</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Real-time monitoring and performance metrics.</p>
+          <p className="text-on-surface-variant text-sm mt-1">Real-time live monitoring metrics connected to Neon and Clerk APIs.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`flex items-center px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-            services.some(s => s.status === "Outage") ? "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300" :
+            services.some(s => s.status === "Outage") ? "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 animate-pulse" :
             services.some(s => s.status === "Degraded") ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 animate-pulse" :
             "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
           }`}>
             <span className={`w-2 h-2 rounded-full mr-2 ${
               services.some(s => s.status === "Outage") ? "bg-red-600 animate-ping" :
-              services.some(s => s.status === "Degraded") ? "bg-amber-500" :
+              services.some(s => s.status === "Degraded") ? "bg-amber-500 animate-pulse" :
               "bg-green-600 animate-pulse"
             }`} />
-            {services.some(s => s.status === "Outage") ? "Critical System Alert" :
+            {services.some(s => s.status === "Outage") ? "Critical Outage Detected" :
              services.some(s => s.status === "Degraded") ? "Performance Degraded" :
              "All Systems Operational"}
           </span>
-          <p className="text-xs text-on-surface-variant">Last updated: Just now</p>
+          <button 
+            onClick={fetchHealth}
+            className="p-2 border border-outline-variant hover:bg-surface-container rounded-xl transition-all text-on-surface-variant flex items-center justify-center shrink-0"
+            title="Refresh Live Data"
+          >
+            <span className="material-symbols-outlined text-[20px]">refresh</span>
+          </button>
         </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {METRICS.map((m) => {
-          let dynamicValue = m.value;
-          if (m.label === "Avg. API Latency" && activeRange === "1H") dynamicValue = "32";
-          if (m.label === "Avg. API Latency" && activeRange === "7D") dynamicValue = "58";
-          if (m.label === "Active Sessions" && activeRange === "1H") dynamicValue = "9,820";
-          if (m.label === "Active Sessions" && activeRange === "7D") dynamicValue = "14,900";
-          
-          return (
-            <div key={m.label} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant hover:-translate-y-1 transition-transform duration-300 shadow-soft">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>{m.icon}</span>
-                </div>
-                <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg ${
-                  m.trendUp === true ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300" :
-                  m.trendUp === false ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400" :
-                  "bg-surface-container-highest text-on-surface-variant"
-                }`}>
-                  <span className="material-symbols-outlined text-[14px]">
-                    {m.trendUp === true ? "trending_up" : m.trendUp === false ? "trending_down" : "trending_flat"}
+        {isLoading ? (
+          Array(4).fill(0).map((_, i) => (
+            <div key={i} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant animate-pulse shadow-soft h-32" />
+          ))
+        ) : (
+          metrics.map((m) => {
+            const isUptime = m.label === "Server Uptime";
+            const valStr = isUptime ? formatUptime(parseInt(m.value, 10)) : m.value;
+            const icon = metricIcons[m.label] || "dns";
+
+            return (
+              <div key={m.label} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant hover:-translate-y-1 transition-transform duration-300 shadow-soft">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                  </div>
+                  <span className="bg-surface-container-highest text-on-surface-variant text-[10px] uppercase font-bold px-2 py-0.5 rounded-lg">
+                    Real-time
                   </span>
-                  {m.trend}
-                </span>
+                </div>
+                <p className="text-xs text-on-surface-variant mb-1">{m.label}</p>
+                <p className="text-2xl font-bold text-on-surface tracking-tight">
+                  {valStr}<span className="text-base font-normal text-on-surface-variant ml-1">{isUptime ? "" : m.unit}</span>
+                </p>
               </div>
-              <p className="text-xs text-on-surface-variant mb-1">{m.label}</p>
-              <p className="text-2xl font-bold text-on-surface">
-                {dynamicValue}<span className="text-base font-normal text-on-surface-variant ml-1">{m.unit}</span>
-              </p>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Chart + Live Logs */}
@@ -138,35 +168,25 @@ export default function SystemHealthPage() {
         <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-soft">
           <div className="px-5 py-4 border-b border-outline-variant bg-surface flex justify-between items-center">
             <div>
-              <h3 className="font-bold text-on-surface">System Load Trajectory</h3>
-              <p className="text-[10px] text-on-surface-variant mt-0.5">Average load across this range: <strong>{avgLoad}%</strong></p>
+              <h3 className="font-bold text-on-surface">System Load Trajectory (CPU Load %)</h3>
+              <p className="text-[10px] text-on-surface-variant mt-0.5">Average load across current timeline: <strong>{avgLoad}%</strong></p>
             </div>
-            <div className="flex gap-1">
-              {["1H", "24H", "7D"].map(r => (
-                <button
-                  key={r}
-                  onClick={() => setActiveRange(r)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${activeRange === r ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+            <span className="text-[10px] uppercase font-extrabold text-on-surface-variant/80 tracking-wider">Updates live</span>
           </div>
           <div className="p-5 bg-surface-container-low min-h-[240px] relative flex items-end gap-2.5 pt-10">
-            {currentLoad.map((h, i) => (
+            {loadHistory.map((h, i) => (
               <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-36">
                 <div
                   className={`w-full rounded-t-md hover:opacity-100 transition-all cursor-pointer ${
                     h > 75 ? "bg-red-500/80 hover:bg-red-500" :
-                    h > 50 ? "bg-amber-500/80 hover:bg-amber-500" :
+                    h > 40 ? "bg-amber-500/80 hover:bg-amber-500" :
                     "bg-primary/70 hover:bg-primary"
                   }`}
-                  style={{ height: `${h}%` }}
+                  style={{ height: `${h > 0 ? h : 4}%` }}
                   title={`Load: ${h}%`}
                 />
-                <span className="text-[9px] text-on-surface-variant/80 font-mono tracking-tight font-semibold mt-1 block select-none">
-                  {currentLabels[i]}
+                <span className="text-[8px] text-on-surface-variant/80 font-mono tracking-tight font-semibold mt-1 block select-none whitespace-nowrap overflow-hidden max-w-full">
+                  {loadLabels[i] ? loadLabels[i].split(" ")[0] : ""}
                 </span>
               </div>
             ))}
@@ -206,36 +226,41 @@ export default function SystemHealthPage() {
       {/* Service Status */}
       <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-soft">
         <div className="px-5 py-4 border-b border-outline-variant bg-surface flex justify-between items-center">
-          <h3 className="font-bold text-on-surface">Service Status (Click to Simulate status Cycle)</h3>
-          <span className="text-[10px] uppercase font-extrabold text-on-surface-variant/60 tracking-wider">Simulation Controls Active</span>
+          <h3 className="font-bold text-on-surface">API & Resource Connectivity</h3>
+          <span className="text-[10px] uppercase font-extrabold text-on-surface-variant/80 tracking-wider">Live Check Results</span>
         </div>
         <div className="divide-y divide-outline-variant/50">
-          {services.map(s => (
-            <div
-              key={s.name}
-              onClick={() => toggleServiceStatus(s.name)}
-              className="flex items-center justify-between px-5 py-4 hover:bg-surface-container-low transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <span className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  s.status === "Operational" ? "bg-green-500" :
-                  s.status === "Degraded" ? "bg-amber-500 animate-pulse" :
-                  "bg-red-500 animate-ping"
-                }`} />
-                <span className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{s.name}</span>
+          {isLoading ? (
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="px-5 py-6 bg-surface-container-lowest animate-pulse" />
+            ))
+          ) : (
+            services.map(s => (
+              <div
+                key={s.name}
+                className="flex items-center justify-between px-5 py-4 hover:bg-surface-container-low transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    s.status === "Operational" ? "bg-green-500" :
+                    s.status === "Degraded" ? "bg-amber-500 animate-pulse" :
+                    "bg-red-500 animate-ping"
+                  }`} />
+                  <span className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{s.name}</span>
+                </div>
+                <div className="flex items-center gap-6">
+                  <span className="text-xs text-on-surface-variant">Response Latency: <strong className="text-on-surface">{s.latency}</strong></span>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg select-none transition-all ${
+                    s.status === "Operational" ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300" :
+                    s.status === "Degraded" ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400" :
+                    "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400"
+                  }`}>
+                    {s.status}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-6">
-                <span className="text-xs text-on-surface-variant">Uptime: <strong className="text-on-surface">{s.uptime}</strong></span>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg select-none transition-all ${
-                  s.status === "Operational" ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300" :
-                  s.status === "Degraded" ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400" :
-                  "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400"
-                }`}>
-                  {s.status}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import net from 'net';
 import tls from 'tls';
 import url from 'url';
+import { createSystemLog } from '@/lib/prisma';
 
 export const maxDuration = 60;
 
@@ -645,6 +646,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+    
+    // Retrieve authenticated user's email address
+    let userEmail = clerkId;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(clerkId);
+      userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
+    } catch {}
+
     const body = await req.json();
     const { idNumber, pin: directPin, captchaAnswer, sessionToken } = body;
 
@@ -653,57 +664,35 @@ export async function POST(req: NextRequest) {
     }
 
     const proxyUrl = process.env.KRA_PROXY_URL || process.env.PROXY_URL || "";
-    const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
-
-    // ── A. Check if CAPTCHA session is simulated ─────────────────────────────
-    let isMockSession = isMockMode;
-    let mockAnswer = 0;
-    let cookieString = '';
-
-    if (sessionToken) {
-      try {
-        const decoded = Buffer.from(sessionToken, 'base64').toString('utf-8');
-        if (decoded.startsWith('{') && decoded.endsWith('}')) {
-          const parsed = JSON.parse(decoded);
-          if (parsed.isMock) {
-            isMockSession = true;
-            mockAnswer = parsed.answer;
-          }
-        } else {
-          cookieString = decoded;
-        }
-      } catch {}
-    }
-
-    // If it's a simulated session, process validation locally
-    if (isMockSession) {
-      if (captchaAnswer && captchaAnswer.trim() !== mockAnswer.toString()) {
-        return NextResponse.json({
-          success: false,
-          captchaWrong: true,
-          error: 'Wrong CAPTCHA answer. Please reload and try again.',
-        }, { status: 422 });
-      }
-
-      const mockPin = directPin ? String(directPin).trim().toUpperCase() : `A0${Math.floor(100000000 + Math.random() * 900000000)}B`;
-      const mockResult = generateMockTaxpayer(idNumber, mockPin);
-      console.log('[retrieve][simulation] Simulating response:', JSON.stringify(mockResult));
-      return NextResponse.json({
-        success: true,
-        data: mockResult
-      });
-    }
 
     // ── B. Live KRA Verification Flow ─────────────────────────────────────────
+    let cookieString = "";
+    if (sessionToken) {
+      try {
+        cookieString = Buffer.from(sessionToken, 'base64').toString('utf8');
+      } catch (err) {
+        console.error('[retrieve] Failed to decode sessionToken:', err);
+      }
+    }
+
     if (!cookieString) {
       try {
         const cookies = await initKraSession(proxyUrl);
         cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
       } catch (err: any) {
-        console.warn('[retrieve] Failed to initialize live KRA session. Falling back to simulation...');
-        const generatedPin = directPin ? String(directPin).trim().toUpperCase() : `A0${Math.floor(100000000 + Math.random() * 900000000)}B`;
-        const mockResult = generateMockTaxpayer(idNumber, generatedPin);
-        return NextResponse.json({ success: true, data: mockResult });
+        console.error('[retrieve] Failed to initialize live KRA session:', err.message);
+        await createSystemLog({
+          level: 'error',
+          service: 'KRA-Retrieve',
+          message: `Failed to initialize live KRA session: ${err.message}`,
+          actor: userEmail,
+          ip,
+          details: { error: err.message }
+        });
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to connect to the KRA iTax portal. Please verify the proxy is active or try again.'
+        }, { status: 502 });
       }
     }
 
@@ -719,14 +708,35 @@ export async function POST(req: NextRequest) {
       try {
         fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString, proxyUrl);
       } catch (err: any) {
-        console.warn('[retrieve] Live PIN lookup failed. Falling back to simulation...', err.message);
+        console.error('[retrieve] Live PIN lookup failed:', err.message);
+        await createSystemLog({
+          level: 'error',
+          service: 'KRA-Retrieve',
+          message: `Live PIN lookup failed for ID ${idNumber}: ${err.message}`,
+          actor: userEmail,
+          ip,
+          details: { error: err.message, idNumber }
+        });
+        return NextResponse.json({
+          success: false,
+          error: 'Connection failed during KRA PIN lookup. Please try again.'
+        }, { status: 502 });
       }
 
-      // If lookup returned null or threw connection block/timeout, use simulation
+      // If lookup returned null, it means the ID is not registered
       if (!fullPin) {
-        const generatedPin = `A0${Math.floor(100000000 + Math.random() * 900000000)}B`;
-        const mockResult = generateMockTaxpayer(idNumber, generatedPin);
-        return NextResponse.json({ success: true, data: mockResult });
+        await createSystemLog({
+          level: 'warning',
+          service: 'KRA-Retrieve',
+          message: `KRA PIN lookup failed: no record matches ID ${idNumber}`,
+          actor: userEmail,
+          ip,
+          details: { idNumber }
+        });
+        return NextResponse.json({
+          success: false,
+          error: 'KRA PIN not found for this ID number. Please verify and try again.'
+        }, { status: 404 });
       }
     }
 
@@ -749,6 +759,14 @@ export async function POST(req: NextRequest) {
         if (pcHtml.length > 100) {
           pinCheckerData = parsePinCheckerHtml(pcHtml);
           if (pinCheckerData.captchaWrong) {
+            await createSystemLog({
+              level: 'warning',
+              service: 'KRA-Retrieve',
+              message: `Wrong captcha answer entered for PIN ${fullPin}`,
+              actor: userEmail,
+              ip,
+              details: { pin: fullPin, captchaAnswer }
+            });
             return NextResponse.json({
               success: false,
               captchaWrong: true,
@@ -767,7 +785,7 @@ export async function POST(req: NextRequest) {
         dwrData = dwrResult;
       }
     } catch (err: any) {
-      console.warn('[retrieve] Live KRA lookup error during details fetch:', err.message);
+      console.error('[retrieve] Live KRA lookup error during details fetch:', err.message);
       parseError = true;
     }
 
@@ -778,11 +796,21 @@ export async function POST(req: NextRequest) {
 
     const name        = first(man?.name, pc?.name, dw?.name, '');
     
-    // If live retrieval returned no name, it means the check failed due to geoblocking/network block. Fall back to simulation!
+    // If live retrieval returned no name, it means the check failed due to geoblocking or network block.
     if (!name || parseError) {
-      console.log('[retrieve] Live details retrieval failed or returned empty. Emulating response data...');
-      const mockResult = generateMockTaxpayer(idNumber || "12345678", fullPin || "A000000000X");
-      return NextResponse.json({ success: true, data: mockResult });
+      console.error('[retrieve] Live details retrieval failed or returned empty.');
+      await createSystemLog({
+        level: 'error',
+        service: 'KRA-Retrieve',
+        message: `Failed to retrieve taxpayer details from KRA for PIN ${fullPin || idNumber}`,
+        actor: userEmail,
+        ip,
+        details: { pin: fullPin, idNumber, captchaAnswer, parseError }
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to retrieve taxpayer details from KRA portal. Please ensure the PIN or CAPTCHA answer is correct.'
+      }, { status: 502 });
     }
 
     const email       = first(man?.email, pc?.email, dw?.email, '');
@@ -835,6 +863,14 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('[retrieve] Final result:', JSON.stringify(result.data));
+    await createSystemLog({
+      level: 'info',
+      service: 'KRA-Retrieve',
+      message: `Taxpayer details retrieved successfully for PIN ${fullPin}`,
+      actor: userEmail,
+      ip,
+      details: { pin: fullPin, name, email, county, station }
+    });
     return NextResponse.json(result);
 
   } catch (error: any) {

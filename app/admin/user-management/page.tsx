@@ -39,6 +39,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -153,6 +154,28 @@ export default function UserManagementPage() {
     setConfirmDeactivate(null);
   };
 
+  const handleMigrateUsers = async () => {
+    setIsMigrating(true);
+    try {
+      const res = await fetch("/api/admin/migrate-users");
+      const data = await res.json();
+      if (data.success) {
+        const migratedCount = data.results?.success?.length || 0;
+        const skippedCount = data.results?.skipped?.length || 0;
+        const failedCount = data.results?.failed?.length || 0;
+        showToast(`Migration complete! Migrated: ${migratedCount}, Skipped: ${skippedCount}, Failed: ${failedCount}`);
+        fetchUsers();
+      } else {
+        showToast(`Migration error: ${data.error || "Unknown error"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Network error executing user migration.");
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const filtered = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()) || u.id.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "All Roles" || u.role === roleFilter;
@@ -170,13 +193,32 @@ export default function UserManagementPage() {
           <h1 className="text-3xl font-bold text-on-surface">User Management</h1>
           <p className="text-on-surface-variant text-sm mt-1">View and manage portal user roles, statuses, and access permissions from Clerk.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="bg-primary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined text-[20px]">person_add</span>
-          Invite New User
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleMigrateUsers}
+            disabled={isMigrating}
+            className="border border-outline-variant bg-surface hover:bg-surface-container text-on-surface text-sm font-bold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+          >
+            {isMigrating ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-on-surface border-t-transparent animate-spin" />
+                Migrating...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[20px]">sync</span>
+                Migrate Old Users
+              </>
+            )}
+          </button>
+          <button
+            onClick={openCreate}
+            className="bg-primary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-[20px]">person_add</span>
+            Invite New User
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

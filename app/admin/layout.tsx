@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -18,11 +18,95 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Load and persist sidebar state (collapsed & width)
+  useEffect(() => {
+    setIsMounted(true);
+    const storedCollapsed = localStorage.getItem("admin-sidebar-collapsed");
+    if (storedCollapsed) {
+      setIsCollapsed(storedCollapsed === "true");
+    } else {
+      const width = window.innerWidth;
+      if (width >= 768 && width < 1024) {
+        setIsCollapsed(true); // Slim on tablets by default
+      }
+    }
+
+    const storedWidth = localStorage.getItem("admin-sidebar-width");
+    if (storedWidth) {
+      setSidebarWidth(parseInt(storedWidth, 10));
+    } else {
+      const defaultWidth = Math.min(Math.max(window.innerWidth * 0.18, 220), 320);
+      setSidebarWidth(defaultWidth);
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorage.setItem("admin-sidebar-collapsed", String(next));
+  };
+
+  const startResizing = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  const resetWidth = () => {
+    const defaultWidth = 256;
+    setSidebarWidth(defaultWidth);
+    localStorage.setItem("admin-sidebar-width", String(defaultWidth));
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const clientX = e.clientX;
+      const minW = Math.max(180, window.innerWidth * 0.12);
+      const maxW = Math.min(450, window.innerWidth * 0.30);
+      if (clientX >= minW && clientX <= maxW) {
+        setSidebarWidth(clientX);
+        localStorage.setItem("admin-sidebar-width", String(clientX));
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const clientX = e.touches[0].clientX;
+      const minW = Math.max(180, window.innerWidth * 0.12);
+      const maxW = Math.min(450, window.innerWidth * 0.30);
+      if (clientX >= minW && clientX <= maxW) {
+        setSidebarWidth(clientX);
+        localStorage.setItem("admin-sidebar-width", String(clientX));
+      }
+    };
+
+    const stopResizing = () => {
+      setIsResizing(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", stopResizing);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopResizing);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", stopResizing);
+    };
+  }, [isResizing]);
 
   // Show loading while auth details are fetching
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest text-on-surface">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest text-on-surface">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-on-surface-variant animate-pulse">Checking authorization...</p>
@@ -57,8 +141,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen flex bg-surface-container-lowest text-on-surface font-sans">
-      {/* Mobile Drawer Navigation */}
+    <div 
+      className="min-h-screen flex bg-surface-container-lowest text-on-surface font-sans"
+      style={{
+        ["--sidebar-width" as any]: isCollapsed ? "80px" : `${sidebarWidth}px`
+      }}
+    >
+      {/* Mobile Drawer Navigation (Slide-out menu overlay) */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Backdrop */}
@@ -71,7 +160,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {/* Header / Logo */}
             <div className="mb-6 px-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0 border border-outline-variant">
                   <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                     admin_panel_settings
                   </span>
@@ -83,7 +172,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <button 
                 onClick={() => setMobileOpen(false)}
-                className="p-1 rounded-lg hover:bg-surface-container-highest transition-colors text-on-surface-variant"
+                className="p-1 rounded-lg hover:bg-surface-container-highest transition-colors text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-label="Close sidebar menu"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -98,7 +188,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary ${
                         isActive
                           ? "bg-primary text-white font-bold"
                           : "text-on-surface-variant hover:bg-surface-container-highest"
@@ -122,7 +212,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 href="/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm"
+                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <span className="material-symbols-outlined text-[20px]">arrow_back</span>
                 Back to Portal
@@ -130,7 +220,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 href="/sign-out"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm mt-1"
+                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <span className="material-symbols-outlined text-[20px]">logout</span>
                 Sign Out
@@ -140,26 +230,145 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      {/* Desktop Sidebar */}
-      <nav className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-surface-container border-r border-outline-variant z-20 py-6 px-4">
-        {/* Logo */}
-        <div className="mb-8 px-2 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
+      {/* Floating Vertical Icon Stack (Mobile viewports < 768px) */}
+      <div className="fixed left-4 bottom-20 z-40 flex flex-col gap-3 md:hidden">
+        {navLinks.map((link) => {
+          const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 border group relative focus:outline-none focus:ring-2 focus:ring-primary ${
+                isActive
+                  ? "bg-primary border-primary text-white"
+                  : "bg-surface border-outline-variant text-on-surface hover:bg-surface-container-high"
+              }`}
+              aria-label={link.label}
+            >
+              <span className="material-symbols-outlined text-[20px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                {link.icon}
+              </span>
+              
+              {/* Floating label next to icon on hover / focus */}
+              <span 
+                role="tooltip"
+                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
+              >
+                {link.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        {/* Floating Menu Button to expand full drawer */}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="w-12 h-12 rounded-full shadow-xl border bg-primary border-primary text-white hover:bg-primary/90 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-label="Open sidebar menu"
+          title="Open sidebar menu"
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            menu
+          </span>
+        </button>
+      </div>
+
+      {/* Resizing Guide HUD & Info Pill */}
+      {isResizing && (
+        <>
+          {/* Transparent full-screen overlay to lock cursor style during drag */}
+          <div className="fixed inset-0 cursor-col-resize z-50 select-none pointer-events-auto" />
+          
+          {/* Vertical guide line */}
+          <div 
+            className="fixed top-0 bottom-0 w-[2px] bg-primary/70 z-50 pointer-events-none"
+            style={{ left: `${sidebarWidth}px` }}
+          />
+
+          {/* Width info pill */}
+          <div 
+            className="fixed top-1/3 z-50 bg-neutral-950 text-white font-mono text-xs px-3.5 py-2.5 rounded-xl shadow-2xl flex flex-col gap-0.5 select-none pointer-events-none -translate-x-1/2"
+            style={{ left: `${sidebarWidth}px` }}
+          >
+            <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">Sidebar Width</span>
+            <span className="text-white font-black">{sidebarWidth}px</span>
+            <span className="text-primary text-[10px] font-bold">
+              {typeof window !== 'undefined' ? Math.round((sidebarWidth / window.innerWidth) * 100) : 0}% of screen
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* Desktop / Tablet Sidebar */}
+      <nav 
+        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-20 py-6 select-none relative ${
+          isResizing ? "" : "transition-all duration-300 ease-in-out"
+        } ${
+          isCollapsed ? "px-3" : "px-4"
+        }`}
+        style={{ width: "var(--sidebar-width)" }}
+      >
+        {/* Draggable Resize Handle */}
+        {!isCollapsed && (
+          <div
+            onMouseDown={startResizing}
+            onTouchStart={startResizing}
+            onDoubleClick={resetWidth}
+            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize z-30 transition-colors ${
+              isResizing ? "bg-primary" : "hover:bg-primary/40 bg-transparent"
+            }`}
+            title="Drag to resize, double-click to reset"
+          />
+        )}
+
+        {/* Toggle Expand/Collapse Button (Modern SaaS style border trigger) */}
+        <button
+          onClick={toggleSidebar}
+          className="absolute top-8 -right-3 w-6 h-6 rounded-full border border-outline-variant bg-surface shadow-md flex items-center justify-center cursor-pointer hover:bg-surface-container-high transition-all duration-200 z-30 text-on-surface-variant hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <span className="material-symbols-outlined text-[16px] font-bold">
+            {isCollapsed ? "chevron_right" : "chevron_left"}
+          </span>
+        </button>
+
+        {/* Logo block */}
+        <div className={`mb-8 px-2 flex items-center gap-3 transition-all duration-300 ${isCollapsed ? "justify-center" : ""}`}>
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0 border border-outline-variant">
+            <span className="material-symbols-outlined text-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               admin_panel_settings
             </span>
           </div>
-          <div>
-            <h1 className="text-base font-extrabold text-primary tracking-tight leading-tight">Admin Central</h1>
-            <p className="text-xs text-on-surface-variant">System Management v2.1</p>
+          <div className={`transition-all duration-300 min-w-0 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+            <h1 className="text-base font-extrabold text-primary tracking-tight leading-tight whitespace-nowrap">Admin Central</h1>
+            <p className="text-[10px] text-on-surface-variant whitespace-nowrap">System Management v2.1</p>
           </div>
         </div>
 
         {/* New Audit Button */}
-        <button className="mb-6 w-full bg-primary text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          New System Audit
-        </button>
+        <div className="mb-6 px-1">
+          {isCollapsed ? (
+            <button
+              className="w-12 h-12 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center shadow-soft relative group focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="New System Audit"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              {/* Tooltip for collapsed mode */}
+              <span 
+                role="tooltip"
+                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
+              >
+                New System Audit
+              </span>
+            </button>
+          ) : (
+            <button className="w-full bg-primary text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-soft whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary">
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              New System Audit
+            </button>
+          )}
+        </div>
 
         {/* Nav Links */}
         <ul className="flex flex-col gap-1 flex-grow">
@@ -169,11 +378,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
+                  className={`flex items-center rounded-xl transition-all duration-200 text-sm font-medium group relative focus:outline-none focus:ring-2 focus:ring-primary ${
+                    isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+                  } ${
                     isActive
                       ? "bg-primary text-white font-bold"
                       : "text-on-surface-variant hover:bg-surface-container-highest"
                   }`}
+                  aria-label={link.label}
                 >
                   <span
                     className="material-symbols-outlined text-[20px]"
@@ -181,7 +393,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   >
                     {link.icon}
                   </span>
-                  {link.label}
+                  
+                  <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+                    {link.label}
+                  </span>
+                  
+                  {/* Tooltip for collapsed mode */}
+                  {isCollapsed && (
+                    <span 
+                      role="tooltip"
+                      className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
+                    >
+                      {link.label}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -189,32 +414,67 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </ul>
 
         {/* Footer */}
-        <div className="mt-auto border-t border-outline-variant pt-4">
+        <div className="mt-auto border-t border-outline-variant pt-4 flex flex-col gap-1">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm"
+            className={`flex items-center rounded-xl transition-all duration-200 text-sm group relative focus:outline-none focus:ring-2 focus:ring-primary ${
+              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+            } text-on-surface-variant hover:bg-surface-container-highest`}
+            aria-label="Back to Portal"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            Back to Portal
+            <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+              Back to Portal
+            </span>
+            
+            {/* Tooltip for collapsed mode */}
+            {isCollapsed && (
+              <span 
+                role="tooltip"
+                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
+              >
+                Back to Portal
+              </span>
+            )}
           </Link>
           <Link
             href="/sign-out"
-            className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm mt-1"
+            className={`flex items-center rounded-xl transition-all duration-200 text-sm mt-1 group relative focus:outline-none focus:ring-2 focus:ring-primary ${
+              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+            } text-on-surface-variant hover:bg-surface-container-highest`}
+            aria-label="Sign Out"
           >
             <span className="material-symbols-outlined text-[20px]">logout</span>
-            Sign Out
+            <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+              Sign Out
+            </span>
+            
+            {/* Tooltip for collapsed mode */}
+            {isCollapsed && (
+              <span 
+                role="tooltip"
+                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
+              >
+                Sign Out
+              </span>
+            )}
           </Link>
         </div>
       </nav>
 
       {/* Main content */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div 
+        className={`flex-1 flex flex-col min-h-screen ml-0 ${
+          isResizing ? "" : "transition-all duration-300 ease-in-out"
+        } md:ml-[var(--sidebar-width)]`}
+      >
         {/* Top Header */}
         <header className="sticky top-0 z-10 h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-4 md:px-6">
           {/* Hamburger Menu Button */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden p-2 -ml-1 mr-2 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-colors shrink-0"
+            className="md:hidden p-2 -ml-1 mr-2 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Open sidebar menu"
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
@@ -230,14 +490,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-3 ml-auto animate-fade-in">
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative">
+            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary">
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
             </button>
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block">
+            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block focus:outline-none focus:ring-2 focus:ring-primary">
               <span className="material-symbols-outlined">help</span>
             </button>
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block">
+            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block focus:outline-none focus:ring-2 focus:ring-primary">
               <span className="material-symbols-outlined">settings</span>
             </button>
             {user?.imageUrl && (

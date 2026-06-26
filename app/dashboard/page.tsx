@@ -97,7 +97,7 @@ export default async function TaxpayerDashboard() {
                     <p className="font-medium text-on-surface">{activity.title}</p>
                     <p className="text-sm text-on-surface-variant">{activity.date}</p>
                   </div>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                  <span className="px-2 py-1 bg-[var(--success-bg)] text-[var(--success-green)] text-xs font-medium rounded-full">
                     {activity.status}
                   </span>
                 </div>

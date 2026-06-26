@@ -11,14 +11,14 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Privacy Policy</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated} &nbsp;·&nbsp; Effective Date: {lastUpdated}
         </p>
-        <div className="bg-amber-400/10 border border-amber-400/20 rounded-xl p-4 mt-4">
-          <p className="text-[11px] text-amber-400 font-bold uppercase tracking-wide">
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
+          <p className="text-[11px] text-primary font-bold uppercase tracking-wide">
             ⚖️ This policy is governed by the Kenya Data Protection Act, 2019 (No. 24 of 2019) and the Data Protection (General) Regulations, 2021.
           </p>
         </div>
@@ -66,9 +66,9 @@ export default function PrivacyPolicyPage() {
         </ul>
       </Section>
 
-      <Section title="4. Data Retention & Deletion">
+      <Section title="4. Data Retention &amp; Deletion">
         <ul>
-          <li><strong>Session data & CAPTCHA tokens:</strong> Deleted immediately after each request is processed (within seconds).</li>
+          <li><strong>Session data &amp; CAPTCHA tokens:</strong> Deleted immediately after each request is processed (within seconds).</li>
           <li><strong>ID document uploads:</strong> Deleted from our servers within <strong>24 hours</strong> of the Change Particulars request being submitted to KRA.</li>
           <li><strong>KRA retrieval results:</strong> Never stored. Results are generated and served directly to you in-session only.</li>
           <li><strong>Account data:</strong> Retained while your account is active. You may delete your account at any time.</li>
@@ -78,7 +78,7 @@ export default function PrivacyPolicyPage() {
         </p>
       </Section>
 
-      <Section title="5. Data Sharing & Third Parties">
+      <Section title="5. Data Sharing &amp; Third Parties">
         <p>We share your data with:</p>
         <ul>
           <li>
@@ -136,13 +136,13 @@ export default function PrivacyPolicyPage() {
           To exercise any right, email us at <strong>privacy@akubrecah.com</strong>. We will respond within <strong>21 days</strong> as
           required by law. You may also lodge a complaint with the{" "}
           <strong>Office of the Data Protection Commissioner (ODPC)</strong> at{" "}
-          <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors">
             odpc.go.ke
           </a>.
         </p>
       </Section>
 
-      <Section title="8. Cookies & Tracking">
+      <Section title="8. Cookies &amp; Tracking">
         <p>
           This Service uses <strong>Vercel Analytics</strong>, which is cookieless and does not track individual users
           or store personal information. No advertising or third-party tracking cookies are used.
@@ -152,7 +152,7 @@ export default function PrivacyPolicyPage() {
           your session. These cannot be opted out of while using the authenticated portions of the Service.
         </p>
         <p>
-          See our <a href="/legal/cookies" className="text-amber-400 underline underline-offset-4">Cookie Policy</a> for full details.
+          See our <a href="/legal/cookies" className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors">Cookie Policy</a> for full details.
         </p>
       </Section>
 
@@ -189,10 +189,10 @@ export default function PrivacyPolicyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_em]:text-muted-foreground/70">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_em]:text-muted-foreground/70">
         {children}
       </div>
     </section>

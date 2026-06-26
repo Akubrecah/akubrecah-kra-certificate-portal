@@ -1,0 +1,22 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  level     String   // "info" | "warning" | "error"
+  service   String
+  message   String
+  actor     String
+  ip        String
+  details   Json?
+
+  @@map("system_logs")
+}

@@ -10,14 +10,14 @@ export default function AcceptableUsePolicyPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Acceptable Use Policy</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated}
         </p>
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mt-4">
-          <p className="text-[11px] text-orange-400 font-bold uppercase tracking-wide">
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
+          <p className="text-[11px] text-primary font-bold uppercase tracking-wide">
             Violations of this policy may result in immediate account termination and may be reported to
             law enforcement authorities.
           </p>
@@ -29,7 +29,7 @@ export default function AcceptableUsePolicyPage() {
           This Acceptable Use Policy ("<strong>AUP</strong>") defines the rules for lawful and appropriate use of
           the Akubrecah platform. It applies to all users, visitors, and account holders. This AUP supplements
           and is incorporated into our{" "}
-          <a href="/legal/terms" className="text-amber-400 underline underline-offset-4">Terms of Service</a>.
+          <a href="/legal/terms" className="text-primary underline underline-offset-4">Terms of Service</a>.
         </p>
       </Section>
 
@@ -152,7 +152,7 @@ export default function AcceptableUsePolicyPage() {
         <ul>
           <li><strong>Email:</strong> security@akubrecah.com</li>
           <li><strong>Data Protection Commissioner:</strong>{" "}
-            <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+            <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
               odpc.go.ke
             </a>
           </li>
@@ -216,10 +216,10 @@ function ProhibitionBlock({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
         {children}
       </div>
     </section>

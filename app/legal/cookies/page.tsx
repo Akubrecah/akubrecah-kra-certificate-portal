@@ -11,14 +11,14 @@ export default function CookiePolicyPage() {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Cookie Policy</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated}
         </p>
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mt-4">
-          <p className="text-[11px] text-green-400 font-bold uppercase tracking-wide">
+          <p className="text-[11px] text-green-600 dark:text-green-400 font-bold uppercase tracking-wide">
             ✓ We use minimal cookies. We do not use advertising cookies or sell your browsing data.
           </p>
         </div>
@@ -87,9 +87,9 @@ export default function CookiePolicyPage() {
         </ul>
         <p>Browser-specific guides:</p>
         <ul>
-          <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">Google Chrome</a></li>
-          <li><a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">Mozilla Firefox</a></li>
-          <li><a href="https://support.apple.com/en-gb/guide/safari/sfri11471/mac" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">Safari</a></li>
+          <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">Google Chrome</a></li>
+          <li><a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">Mozilla Firefox</a></li>
+          <li><a href="https://support.apple.com/en-gb/guide/safari/sfri11471/mac" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">Safari</a></li>
         </ul>
       </Section>
 
@@ -118,7 +118,7 @@ export default function CookiePolicyPage() {
           <li><strong>Website:</strong> akubrecah.com</li>
         </ul>
         <p>
-          See also our <a href="/legal/privacy" className="text-amber-400 underline underline-offset-4">Privacy Policy</a> for full information on how we handle your data.
+          See also our <a href="/legal/privacy" className="text-primary underline underline-offset-4">Privacy Policy</a> for full information on how we handle your data.
         </p>
       </Section>
     </div>
@@ -136,12 +136,12 @@ function CookieCategory({
 }) {
   const colorMap = {
     green: "border-green-500/20 bg-green-500/5",
-    amber: "border-amber-400/20 bg-amber-400/5",
+    amber: "border-primary/20 bg-primary/5",
     red: "border-red-500/20 bg-red-500/5",
   }
   const badgeMap = {
     green: "bg-green-500/20 text-green-400",
-    amber: "bg-amber-400/20 text-amber-400",
+    amber: "bg-primary/20 text-primary",
     red: "bg-red-500/20 text-red-400",
   }
 
@@ -158,7 +158,7 @@ function CookieCategory({
       <p className="text-[11px] text-muted-foreground">{description}</p>
       <div className="space-y-2">
         {cookies.map((c, i) => (
-          <div key={i} className="grid grid-cols-4 gap-2 text-[10px] border-t border-white/5 pt-2">
+          <div key={i} className="grid grid-cols-4 gap-2 text-[10px] border-t border-outline-variant/30 pt-2">
             <span className="font-bold text-foreground font-mono">{c.name}</span>
             <span className="text-muted-foreground">{c.provider}</span>
             <span className="text-muted-foreground col-span-1">{c.purpose}</span>
@@ -173,10 +173,10 @@ function CookieCategory({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
         {children}
       </div>
     </section>

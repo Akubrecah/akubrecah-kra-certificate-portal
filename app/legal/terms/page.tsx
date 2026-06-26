@@ -11,13 +11,13 @@ export default function TermsOfServicePage() {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Terms of Service</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated} &nbsp;·&nbsp; Effective Date: {lastUpdated}
         </p>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-4">
+        <div className="bg-surface-container border border-outline-variant rounded-xl p-4 mt-4">
           <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wide">
             Please read these Terms carefully before using our Service. By accessing or using Akubrecah, you agree to be bound by these Terms.
           </p>
@@ -46,7 +46,7 @@ export default function TermsOfServicePage() {
           <strong>Important:</strong> Akubrecah is <strong>not</strong> the Kenya Revenue Authority. We are not
           an official KRA service, agent, or representative. We are not affiliated with, endorsed by, or approved by
           the Kenya Revenue Authority. The KRA's official portal is{" "}
-          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
             itax.kra.go.ke
           </a>.
         </p>
@@ -205,10 +205,10 @@ export default function TermsOfServicePage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_em]:text-muted-foreground/70">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_em]:text-muted-foreground/70">
         {children}
       </div>
     </section>

@@ -3,6 +3,8 @@ import https from 'https';
 import net from 'net';
 import tls from 'tls';
 import url from 'url';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { createSystemLog } from '@/lib/prisma';
 
 export const maxDuration = 30;
 
@@ -60,55 +62,60 @@ function createProxyAgent(proxyUrl: string): any {
 export async function GET(req: NextRequest) {
   try {
     const proxyUrl = process.env.KRA_PROXY_URL || process.env.PROXY_URL || "";
-    const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
+
+    const { userId: clerkId } = await auth();
+    let userEmail = "Anonymous";
+    if (clerkId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(clerkId);
+        userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
+      } catch {}
+    }
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
 
     let captchaImage = "";
     let sessionToken = "";
     let success = false;
 
-    if (!isMockMode) {
-      try {
-        // 1. Initialize KRA session
-        const cookies = await initKraSession(proxyUrl);
-        const cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
-
-        // 2. Fetch CAPTCHA image as binary buffer
-        const randNum = Math.floor(Math.random() * 10000);
-        const captchaBuffer = await fetchCaptchaImage(cookieString, randNum, proxyUrl);
-
-        sessionToken = Buffer.from(cookieString).toString('base64');
-        captchaImage = `data:image/png;base64,${captchaBuffer.toString('base64')}`;
-        success = true;
-      } catch (err: any) {
-        console.warn('[captcha] Connection to KRA failed. Falling back to simulation mode:', err.message);
+    try {
+      // 1. Initialize KRA session
+      const cookies = await initKraSession(proxyUrl);
+      if (!cookies || Object.keys(cookies).length === 0) {
+        throw new Error('No session cookies returned by KRA portal.');
       }
-    }
+      const cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
 
-    // 3. Fallback to Simulation Mode if real connection fails or mock mode is requested
-    if (!success) {
-      const num1 = Math.floor(Math.random() * 9) + 1;
-      const num2 = Math.floor(Math.random() * 9) + 1;
-      const sum = num1 + num2;
+      // 2. Fetch CAPTCHA image as binary buffer
+      const randNum = Math.floor(Math.random() * 10000);
+      const captchaBuffer = await fetchCaptchaImage(cookieString, randNum, proxyUrl);
 
-      // Render a clean SVG mathematical challenge resembling the portal captcha
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50">
-        <rect width="100%" height="100%" fill="#f3f4f6"/>
-        <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="24" font-weight="bold" fill="#1f2937">
-          ${num1} + ${num2} = ?
-        </text>
-        <line x1="0" y1="12" x2="150" y2="38" stroke="#9ca3af" stroke-width="1.5"/>
-        <line x1="0" y1="38" x2="150" y2="12" stroke="#9ca3af" stroke-width="1.5"/>
-      </svg>`;
+      sessionToken = Buffer.from(cookieString).toString('base64');
+      captchaImage = `data:image/png;base64,${captchaBuffer.toString('base64')}`;
+      success = true;
 
-      captchaImage = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-
-      // Save captcha answer and mock state inside the session token payload
-      const mockSession = {
-        isMock: true,
-        answer: sum,
-        createdAt: Date.now()
-      };
-      sessionToken = Buffer.from(JSON.stringify(mockSession)).toString('base64');
+      // Log success
+      await createSystemLog({
+        level: 'info',
+        service: 'KRA-Captcha',
+        message: 'KRA Captcha challenge generated and loaded successfully',
+        actor: userEmail,
+        ip
+      });
+    } catch (err: any) {
+      console.error('[captcha] Connection to KRA failed:', err.message);
+      await createSystemLog({
+        level: 'error',
+        service: 'KRA-Captcha',
+        message: `Failed to retrieve CAPTCHA from KRA portal: ${err.message}`,
+        actor: userEmail,
+        ip,
+        details: { error: err.message }
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to retrieve CAPTCHA challenge from KRA portal. Please verify the proxy is active or try again.'
+      }, { status: 502 });
     }
 
     return NextResponse.json({

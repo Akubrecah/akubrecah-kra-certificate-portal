@@ -11,8 +11,8 @@ export default function DisclaimerPage() {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="space-y-3 border-b border-white/10 pb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">Legal Document</p>
+      <div className="space-y-3 border-b border-outline-variant pb-8">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Legal Document</p>
         <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">Disclaimer</h1>
         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Last Updated: {lastUpdated}
@@ -38,11 +38,11 @@ export default function DisclaimerPage() {
         </p>
         <p>
           The KRA's official website is{" "}
-          <a href="https://www.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://www.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
             kra.go.ke
           </a>{" "}
           and the official KRA iTax portal is{" "}
-          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
             itax.kra.go.ke
           </a>. These services are free of charge directly from KRA.
         </p>
@@ -62,7 +62,7 @@ export default function DisclaimerPage() {
         <p>
           Any discrepancies, errors, or outdated information in retrieved documents are the result of KRA's records,
           not this Service. For corrections to KRA records, users should contact KRA directly at{" "}
-          <a href="https://www.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-4">
+          <a href="https://www.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
             kra.go.ke
           </a>.
         </p>
@@ -143,10 +143,10 @@ export default function DisclaimerPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-amber-400 pl-4">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-foreground border-l-2 border-primary pl-4">
         {title}
       </h2>
-      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-amber-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+      <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed pl-4 [&_strong]:text-foreground [&_strong]:font-bold [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
         {children}
       </div>
     </section>

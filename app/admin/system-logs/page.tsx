@@ -35,7 +35,9 @@ const MESSAGES = [
 ];
 
 export default function SystemLogsPage() {
-  const [logs, setLogs] = useState<LogEntry[]>(STATIC_LOGS);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [warningMsg, setWarningMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<"all" | "info" | "warning" | "error">("all");
   const [isPaused, setIsPaused] = useState(false);
@@ -51,48 +53,59 @@ export default function SystemLogsPage() {
     }
   }, [logs, isPaused]);
 
-  // Simulate real-time log generation
-  useEffect(() => {
-    if (isPaused) return;
-
-    const interval = setInterval(() => {
-      const level = Math.random() > 0.7 ? (Math.random() > 0.6 ? "error" : "warning") : "info";
-      const service = SERVICES[Math.floor(Math.random() * SERVICES.length)];
-      const actor = ACTORS[Math.floor(Math.random() * ACTORS.length)];
-      const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
-      
-      const newLog: LogEntry = {
-        id: `LOG-${Math.floor(10 + Math.random() * 90)}`,
-        timestamp: new Date().toISOString(),
-        level,
-        service,
-        message: msg,
-        actor,
-        ip: `${Math.floor(40 + Math.random() * 160)}.${Math.floor(10 + Math.random() * 200)}.${Math.floor(1 + Math.random() * 250)}.${Math.floor(1 + Math.random() * 254)}`,
-        details: {
-          runtimeMs: Math.floor(50 + Math.random() * 950),
-          nodeId: `node-useast-${Math.floor(1 + Math.random() * 4)}`,
-          trigger: "IntervalTick",
-        }
-      };
-
-      setLogs(prev => [...prev.slice(-49), newLog]); // Keep max 50 logs in memory
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [isPaused]);
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
+  const fetchLogs = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/logs?limit=100&level=${levelFilter}`);
+      const data = await res.json();
+      if (data.success) {
+        setLogs(data.logs || []);
+        if (data.warning) {
+          setWarningMsg(data.warning);
+        } else {
+          setWarningMsg(null);
+        }
+      } else {
+        showToast("Error retrieving live logs: " + (data.error || "Access Denied"));
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Network error fetching live logs.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Poll database for real logs
+  useEffect(() => {
+    fetchLogs();
+  }, [levelFilter]);
+
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      fetchLogs(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isPaused, levelFilter]);
+
   const clearLogs = () => {
     setLogs([]);
-    showToast("Terminal logs cleared.");
+    showToast("Terminal screen cleared.");
   };
 
   const exportLogs = () => {
+    if (logs.length === 0) {
+      showToast("No logs available to export.");
+      return;
+    }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
@@ -200,8 +213,23 @@ export default function SystemLogsPage() {
 
           {/* Console Output Screen */}
           <div className="p-4 md:p-6 h-[460px] overflow-y-auto font-mono text-[11px] leading-relaxed space-y-2.5">
-            {filteredLogs.length === 0 ? (
-              <div className="text-zinc-600 h-full flex flex-col items-center justify-center gap-2">
+            {warningMsg && (
+              <div className="bg-amber-950/45 border border-amber-800/60 text-amber-400 p-3.5 rounded-xl mb-4 text-[10px] font-mono select-text flex flex-col gap-1.5 animate-pulse">
+                <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-amber-300">
+                  <span className="material-symbols-outlined text-[16px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+                  Database Setup Required
+                </div>
+                <span>{warningMsg}</span>
+              </div>
+            )}
+
+            {isLoading && logs.length === 0 ? (
+              <div className="text-zinc-500 h-full flex flex-col items-center justify-center gap-2 py-20 select-none">
+                <span className="animate-spin text-[32px] material-symbols-outlined">sync</span>
+                <span className="tracking-widest font-bold">LOADING REAL-TIME AUDIT LOGS...</span>
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="text-zinc-600 h-full flex flex-col items-center justify-center gap-2 select-none">
                 <span className="material-symbols-outlined text-[36px]">error</span>
                 <span>NO LOG MESSAGES MATCH FILTER CRITERIA</span>
               </div>
@@ -235,7 +263,7 @@ export default function SystemLogsPage() {
                     </span>
                     {/* Actor */}
                     <span className="text-zinc-500 font-semibold text-[10px] shrink-0 select-none">
-                      @{log.actor.split("@")[0]}
+                      @{log.actor ? log.actor.split("@")[0] : "unknown"}
                     </span>
                   </div>
                 );
