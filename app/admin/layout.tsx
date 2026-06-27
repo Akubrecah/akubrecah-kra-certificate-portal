@@ -387,8 +387,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* Mobile Collapsible Page Selector Menu */}
-        <div className="md:hidden w-full bg-surface border-b border-outline-variant sticky top-16 z-30">
+        <div className="md:hidden w-full bg-surface border-b border-outline-variant relative">
           <div className="px-4 py-2.5 flex flex-col">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
