@@ -302,6 +302,7 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
           {children}
         </main>
       </div>
+      </div>
       <SiteFooter />
     </div>
   )
