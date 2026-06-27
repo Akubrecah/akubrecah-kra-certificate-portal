@@ -301,7 +301,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Desktop / Tablet Sidebar */}
       <nav 
-        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-20 py-6 select-none relative ${
+        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-20 py-6 select-none overflow-hidden ${
           isResizing ? "" : "transition-all duration-300 ease-in-out"
         } ${
           isCollapsed ? "px-3" : "px-4"
@@ -394,7 +394,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {link.icon}
                   </span>
                   
-                  <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+                  <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
                     {link.label}
                   </span>
                   
@@ -423,7 +423,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             aria-label="Back to Portal"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+            <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
               Back to Portal
             </span>
             
@@ -445,7 +445,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             aria-label="Sign Out"
           >
             <span className="material-symbols-outlined text-[20px]">logout</span>
-            <span className={`transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+            <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
               Sign Out
             </span>
             

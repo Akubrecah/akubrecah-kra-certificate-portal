@@ -131,7 +131,7 @@ export default function SystemHealthPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading ? (
           Array(4).fill(0).map((_, i) => (
             <div key={i} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant animate-pulse shadow-soft h-32" />
@@ -163,9 +163,9 @@ export default function SystemHealthPage() {
       </div>
 
       {/* Chart + Live Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col xl:flex-row gap-6">
         {/* Chart */}
-        <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-soft">
+        <div className="flex-1 min-w-[300px] md:min-w-[500px] bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-soft">
           <div className="px-5 py-4 border-b border-outline-variant bg-surface flex justify-between items-center">
             <div>
               <h3 className="font-bold text-on-surface">System Load Trajectory (CPU Load %)</h3>
@@ -194,7 +194,7 @@ export default function SystemHealthPage() {
         </div>
 
         {/* Live Logs */}
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant flex flex-col max-h-[420px] shadow-soft">
+        <div className="w-full xl:w-80 shrink-0 bg-surface-container-lowest rounded-2xl border border-outline-variant flex flex-col max-h-[420px] shadow-soft">
           <div className="px-5 py-4 border-b border-outline-variant bg-surface flex items-center justify-between">
             <h3 className="font-bold text-on-surface flex items-center gap-2">
               Live Health Logs

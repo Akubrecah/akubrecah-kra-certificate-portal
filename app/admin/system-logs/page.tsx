@@ -160,9 +160,9 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Logger Console Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Main Terminal Window */}
-        <div className="lg:col-span-3 flex flex-col bg-slate-950 dark:bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="flex-grow flex-1 min-w-[300px] md:min-w-[600px] flex flex-col bg-slate-950 dark:bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
           {/* Terminal Title Bar */}
           <div className="bg-slate-900 dark:bg-zinc-900 border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function SystemLogsPage() {
         </div>
 
         {/* Sidebar Status Info */}
-        <div className="space-y-4">
+        <div className="w-full xl:w-72 shrink-0 space-y-4">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
             <h3 className="font-bold text-on-surface mb-3.5">Log Statistics</h3>
             <div className="space-y-3">

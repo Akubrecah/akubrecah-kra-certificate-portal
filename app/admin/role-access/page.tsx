@@ -90,9 +90,9 @@ export default function RoleAccessPage() {
       </div>
 
       {/* Access Matrix Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Permission Grid Matrix Table */}
-        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
+        <div className="flex-1 min-w-[300px] md:min-w-[600px] bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-outline-variant bg-surface">
             <h3 className="font-bold text-on-surface">System Permissions Matrix</h3>
           </div>
@@ -136,7 +136,7 @@ export default function RoleAccessPage() {
         </div>
 
         {/* Role Inspector Panel */}
-        <div className="space-y-4">
+        <div className="w-full xl:w-80 shrink-0 space-y-4">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
             <h3 className="font-bold text-on-surface mb-4">Role Descriptions</h3>
             <div className="space-y-4">

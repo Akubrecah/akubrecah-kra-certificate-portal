@@ -91,9 +91,9 @@ export default function GlobalConfigPage() {
         </div>
       </div>
 
-      <form id="config-form" onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <form id="config-form" onSubmit={handleSave} className="flex flex-col xl:flex-row gap-6 items-start">
         {/* Navigation Sidebar Tabs */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 flex flex-col gap-1.5">
+        <div className="w-full xl:w-64 shrink-0 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 flex flex-col gap-1.5">
           <h3 className="font-bold text-on-surface px-2 mb-3 text-sm uppercase tracking-wider text-on-surface-variant/70">Configuration Tabs</h3>
           <button
             type="button"
@@ -122,7 +122,7 @@ export default function GlobalConfigPage() {
         </div>
 
         {/* Configurations Fields Wrapper */}
-        <div className="lg:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-soft">
+        <div className="flex-1 min-w-[300px] bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-soft">
           {/* TAB 1: API Integrations */}
           {activeTab === "api" && (
             <div className="space-y-5">

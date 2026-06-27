@@ -276,7 +276,7 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
       <div className="flex-grow flex pt-16">
         {showSidebar && (
           <aside 
-            className={`hidden md:flex flex-col bg-surface-container-lowest border-r border-outline-variant h-[calc(100vh-4rem)] fixed left-0 top-16 overflow-y-auto z-40 select-none ${
+            className={`hidden md:flex flex-col bg-surface-container-lowest border-r border-outline-variant h-[calc(100vh-4rem)] fixed left-0 top-16 overflow-hidden z-40 select-none ${
               isResizing ? "" : "transition-all duration-300 ease-in-out"
             } ${isCollapsed ? "px-3 py-4" : "p-4"}`}
             style={{ width: "var(--main-sidebar-width)" }}
