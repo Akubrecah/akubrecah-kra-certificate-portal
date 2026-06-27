@@ -391,15 +391,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="px-4 py-2.5 flex flex-col">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="flex items-center justify-between px-4 py-2 bg-surface-container border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:bg-surface-container-high transition-all"
+              className="flex items-center gap-2 text-sm font-bold text-on-surface hover:text-primary transition-colors py-1 focus:outline-none w-max"
             >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">menu</span>
-                <span>Menu</span>
-              </div>
-              <span className="material-symbols-outlined text-[18px] transition-transform duration-200" style={{ transform: mobileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                expand_more
-              </span>
+              <span className="material-symbols-outlined text-[20px]">menu</span>
+              <span>Menu</span>
             </button>
             
             {/* Collapsible content (links list) */}
