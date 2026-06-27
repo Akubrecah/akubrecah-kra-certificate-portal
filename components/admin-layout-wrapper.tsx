@@ -180,100 +180,53 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
         </>
       )}
 
-      {/* Mobile Drawer Navigation (Slide-out menu overlay) */}
-      {showSidebar && mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileOpen(false)}
-          />
-          {/* Drawer Body */}
-          <nav className="relative flex flex-col w-64 max-w-xs bg-background h-full py-6 px-4 z-50 shadow-2xl animate-in slide-in-from-left duration-200 border-r border-outline-variant">
-            {/* Header / Logo */}
-            <div className="mb-6 px-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-primary tracking-tight leading-tight">Menu</span>
-              </div>
-              <button 
-                onClick={() => setMobileOpen(false)}
-                className="p-1 rounded-lg hover:bg-surface-container-highest transition-colors text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="Close sidebar menu"
+      <div className="flex-grow flex pt-16 flex-col">
+        {showSidebar && (
+          <div className="md:hidden w-full bg-surface-container-low border-b border-outline-variant sticky top-16 z-30">
+            <div className="px-4 py-2.5 flex flex-col">
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="flex items-center justify-between px-4 py-2 bg-surface-container border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:bg-surface-container-high transition-all"
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Nav Links */}
-            <ul className="flex flex-col gap-1 flex-grow">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname?.startsWith(link.href));
-                const Icon = link.icon;
-                return (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary ${
-                        isActive
-                          ? "bg-primary-container text-on-primary-container font-medium"
-                          : "text-on-surface hover:bg-surface-container hover:text-primary"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      {link.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </div>
-      )}
-
-      {/* Floating Vertical Icon Stack (Mobile viewports < 768px) */}
-      {showSidebar && (
-        <div className="fixed left-4 bottom-20 z-40 flex flex-col gap-3 md:hidden">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname?.startsWith(link.href));
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 border group relative focus:outline-none focus:ring-2 focus:ring-primary ${
-                  isActive
-                    ? "bg-primary border-primary text-white"
-                    : "bg-background border-outline-variant text-on-surface hover:bg-surface-container-high"
-                }`}
-                aria-label={link.label}
-              >
-                <Icon className="h-5 w-5" />
-                
-                {/* Floating label next to icon on hover / focus */}
-                <span 
-                  role="tooltip"
-                  className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-                >
-                  {link.label}
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">menu</span>
+                  <span>Menu</span>
+                </div>
+                <span className="material-symbols-outlined text-[18px] transition-transform duration-200" style={{ transform: mobileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  expand_more
                 </span>
-              </Link>
-            );
-          })}
+              </button>
+              
+              {/* Collapsible content (links list) */}
+              {mobileOpen && (
+                <ul className="flex flex-col gap-1 mt-2.5 pb-1 animate-in fade-in duration-200">
+                  {navLinks.map((link) => {
+                    const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname?.startsWith(link.href));
+                    const Icon = link.icon;
+                    return (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                            isActive
+                              ? "bg-primary text-white font-bold"
+                              : "text-on-surface hover:bg-surface-container-high"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span>{link.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
 
-          {/* Floating Menu Button to expand full drawer */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="w-12 h-12 rounded-full shadow-xl border bg-primary border-primary text-white hover:bg-primary/90 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Open sidebar menu"
-            title="Open sidebar menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </div>
-      )}
-
-      <div className="flex-grow flex pt-16">
+        <div className="flex-grow flex w-full">
         {showSidebar && (
           <aside 
             className={`hidden md:flex flex-col bg-surface-container-lowest border-r border-outline-variant h-[calc(100vh-4rem)] fixed left-0 top-16 overflow-hidden z-40 select-none ${

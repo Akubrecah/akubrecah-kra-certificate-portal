@@ -147,131 +147,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         ["--sidebar-width" as any]: isCollapsed ? "80px" : `${sidebarWidth}px`
       }}
     >
-      {/* Mobile Drawer Navigation (Slide-out menu overlay) */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileOpen(false)}
-          />
-          {/* Drawer Body */}
-          <nav className="relative flex flex-col w-64 max-w-xs bg-surface-container h-full py-6 px-4 z-10 shadow-2xl animate-in slide-in-from-left duration-200">
-            {/* Header / Logo */}
-            <div className="mb-6 px-2 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0 border border-outline-variant">
-                  <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    admin_panel_settings
-                  </span>
-                </div>
-                <div>
-                  <h1 className="text-sm font-extrabold text-primary tracking-tight leading-tight">Admin Central</h1>
-                  <p className="text-[10px] text-on-surface-variant">v2.1</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setMobileOpen(false)}
-                className="p-1 rounded-lg hover:bg-surface-container-highest transition-colors text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="Close sidebar menu"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
 
-            {/* Nav Links */}
-            <ul className="flex flex-col gap-1 flex-grow">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
-                return (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary ${
-                        isActive
-                          ? "bg-primary text-white font-bold"
-                          : "text-on-surface-variant hover:bg-surface-container-highest"
-                      }`}
-                    >
-                      <span
-                        className="material-symbols-outlined text-[20px]"
-                        style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                      >
-                        {link.icon}
-                      </span>
-                      {link.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Footer */}
-            <div className="mt-auto border-t border-outline-variant pt-4">
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                Back to Portal
-              </Link>
-              <Link
-                href="/sign-out"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <span className="material-symbols-outlined text-[20px]">logout</span>
-                Sign Out
-              </Link>
-            </div>
-          </nav>
-        </div>
-      )}
-
-      {/* Floating Vertical Icon Stack (Mobile viewports < 768px) */}
-      <div className="fixed left-4 bottom-20 z-40 flex flex-col gap-3 md:hidden">
-        {navLinks.map((link) => {
-          const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 border group relative focus:outline-none focus:ring-2 focus:ring-primary ${
-                isActive
-                  ? "bg-primary border-primary text-white"
-                  : "bg-surface border-outline-variant text-on-surface hover:bg-surface-container-high"
-              }`}
-              aria-label={link.label}
-            >
-              <span className="material-symbols-outlined text-[20px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                {link.icon}
-              </span>
-              
-              {/* Floating label next to icon on hover / focus */}
-              <span 
-                role="tooltip"
-                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-              >
-                {link.label}
-              </span>
-            </Link>
-          );
-        })}
-
-        {/* Floating Menu Button to expand full drawer */}
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="w-12 h-12 rounded-full shadow-xl border bg-primary border-primary text-white hover:bg-primary/90 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Open sidebar menu"
-          title="Open sidebar menu"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            menu
-          </span>
-        </button>
-      </div>
 
       {/* Resizing Guide HUD & Info Pill */}
       {isResizing && (
@@ -470,14 +346,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         {/* Top Header */}
         <header className="sticky top-0 z-10 h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-4 md:px-6">
-          {/* Hamburger Menu Button */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="md:hidden p-2 -ml-1 mr-2 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Open sidebar menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
+          {/* Mobile Logo on left */}
+          <div className="flex items-center gap-2.5 md:hidden">
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center border border-outline-variant shrink-0">
+              <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                admin_panel_settings
+              </span>
+            </div>
+            <span className="text-xs font-black text-primary uppercase tracking-wider">Admin Central</span>
+          </div>
 
           <div className="hidden md:flex flex-1 max-w-md">
             <div className="relative w-full">
@@ -509,6 +386,71 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
         </header>
+
+        {/* Mobile Collapsible Page Selector Menu */}
+        <div className="md:hidden w-full bg-surface border-b border-outline-variant sticky top-16 z-30">
+          <div className="px-4 py-2.5 flex flex-col">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="flex items-center justify-between px-4 py-2 bg-surface-container border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:bg-surface-container-high transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">menu</span>
+                <span>Menu</span>
+              </div>
+              <span className="material-symbols-outlined text-[18px] transition-transform duration-200" style={{ transform: mobileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                expand_more
+              </span>
+            </button>
+            
+            {/* Collapsible content (links list) */}
+            {mobileOpen && (
+              <ul className="flex flex-col gap-1 mt-2.5 pb-1 animate-in fade-in duration-200">
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                  return (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                          isActive
+                            ? "bg-primary text-white font-bold"
+                            : "text-on-surface hover:bg-surface-container-high"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">{link.icon}</span>
+                        <span>{link.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+                {/* Back to Portal */}
+                <li className="border-t border-outline-variant/60 mt-1 pt-1.5">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-on-surface-variant hover:bg-surface-container-high"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                    <span>Back to Portal</span>
+                  </Link>
+                </li>
+                {/* Sign Out */}
+                <li>
+                  <Link
+                    href="/sign-out"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-on-surface-variant hover:bg-surface-container-high"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">logout</span>
+                    <span>Sign Out</span>
+                  </Link>
+                </li>
+              </ul>
+            )}
+          </div>
+        </div>
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-surface-bright">
