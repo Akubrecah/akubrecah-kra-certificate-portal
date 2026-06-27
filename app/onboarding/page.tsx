@@ -3,19 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, User } from "lucide-react";
+import { completeOnboardingAction } from "./actions";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call for UI mockup
-    setTimeout(() => {
+    try {
+      await completeOnboardingAction();
       localStorage.setItem("hasCompletedOnboarding", "true");
       router.push("/dashboard");
-    }, 1000);
+    } catch (err) {
+      console.error("Onboarding action error, using local fallback:", err);
+      localStorage.setItem("hasCompletedOnboarding", "true");
+      router.push("/dashboard");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

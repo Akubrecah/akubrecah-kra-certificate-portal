@@ -112,14 +112,21 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname?.startsWith('/onboarding') || pathname?.startsWith('/admin')
 
   useEffect(() => {
+    if (!isLoaded || !user) return;
+
     // Check for onboarding completion only on dashboard routes
     if (pathname?.startsWith('/dashboard')) {
-      const hasCompleted = localStorage.getItem('hasCompletedOnboarding')
-      if (!hasCompleted) {
+      const hasCompletedLocal = localStorage.getItem('hasCompletedOnboarding')
+      const hasCompletedClerk = user.publicMetadata?.onboardingComplete;
+
+      if (!hasCompletedLocal && !hasCompletedClerk) {
         router.push('/onboarding')
+      } else if (hasCompletedClerk && !hasCompletedLocal) {
+        // Sync local storage if Clerk is complete but local is not
+        localStorage.setItem('hasCompletedOnboarding', 'true')
       }
     }
-  }, [pathname, router])
+  }, [pathname, router, user, isLoaded])
 
   if (isAuthPage) {
     return <main className="flex-grow flex w-full">{children}</main>
