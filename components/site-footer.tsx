@@ -1,14 +1,9 @@
 "use client"
 
-import { useEffect } from "react"
 import Link from "next/link"
 import { Logo } from "@/components/logo"
 
 export function SiteFooter(): JSX.Element {
-  useEffect(() => {
-    // Component mounted
-  }, [])
-
   const navigation = [
     {
       title: "Services",
@@ -17,33 +12,44 @@ export function SiteFooter(): JSX.Element {
         { label: "Retrieval Portal", href: "/retrieval-portal" },
       ],
     },
+    {
+      title: "Legal",
+      links: [
+        { label: "Legal Center", href: "/legal" },
+        { label: "Privacy Policy", href: "/legal/privacy" },
+        { label: "Terms of Service", href: "/legal/terms" },
+        { label: "Disclaimer", href: "/legal/disclaimer" },
+        { label: "Refund Policy", href: "/legal/refund" },
+        { label: "Acceptable Use", href: "/legal/aup" },
+        { label: "Cookie Policy", href: "/legal/cookies" },
+      ],
+    },
   ]
 
   return (
-    <footer className="w-full border-t border-border bg-muted/20 pt-16 pb-12" role="contentinfo">
-      <div className="max-w-7xl mx-auto px-6 text-center">
-        <div className="flex flex-col items-center gap-8 mb-10">
-          <div className="flex flex-col items-center gap-4">
-            <Link className="group transition-transform duration-500 hover:scale-105" aria-label="Akubrecah" href="/">
-              <Logo width={240} height={72} />
+    <footer className="w-full border-t border-outline-variant bg-surface-container pt-8 pb-6 z-50 relative" role="contentinfo">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center md:text-left">
+        <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 mb-8">
+          
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Link className="transition-transform duration-300 hover:opacity-80" aria-label="Akubrecah KRA Portal" href="/">
+              <Logo width={200} height={60} />
             </Link>
-            <div className="flex items-center space-x-3 text-[9px] font-bold uppercase tracking-[0.2em] opacity-70">
-              <span>DESIGN PRINT BRAND</span>
-              <span className="h-0.5 w-0.5 rounded-full bg-current" />
-              <span>BUILD 2026</span>
-            </div>
+            <p className="text-sm text-on-surface-variant max-w-xs text-center md:text-left">
+              Professional compliance suite for KRA services and PDF management.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-x-8 gap-y-6 w-full max-w-4xl mx-auto border-t border-border pt-8">
+          <div className="flex flex-col md:flex-row gap-12 text-center md:text-left">
             {navigation.map((group) => (
-              <div key={group.title} className="flex flex-col items-center gap-3">
-                <h3 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{group.title}</h3>
-                <ul className="flex flex-col items-center gap-2.5">
+              <div key={group.title} className="flex flex-col gap-4">
+                <h3 className="font-semibold text-on-surface tracking-wide uppercase text-sm">{group.title}</h3>
+                <ul className="flex flex-col gap-3">
                   {group.links.map((link) => (
                     <li key={link.label}>
-                      <Link 
-                        href={link.href} 
-                        className="text-[11px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-wide opacity-80 hover:opacity-100"
+                      <Link
+                        href={link.href}
+                        className="text-sm text-on-surface-variant hover:text-primary transition-colors"
                       >
                         {link.label}
                       </Link>
@@ -54,22 +60,13 @@ export function SiteFooter(): JSX.Element {
             ))}
           </div>
         </div>
-        
-        <div className="pt-8 border-t border-border flex flex-col items-center gap-6">
-          <p className="text-[8px] font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
-            &copy; {new Date().getFullYear()} AKUBRECAH. ALL RIGHTS RESERVED.
-          </p>
 
-          <div className="flex items-center gap-6 p-1 px-4 rounded-full bg-muted/30 border border-border">
-            <div className="flex items-center gap-2">
-              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">VAULT</span>
-              <span className="text-[9px] font-bold text-foreground tracking-widest uppercase opacity-90">SECURE</span>
-            </div>
-            <div className="h-3 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">STATUS</span>
-              <span className="text-[9px] font-bold text-foreground tracking-widest uppercase opacity-90">ACTIVE</span>
-            </div>
+        <div className="border-t border-outline-variant pt-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-xs text-on-surface-variant leading-relaxed max-w-2xl text-center md:text-left">
+            Akubrecah is an independent third-party service and is <strong>not affiliated with, endorsed by, or connected to</strong> the Kenya Revenue Authority (KRA) or the Government of Kenya. KRA services are available free of charge at <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-primary transition-colors">itax.kra.go.ke</a>.
+          </p>
+          <div className="text-xs font-medium text-on-surface-variant whitespace-nowrap">
+            &copy; {new Date().getFullYear()} AKUBRECAH. ALL RIGHTS RESERVED.
           </div>
         </div>
       </div>

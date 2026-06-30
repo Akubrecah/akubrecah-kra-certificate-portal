@@ -25,12 +25,17 @@ const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/retrieval-portal(.*)',
   '/onboarding(.*)',
+  '/checkout(.*)',
+  '/filing-success(.*)',
   '/api/admin(.*)',
-  '/api/user(.*)'
+  '/api/user(.*)',
+  '/api/kra(.*)',
+  '/api/mpesa/stkpush(.*)',
+  '/api/mpesa/status(.*)'
 ]);
 
 const BLOCKED_SCANNERS = [/sqlmap/i, /nikto/i, /nessus/i, /dirbuster/i, /acunetix/i, /havij/i];
-const SUPER_ADMIN_EMAIL = 'poweldayck@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com';
 
 // Simple in-memory rate limiter for edge
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -49,33 +54,17 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export default clerkMiddleware(async (auth, request) => {
-  const { userId, sessionClaims, redirectToSignIn, sessionStatus } = await auth({ 
-    treatPendingAsSignedOut: false 
-  });
   const { pathname } = request.nextUrl;
-  
   const isTaskRoute = pathname.startsWith('/session-tasks');
 
   // 1. Clerk Authentication Protection
-  // If not signed in AND not pending, redirect to sign-in for protected routes
-  if (!userId && sessionStatus !== 'pending' && isProtectedRoute(request)) {
-    return redirectToSignIn({ returnBackUrl: request.url });
+  if (isProtectedRoute(request) && !isTaskRoute) {
+    await auth.protect();
   }
 
-  // 2. Allow session task routes if authenticated or pending
-  if (isTaskRoute && (userId || sessionStatus === 'pending')) {
-    return NextResponse.next();
-  }
+  const { userId } = await auth();
 
-  // 2. Admin Route Authentication (Fine-grained role check happens in Layout)
-  if (userId && isAdminRoute(request)) {
-    // We allow the request to proceed to the page/layout
-    // The AdminLayout (app/admin/layout.tsx) will do the final isAdminUser check
-    // using the full Clerk User object which is more reliable than sessionClaims.
-    return NextResponse.next();
-  }
-
-  // 3. Redirect signed-in users away from auth pages
+  // 2. Redirect signed-in users away from auth pages
   if (userId && (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up'))) {
     return NextResponse.redirect(new URL('/', request.url));
   }
@@ -84,12 +73,12 @@ export default clerkMiddleware(async (auth, request) => {
     request.headers.get('x-real-ip') || 'unknown';
   const userAgent = request.headers.get('user-agent') || '';
 
-  // 4. Block known vulnerability scanners
+  // 3. Block known vulnerability scanners
   if (BLOCKED_SCANNERS.some(p => p.test(userAgent))) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  // 5. Rate limiting for API routes
+  // 4. Rate limiting for API routes
   if (pathname.startsWith('/api/')) {
     if (!checkRateLimit(ip)) {
       return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
@@ -99,7 +88,7 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 
-  // 6. Path traversal protection
+  // 5. Path traversal protection
   if (pathname.includes('..') || pathname.includes('%2e')) {
     return new NextResponse('Bad Request', { status: 400 });
   }
@@ -118,6 +107,6 @@ export const config = {
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
-    '/__clerk/(.*)',
+    '/__clerk/:path*',
   ],
 };

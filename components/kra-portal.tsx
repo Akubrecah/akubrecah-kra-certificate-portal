@@ -11,15 +11,16 @@ import {
   Fingerprint, 
   User, 
   MapPin,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
+  BadgeIcon,
+  MapPinIcon
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { motion, AnimatePresence } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
 import { 
   Select, 
   SelectContent, 
@@ -36,11 +37,16 @@ import {
 } from "@/lib/kenya-data"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
-import { UserButton } from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs"
 
 export function KRAPortal() {
+  const { isLoaded: authLoaded, isSignedIn } = useUser()
   const [currentStep, setCurrentStep] = useState(1)
   const [idSearchStatus, setIdSearchStatus] = useState<"idle" | "searching" | "found" | "error">("idle")
+  
+  // Tab state for Step 1
+  const [activeTab, setActiveTab] = useState<"id" | "pin">("id")
+
   const [formData, setFormData] = useState({
     idNumber: "",
     pin: "",
@@ -61,6 +67,7 @@ export function KRAPortal() {
   const [isVerified, setIsVerified] = useState(false)
   const [isVerifyingDate, setIsVerifyingDate] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasConsented, setHasConsented] = useState(false)
 
   // CAPTCHA state
   const [captchaImage, setCaptchaImage] = useState<string | null>(null)
@@ -159,6 +166,7 @@ export function KRAPortal() {
         setCaptchaStatus("idle")
         setCaptchaImage(null)
         setCaptchaAnswer("")
+        setCurrentStep(4)
         toast.success("KRA Certificate Identity Found!")
       } else {
         setIdSearchStatus("error")
@@ -180,6 +188,11 @@ export function KRAPortal() {
     try {
       if (!formData.pin || !formData.fullName) {
         toast.error("Identity details missing. Please verify your ID again.", { id: loadingToast })
+        return
+      }
+
+      if (authLoaded && !isSignedIn) {
+        toast.error("Authentication required. Please sign in to download your certificate.", { id: loadingToast })
         return
       }
 
@@ -207,7 +220,10 @@ export function KRAPortal() {
         body: JSON.stringify(payload),
       })
 
-      if (!response.ok) throw new Error("Generation failed")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Generation failed")
+      }
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -220,8 +236,8 @@ export function KRAPortal() {
       window.URL.revokeObjectURL(url)
       
       toast.success("Certificate downloaded successfully", { id: loadingToast })
-    } catch (err) {
-      toast.error("Download failed. Please check your connection.", { id: loadingToast })
+    } catch (err: any) {
+      toast.error(err.message || "Download failed. Please check your connection.", { id: loadingToast })
     }
   }
 
@@ -231,147 +247,142 @@ export function KRAPortal() {
     exit: { opacity: 0, x: -20 }
   }
 
+  // Common input classes based on Stitch design
+  const inputClass = "w-full bg-surface-container-lowest border border-outline-muted rounded text-body-md text-on-surface placeholder-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary px-4 py-3 h-auto"
+  const labelClass = "block font-label-md text-label-md text-on-surface mb-unit"
+  const primaryButtonClass = "w-full md:w-auto bg-primary-container text-on-primary font-label-md text-label-md py-3 px-8 rounded hover:bg-primary transition-colors flex justify-center items-center gap-2"
+  const secondaryButtonClass = "w-full md:w-auto bg-surface-container border border-outline-muted text-on-surface font-label-md text-label-md py-3 px-6 rounded hover:bg-surface-variant transition-colors flex justify-center items-center gap-2"
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full flex flex-col space-y-0 py-0 max-w-7xl mx-auto"
-    >
+    <div className="w-full">
+      <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
+        <h1 className="font-display-lg text-display-lg text-on-surface mb-stack-sm text-center">Retrieve Your KRA Certificate</h1>
+        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-lg">Enter your details to quickly retrieve and verify your tax compliance certificate.</p>
+      </div>
+
+      {isVerified && (
+        <div className="w-full max-w-3xl mx-auto mb-8">
+          <Alert className="bg-success-bg border-success-green/30 text-success-green rounded-lg flex items-center gap-3 py-3 px-4">
+            <CheckCircle className="h-5 w-5 flex-shrink-0" />
+            <AlertDescription className="text-sm font-medium">
+              Certificate details successfully retrieved. Please review the information before downloading.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* Step Progress Bar */}
+      <div className="w-full max-w-md mx-auto mb-8 px-4">
+        <div className="flex justify-between items-center font-label-sm text-label-sm uppercase mb-2">
+          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant")}>01. Identity</span>
+          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant")}>02. Personal</span>
+          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant")}>03. Address</span>
+          <span className={cn(currentStep >= 4 ? "text-primary" : "text-on-surface-variant")}>04. Review</span>
+        </div>
+        <div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden relative">
+          <motion.div 
+            className="h-full bg-primary rounded-full"
+            initial={{ width: "25%" }}
+            animate={{ width: `${(currentStep / 4) * 100}%` }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          />
+        </div>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div 
           key="portal-content"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="space-y-4"
         >
-          <AnimatePresence mode="wait">
-            {currentStep === 1 && (
-              <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
-                <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 shadow-none bg-gradient-to-br from-card/80 to-transparent">
-                  <CardHeader className="p-6 pb-2 border-b border-white/5 relative">
-                    <div className="flex flex-col items-center gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                        <Fingerprint className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">KRA CERTIFICATE</CardTitle>
-                        <CardDescription className="text-[10px] uppercase tracking-wider opacity-90 font-medium">Enter your ID or PIN to generate your certificate.</CardDescription>
-                      </div>
+          <div className="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-muted p-6 md:p-8 relative overflow-hidden z-10">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
+                  
+                  {idSearchStatus === "searching" ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                        <Loader2 className="animate-spin text-primary w-10 h-10 mb-4" />
+                        <p className="font-body-md text-body-md text-on-surface-variant">Connecting to KRA Database...</p>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-4 space-y-6 relative z-10 text-center">
-                    <AnimatePresence mode="wait">
-                      {idSearchStatus === "found" ? (
-                        <motion.div key="verified" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 flex flex-col items-center py-4 w-full max-w-sm mx-auto">
-                          <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-2">
-                            <CheckCircle className="w-7 h-7 text-primary" />
-                          </div>
-                          
-                          <div className="w-full space-y-4 bg-black/10 p-6 rounded-2xl border border-white/5 shadow-inner">
-                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Full Name</span>
-                              <span className="text-[10px] font-bold text-foreground text-right uppercase tracking-tight">{formData.fullName}</span>
-                            </div>
-                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email</span>
-                              <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">KRA PIN</span>
-                              <span className="text-[11px] font-black text-primary text-right uppercase tracking-widest">{formData.pin}</span>
-                            </div>
-                            <div className="flex justify-between items-center gap-4 border-b border-white/5 pb-2">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Reg Date</span>
-                              {isVerifyingDate ? (
-                                <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.registeredDate || 'N/A'}</span>
-                              )}
-                            </div>
-                            <div className="flex justify-between items-center gap-4">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>
-                              <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.phoneNumber || 'N/A'}</span>
-                            </div>
-                          </div>
+                  ) : (
+                    <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                      
+                      {/* Toggle Tabs */}
+                      <div className="flex p-1 bg-surface-variant rounded-lg mb-stack-lg max-w-sm mx-auto">
+                          <button 
+                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "id" ? "bg-surface-container-lowest text-on-surface" : "text-on-surface-variant hover:text-on-surface")}
+                            onClick={() => { setActiveTab("id"); handleInputChange('pin', ''); }}
+                          >
+                              ID Number
+                          </button>
+                          <button 
+                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "pin" ? "bg-surface-container-lowest text-on-surface" : "text-on-surface-variant hover:text-on-surface")}
+                            onClick={() => { setActiveTab("pin"); handleInputChange('idNumber', ''); }}
+                          >
+                              KRA PIN
+                          </button>
+                      </div>
 
-                          <div className="flex flex-col gap-3 w-full max-w-[240px] pt-2">
-                            <Button className="w-full h-10 bg-primary text-white rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary/20" onClick={handleDownload}>
-                              DOWNLOAD
-                              <Download className="ml-2 w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" className="w-full h-8 text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
-                              SEARCH ANOTHER
-                            </Button>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-                          <div className="space-y-4">
-                            <div className="space-y-3">
-                              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Search Mode</Label>
-                              <div className="flex items-center justify-center gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  className={cn(
-                                    "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.idNumber && !formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
-                                  )} 
-                                  onClick={() => { handleInputChange('pin', ''); handleInputChange('idNumber', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
-                                >
-                                  ID NUMBER
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  className={cn(
-                                    "h-8 px-5 rounded-full font-bold text-[9px] uppercase tracking-widest transition-all precision-outline", 
-                                    formData.pin ? "border-primary bg-primary/10 text-primary" : "opacity-100"
-                                  )} 
-                                  onClick={() => { handleInputChange('idNumber', ''); handleInputChange('pin', ' '); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }}
-                                >
-                                  KRA PIN
-                                </Button>
-                              </div>
+                      <form className="space-y-stack-md max-w-sm mx-auto" onSubmit={(e) => { e.preventDefault(); handleIdSearch(); }}>
+                          {activeTab === "id" ? (
+                            <div>
+                                <label className={labelClass}>National ID Number</label>
+                                <div className="relative">
+                                    <BadgeIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                                    <input 
+                                      className={cn(inputClass, "pl-10")}
+                                      placeholder="e.g. 12345678" 
+                                      type="text" 
+                                      value={formData.idNumber}
+                                      onChange={(e) => { handleInputChange('idNumber', e.target.value.toUpperCase()); setCaptchaStatus('idle'); }}
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2 max-w-xs mx-auto">
-                              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formData.pin ? 'KRA PIN NUMBER' : 'ID NUMBER'}</Label>
-                              <Input 
-                                value={formData.pin || formData.idNumber} 
-                                onChange={(e) => { handleInputChange(formData.pin ? 'pin' : 'idNumber', e.target.value.toUpperCase()); setCaptchaStatus('idle'); setCaptchaImage(null); setCaptchaAnswer(''); }} 
-                                placeholder={formData.pin ? 'A00XXXXXXXXB' : '12345678'} 
-                                className="h-10 rounded-full border-white/10 precision-outline focus:border-primary px-8 text-[11px] text-center font-medium transition-all uppercase bg-black/5" 
-                              />
+                          ) : (
+                            <div>
+                                <label className={labelClass}>KRA PIN</label>
+                                <div className="relative">
+                                    <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                                    <input 
+                                      className={cn(inputClass, "pl-10 uppercase")}
+                                      placeholder="e.g. A123456789Z" 
+                                      type="text" 
+                                      value={formData.pin}
+                                      onChange={(e) => { handleInputChange('pin', e.target.value.toUpperCase()); setCaptchaStatus('idle'); }}
+                                    />
+                                </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* CAPTCHA section — shown after first click */}
                           <AnimatePresence>
                             {captchaStatus === "loading" && (
                               <motion.div key="captcha-loading" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex flex-col items-center gap-2 py-2">
                                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Loading verification...</span>
+                                <span className="font-label-sm text-label-sm text-on-surface-variant">Loading verification...</span>
                               </motion.div>
                             )}
                             {captchaStatus === "ready" && captchaImage && (
-                              <motion.div key="captcha-ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex flex-col items-center gap-3">
-                                <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Solve Verification Code</Label>
+                              <motion.div key="captcha-ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex flex-col items-center gap-3 bg-surface-container rounded-lg p-4">
+                                <label className={labelClass}>Solve Verification Code</label>
                                 <div className="relative">
-                                  <img src={captchaImage} alt="KRA CAPTCHA" className="rounded-xl border border-white/10 shadow-inner h-14 mx-auto object-contain bg-white/5" />
+                                  <img src={captchaImage} alt="KRA CAPTCHA" className="rounded border border-outline-variant h-14 mx-auto object-contain bg-white" />
                                   <button
                                     type="button"
                                     onClick={loadCaptcha}
-                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary/20 hover:bg-primary/40 flex items-center justify-center transition-all"
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-variant hover:bg-surface-container-high flex items-center justify-center transition-all border border-outline-variant"
                                     title="Refresh CAPTCHA"
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                    <RefreshCw className="w-3 h-3 text-primary" />
                                   </button>
                                 </div>
-                                <Input 
+                                <input 
                                   value={captchaAnswer}
                                   onChange={(e) => setCaptchaAnswer(e.target.value)}
                                   placeholder="Enter the answer"
-                                  className="h-9 rounded-full border-white/10 precision-outline focus:border-primary px-6 text-[12px] text-center font-bold tracking-widest bg-black/5 max-w-[160px] mx-auto"
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearch(); }}
+                                  className={cn(inputClass, "text-center max-w-[160px]")}
                                   autoFocus
                                 />
                               </motion.div>
@@ -379,219 +390,242 @@ export function KRAPortal() {
                           </AnimatePresence>
 
                           {error && (
-                            <Alert variant="destructive" className="bg-red-500/5 border-red-500/10 rounded-full p-3">
-                              <AlertCircle className="h-4 w-4 text-red-500 mx-auto" />
-                              <AlertDescription className="text-[10px] font-medium opacity-80 leading-normal uppercase text-center mt-1">{error}</AlertDescription>
+                            <Alert variant="destructive" className="bg-error-container border-error text-error rounded-lg">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription className="text-xs font-medium mt-1">{error}</AlertDescription>
                             </Alert>
                           )}
-                          <div className="flex flex-col items-center gap-3">
-                            <Button 
-                              className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-widest shadow-none hover:opacity-90 w-auto min-w-[140px]" 
-                              onClick={handleIdSearch} 
-                              disabled={idSearchStatus === "searching" || captchaStatus === "loading"}
-                            >
-                              {idSearchStatus === "searching" ? (
-                                <div className="flex items-center gap-2">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>RETRIEVING...</span>
-                                </div>
-                              ) : captchaStatus === "ready" ? (
-                                <>SUBMIT <ArrowRight className="ml-2 w-3 h-3" /></>
-                              ) : captchaStatus === "loading" ? (
-                                <div className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /><span>LOADING...</span></div>
-                              ) : (
-                                <>GENERATE <ArrowRight className="ml-2 w-3 h-3" /></>
-                              )}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              className="h-8 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" 
-                              onClick={() => setCurrentStep(2)}
-                            >
-                              I'LL ENTER DETAILS MYSELF
-                            </Button>
+                          
+                          {/* Consent checkbox — legally required */}
+                          <div className="flex items-start gap-2.5 text-left py-2">
+                            <input
+                              type="checkbox"
+                              id="kra-consent"
+                              checked={hasConsented}
+                              onChange={(e) => setHasConsented(e.target.checked)}
+                              className="mt-1 w-4 h-4 accent-primary rounded border-outline-muted cursor-pointer"
+                            />
+                            <label htmlFor="kra-consent" className="font-body-sm text-body-sm text-on-surface-variant cursor-pointer">
+                              I confirm I am the rightful owner of these credentials and I agree to the{" "}
+                              <a href="/legal/terms" target="_blank" className="text-primary hover:underline">Terms of Service</a>.
+                            </label>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                          
+                          <div className="pt-stack-sm flex flex-col gap-3 justify-center">
+                              <button 
+                                className={cn(primaryButtonClass, "w-full disabled:opacity-50")}
+                                type="button"
+                                onClick={handleIdSearch}
+                                disabled={!hasConsented || captchaStatus === "loading"}
+                              >
+                                  <Search className="w-4 h-4" />
+                                  {captchaStatus === "ready" ? "Submit" : "Retrieve Certificate"}
+                              </button>
+                              <button 
+                                className="w-full bg-transparent text-primary hover:bg-primary/5 font-label-md text-label-md py-3 px-8 rounded transition-colors flex justify-center items-center gap-2"
+                                type="button"
+                                onClick={() => setCurrentStep(2)}
+                              >
+                                I'll Enter Details Manually
+                              </button>
+                          </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
 
-            {currentStep === 2 && (
-              <motion.div key="step2" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 shadow-none bg-gradient-to-br from-card/80 to-transparent">
-                  <CardHeader className="p-6 pb-4 border-b border-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full -mr-12 -mt-12" />
-                    <div className="flex flex-col items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-center space-y-0.5">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">PERSONAL INFO</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Enter your name and email.</CardDescription>
-                      </div>
+              {currentStep === 2 && (
+                <motion.div key="step2" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                  <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <User className="text-primary w-6 h-6" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
-                      <div className="space-y-1.5 text-center">
-                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Full Name</Label>
-                        <Input value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} placeholder="AS SHOWN ON ID" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
-                      </div>
-                      <div className="space-y-1.5 text-center">
-                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email Address</Label>
-                        <Input value={formData.email} onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} placeholder="EMAIL@EXAMPLE.COM" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
-                      </div>
-                      <div className="space-y-1.5 text-center">
-                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Registration Date</Label>
-                        <Input value={formData.registeredDate} onChange={(e) => handleInputChange('registeredDate', e.target.value)} placeholder="DD/MM/YYYY" className="h-9 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 text-[10px] text-center font-medium transition-all" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20" onClick={() => setCurrentStep(3)}>CONTINUE <ArrowRight className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(1)}>BACK</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Personal Information</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Please confirm your personal details.</p>
+                  </div>
 
-            {currentStep === 3 && (
-              <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 shadow-none bg-gradient-to-br from-card/80 to-transparent">
-                  <CardHeader className="p-6 pb-4 border-b border-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full -mr-12 -mt-12" />
-                    <div className="flex flex-col items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                        <MapPin className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-center space-y-0.5">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em]">ADDRESS</CardTitle>
-                        <CardDescription className="text-[9px] uppercase tracking-widest opacity-80">Where do you live?</CardDescription>
-                      </div>
+                  <div className="grid grid-cols-1 gap-4 max-w-md mx-auto">
+                    <div>
+                      <label className={labelClass}>Full Name</label>
+                      <input 
+                        value={formData.fullName} 
+                        onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
+                        placeholder="e.g. JOHN DOE" 
+                        className={inputClass} 
+                      />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">County</Label>
-                        <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
-                          <SelectTrigger className="h-11 rounded-full bg-black/5 border-white/10 precision-outline text-xs font-medium px-6 focus:border-primary justify-center text-center">
-                            <SelectValue placeholder="SELECT" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-full">
-                            {COUNTIES.map(c => (<SelectItem key={c} value={c} className="py-2 text-xs">{c}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">District</Label>
-                        <Select value={formData.district || ""} onValueChange={(v) => handleInputChange('district', v)}>
-                          <SelectTrigger className="h-11 rounded-full bg-black/5 border-white/10 precision-outline text-xs font-medium px-6 focus:border-primary justify-center text-center">
-                            <SelectValue placeholder="SELECT" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-full">
-                            {formData.county && GET_SUB_COUNTIES(formData.county).map(sc => (<SelectItem key={sc} value={sc} className="py-2 text-xs">{sc}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">Area</Label>
-                        <Select value={formData.taxArea || ""} onValueChange={(v) => handleInputChange('taxArea', v)}>
-                          <SelectTrigger className="h-11 rounded-full bg-black/5 border-white/10 precision-outline text-xs font-medium px-6 focus:border-primary justify-center text-center">
-                            <SelectValue placeholder="SELECT" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-full">
-                            {formData.county && GET_LOCALITIES(formData.county, formData.district || "").map(l => (<SelectItem key={l} value={l} className="py-2 text-xs">{l}</SelectItem>))}</SelectContent></Select></div>
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">Station</Label>
-                        <Select value={formData.station || ""} onValueChange={(v) => handleInputChange('station', v)}>
-                          <SelectTrigger className="h-11 rounded-full bg-black/10 border-white/10 text-xs font-medium px-6 focus:border-primary justify-center text-center">
-                            <SelectValue placeholder="SELECT" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-full">
-                            {formData.county && GET_STATIONS(formData.county).map(s => (<SelectItem key={s} value={s} className="py-2 text-xs">{s}</SelectItem>))}</SelectContent></Select></div>
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">Postal Code</Label>
-                        <Select value={formData.postalCode} onValueChange={(v) => { const found = GET_POSTAL_CODES(formData.county).find(p => p.code === v); handleInputChange('postalCode', v); if (found) handleInputChange('town', found.town) }}>
-                          <SelectTrigger className="h-11 rounded-full bg-black/5 border-white/10 precision-outline text-xs font-medium px-6 focus:border-primary justify-center text-center">
-                            <SelectValue placeholder="CODE" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-full">
-                            {formData.county && GET_POSTAL_CODES(formData.county).map(p => (<SelectItem key={p.code} value={p.code} className="py-2 text-xs">{p.code}</SelectItem>))}</SelectContent></Select></div>
-                      <div className="space-y-2 text-center">
-                        <Label className="text-xs font-bold uppercase tracking-widest">Mobile Number</Label>
-                        <Input value={formData.phoneNumber} onChange={(e) => handleInputChange('phoneNumber', e.target.value)} placeholder="07XXXXXXXX" className="h-11 rounded-full bg-black/5 border-white/10 precision-outline focus:border-primary px-6 font-medium text-xs text-center" />
-                      </div>
+                    <div>
+                      <label className={labelClass}>Email Address</label>
+                      <input 
+                        value={formData.email} 
+                        onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
+                        placeholder="email@example.com" 
+                        type="email"
+                        className={inputClass} 
+                      />
                     </div>
-                    <div className="flex flex-col items-center gap-4">
-                      <Button className="h-9 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20" onClick={() => setCurrentStep(4)}>REVIEW <ArrowRight className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-8 px-6 rounded-full text-muted-foreground font-bold text-[9px] uppercase tracking-widest" onClick={() => setCurrentStep(2)}>BACK</Button>
+                    <div>
+                      <label className={labelClass}>Exact Registration Date</label>
+                      <input 
+                        value={formData.registeredDate} 
+                        onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
+                        placeholder="DD/MM/YYYY" 
+                        className={inputClass} 
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                  </div>
 
-            {currentStep === 4 && (
-              <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                <Card className="glass-panel overflow-hidden rounded-2xl border-white/10 shadow-none bg-gradient-to-br from-card/80 to-transparent">
-                  <CardHeader className="p-6 pb-4 border-b border-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full -mr-12 -mt-12" />
-                    <div className="flex flex-col items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                        <ShieldCheck className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-center space-y-1">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">REVIEW CERTIFICATE</CardTitle>
-                        <CardDescription className="text-xs uppercase tracking-wide opacity-90">Please check everything before downloading.</CardDescription>
-                      </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 max-w-md mx-auto pt-4">
+                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(1)}>
+                      Back
+                    </button>
+                    <button className={primaryButtonClass} onClick={() => setCurrentStep(3)}>
+                      Continue <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === 3 && (
+                <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                  <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <MapPin className="text-primary w-6 h-6" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-6 space-y-8 relative z-10">
-                    <div className="bg-black/10 p-6 rounded-2xl border border-white/5 space-y-4 max-w-2xl mx-auto shadow-inner">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">KRA PIN</span>
-                        <span className="text-[11px] font-black text-primary uppercase tracking-widest">{formData.pin || 'NOT FOUND'}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Name</span>
-                        <span className="text-[10px] font-bold text-foreground text-right uppercase tracking-tight">{formData.fullName}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Email</span>
-                        <span className="text-[10px] font-bold text-foreground text-right lowercase tracking-tight">{formData.email || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Exact Reg Date</span>
-                        {isVerifyingDate ? (
-                          <span className="text-[10px] font-semibold text-primary animate-pulse tracking-wide uppercase">VERIFYING...</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.registeredDate || 'N/A'}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Phone</span>
-                        <span className="text-[10px] font-bold text-foreground text-right tracking-tight">{formData.phoneNumber || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Location</span>
-                        <span className="text-[10px] font-bold text-muted-foreground text-right uppercase tracking-wide">{formData.town || 'N/A'}, {formData.county || 'N/A'}</span>
-                      </div>
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Address Details</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Where are you located?</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <div>
+                      <label className={labelClass}>County</label>
+                      <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
+                        <SelectTrigger className={cn(inputClass, "h-12")}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                          {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="flex flex-col items-center gap-4">
-                      <Button className="h-10 px-8 bg-primary text-white rounded-full transition-all font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 w-auto min-w-[160px]" onClick={handleDownload}>DOWNLOAD <Download className="ml-2 w-3 h-3" /></Button>
-                      <Button variant="ghost" className="h-9 px-6 rounded-full text-muted-foreground hover:text-primary font-bold text-[9px] uppercase tracking-widest" onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>GENERATE ANOTHER</Button>
+                    <div>
+                      <label className={labelClass}>District</label>
+                      <Select value={formData.district || ""} onValueChange={(v) => handleInputChange('district', v)}>
+                        <SelectTrigger className={cn(inputClass, "h-12")}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                          {formData.county && GET_SUB_COUNTIES(formData.county).map(sc => (<SelectItem key={sc} value={sc}>{sc}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    <div>
+                      <label className={labelClass}>Area</label>
+                      <Select value={formData.taxArea || ""} onValueChange={(v) => handleInputChange('taxArea', v)}>
+                        <SelectTrigger className={cn(inputClass, "h-12")}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                          {formData.county && GET_LOCALITIES(formData.county, formData.district || "").map(l => (<SelectItem key={l} value={l}>{l}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Station</label>
+                      <Select value={formData.station || ""} onValueChange={(v) => handleInputChange('station', v)}>
+                        <SelectTrigger className={cn(inputClass, "h-12")}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                          {formData.county && GET_STATIONS(formData.county).map(s => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Postal Code</label>
+                      <Select value={formData.postalCode} onValueChange={(v) => { const found = GET_POSTAL_CODES(formData.county).find(p => p.code === v); handleInputChange('postalCode', v); if (found) handleInputChange('town', found.town) }}>
+                        <SelectTrigger className={cn(inputClass, "h-12")}>
+                          <SelectValue placeholder="Code" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                          {formData.county && GET_POSTAL_CODES(formData.county).map(p => (<SelectItem key={p.code} value={p.code}>{p.code}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Mobile Number</label>
+                      <input 
+                        value={formData.phoneNumber} 
+                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
+                        placeholder="07XXXXXXXX" 
+                        className={inputClass} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto pt-4">
+                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(2)}>
+                      Back
+                    </button>
+                    <button className={primaryButtonClass} onClick={() => setCurrentStep(4)}>
+                      Review <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === 4 && (
+                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                  <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <ShieldCheck className="text-primary w-6 h-6" />
+                    </div>
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review Certificate</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Please check everything before downloading.</p>
+                  </div>
+
+                  <div className="w-full max-w-lg mx-auto bg-surface-variant/30 rounded-lg p-6 border border-outline-variant space-y-4">
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">KRA PIN</span>
+                      <span className="font-label-md text-label-md text-primary font-bold">{formData.pin || 'NOT FOUND'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Name</span>
+                      <span className="font-label-md text-label-md text-on-surface font-bold">{formData.fullName}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Email</span>
+                      <span className="font-label-md text-label-md text-on-surface">{formData.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Exact Reg Date</span>
+                      <span className="font-label-md text-label-md text-on-surface">{formData.registeredDate || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Phone</span>
+                      <span className="font-label-md text-label-md text-on-surface">{formData.phoneNumber || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Location</span>
+                      <span className="font-label-md text-label-md text-on-surface">{formData.town || 'N/A'}, {formData.county || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-lg mx-auto pt-4">
+                    <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
+                      <RefreshCw className="w-4 h-4" /> New Search
+                    </button>
+                    <button className={primaryButtonClass} onClick={handleDownload}>
+                      <Download className="w-4 h-4" /> Download PDF
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </AnimatePresence>
-    </motion.div>
+    </div>
   )
 }

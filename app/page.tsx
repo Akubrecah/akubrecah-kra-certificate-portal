@@ -1,253 +1,260 @@
 "use client"
 
-import { 
-  useUser,
-} from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs"
 import { 
   ArrowRight, 
-  ShieldCheck, 
   Fingerprint, 
-  Shield,
-  Zap,
-  Lock,
-  Globe,
-  Database,
-  MousePointer2,
-  Activity,
   Cpu,
   Layers,
-  ChevronRight,
-  Plus
 } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { PageBackground } from "@/components/ui/page-background"
-import { motion, useScroll, useTransform } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
-import { useRef } from "react"
+import { motion, useScroll, useInView, animate } from "framer-motion"
+import { useRef, useState, useEffect } from "react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
+
+function Counter({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const isInView = useInView(ref, { once: true, margin: "-50px" })
+  const [displayValue, setDisplayValue] = useState("0")
+  
+  useEffect(() => {
+    if (!isInView) return
+    
+    const match = value.match(/([0-9.]+)/)
+    if (!match) {
+      setDisplayValue(value)
+      return
+    }
+    const num = parseFloat(match[1])
+    const prefix = value.substring(0, match.index)
+    const suffix = value.substring(match.index! + match[1].length)
+    
+    const isDecimal = match[1].includes(".")
+    const decimals = isDecimal ? match[1].split(".")[1].length : 0
+
+    const controls = animate(0, num, {
+      duration: 2.0,
+      ease: "easeOut",
+      onUpdate(val) {
+        setDisplayValue(`${prefix}${val.toFixed(decimals)}${suffix}`)
+      }
+    })
+    return () => controls.stop()
+  }, [value, isInView])
+
+  return <span ref={ref}>{displayValue}</span>
+}
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  })
   const { isSignedIn, isLoaded } = useUser()
 
   return (
-    <PageBackground>
-      <div ref={containerRef} className="relative z-10 min-h-screen pb-4 w-full">
-        
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="w-full flex flex-col space-y-0 py-0 max-w-7xl mx-auto"
-        >
-          {/* 01. Hero */}
-          <section id="about" className="relative flex flex-col items-center justify-center text-center overflow-visible pt-0">
-            {/* Animated Background Elements - Simplified */}
-            <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
-              <div className="w-[400px] h-[400px] bg-primary/5 blur-[100px] rounded-full" />
-            </div>
-
+    <div ref={containerRef} className="relative z-10 min-h-screen pb-4 w-full bg-background text-on-background font-body-md pt-16">
+      
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full flex flex-col space-y-16 py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      >
+        {/* 01. Hero */}
+        <section id="about" className="relative flex flex-col items-center justify-center text-center overflow-visible">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.12 } }
+            }}
+            className="space-y-6 relative z-10 max-w-3xl mx-auto"
+          >
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-2 relative z-10"
+              variants={{
+                hidden: { opacity: 0, scale: 0.8, y: -10 },
+                visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 200, damping: 15 } }
+              }}
+              className="flex justify-center"
             >
-              <div className="flex justify-center">
-                <Badge className="bg-primary/5 text-primary border border-primary/10 font-medium px-2 py-0.5 rounded-full text-[8px] tracking-wider uppercase">
-                  Official KRA Retrieval Service
-                </Badge>
+              <div className="bg-surface-container-high text-primary font-label-sm text-label-sm px-4 py-1.5 rounded-full uppercase tracking-widest border border-outline-variant">
+                Official KRA Retrieval Service
               </div>
-              
-              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight leading-tight mb-1 uppercase">
-                Generate Your <br />
-                <span className="text-primary font-bold">KRA Certificate.</span>
-              </h1>
-              
-              <p className="max-w-7xl mx-auto text-[10px] text-muted-foreground font-normal leading-normal opacity-80 uppercase tracking-wide">
-                Simple and secure retrieval of KRA PIN and Compliance Certificates. Fast and reliable.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                {isLoaded && isSignedIn ? (
-                  <>
-                    <Link href="/retrieval-portal" className="w-full sm:w-auto">
-                      <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                        Get Your Certificate
-                        <ArrowRight className="ml-2 h-3 w-3" />
-                      </Button>
-                    </Link>
-                    <Link href="/change-particulars" className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
-                        Change Particulars
-                      </Button>
-                    </Link>
-                  </>
-                ) : isLoaded && (
-                  <>
-                    <Link href="/sign-in" className="w-full sm:w-auto">
-                      <Button className="w-full sm:w-auto h-8 px-6 bg-primary text-white rounded-full transition-all hover:opacity-90 font-bold text-[9px] uppercase tracking-widest border border-white/5 shadow-none">
-                        Get Your Certificate
-                        <ArrowRight className="ml-2 h-3 w-3" />
-                      </Button>
-                    </Link>
-                    <Link href="/sign-up" className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full sm:w-auto h-8 px-6 glass border-white/10 rounded-full font-bold text-[9px] uppercase tracking-widest hover:bg-white/5 transition-all">
-                        Create Account
-                      </Button>
-                    </Link>
-                    <Link href="/change-particulars" className="w-full sm:w-auto">
-                      <Button variant="ghost" className="w-full sm:w-auto h-8 px-4 rounded-full font-bold text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
-                        Change Particulars
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
-
             </motion.div>
+            
+            <motion.h1 
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+              }}
+              className="font-display-lg text-[40px] md:text-[56px] text-on-surface leading-tight"
+            >
+              Generate Your <br />
+              <span className="text-primary">KRA Certificate.</span>
+            </motion.h1>
+            
+            <motion.p 
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+              }}
+              className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto"
+            >
+              Simple and secure retrieval of KRA PIN and Compliance Certificates. Fast and reliable.
+            </motion.p>
 
-          </section>
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+              }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+            >
+              {isLoaded && isSignedIn ? (
+                <Link href="/retrieval-portal" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto bg-primary-container text-on-primary font-label-md text-label-md py-3 px-8 rounded hover:bg-primary transition-colors flex justify-center items-center gap-2">
+                    Get Your Certificate
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+              ) : isLoaded && (
+                <>
+                  <Link href="/sign-in" className="w-full sm:w-auto">
+                    <button className="w-full sm:w-auto bg-primary-container text-on-primary font-label-md text-label-md py-3 px-8 rounded hover:bg-primary transition-colors flex justify-center items-center gap-2">
+                      Get Your Certificate
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </Link>
+                  <Link href="/sign-up" className="w-full sm:w-auto">
+                    <button className="w-full sm:w-auto bg-surface-container-lowest border border-outline-muted text-on-surface font-label-md text-label-md py-3 px-8 rounded hover:bg-surface-variant transition-colors flex justify-center items-center gap-2">
+                      Create Account
+                    </button>
+                  </Link>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        </section>
 
-          {/* 02. Service Marquee - Minimal */}
-          <section id="blogs" className="py-2 border-y border-white/5 overflow-hidden">
-            <div className="mask-marquee">
-              <motion.div 
-                animate={{ x: [0, -1000] }}
-                transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-                className="flex items-center gap-12 whitespace-nowrap"
+        {/* 03. Workflow */}
+        <section id="workflow" className="py-8 border-t border-outline-variant">
+          <div className="text-center mb-10 space-y-2">
+            <h2 className="font-headline-lg text-headline-lg text-on-surface">How it works</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-md mx-auto">Simple steps to get your certificate securely and instantly.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative max-w-4xl mx-auto px-4">
+            {/* Connecting line for desktop */}
+            <div className="absolute top-8 left-[15%] right-[15%] h-[2px] bg-surface-variant hidden md:block z-0" />
+
+            {[
+              { 
+                step: "01", 
+                icon: <Fingerprint className="w-6 h-6" />, 
+                title: "IDENTITY", 
+                desc: "Provide your identification details."
+              },
+              { 
+                step: "02", 
+                icon: <Cpu className="w-6 h-6" />, 
+                title: "PROCESSING", 
+                desc: "System synchronizes with KRA records."
+              },
+              { 
+                step: "03", 
+                icon: <Layers className="w-6 h-6" />, 
+                title: "CERTIFICATE", 
+                desc: "Download official PDF certificate."
+              }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: i * 0.15, type: "spring", stiffness: 100 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                className="group flex flex-col items-center text-center space-y-4 relative z-10 cursor-pointer bg-surface-container-lowest p-6 rounded-xl border border-outline-muted shadow-sm hover:shadow-soft transition-all"
               >
-                {[
-                  "NIL RETURNS", "PIN RETRIEVAL", "TCC ISSUANCE", "VAT COMPLIANCE",
-                  "PAYE FILING", "COMPANY REGISTRATION", "KRA CERTIFICATE"
-                ].map((service, i) => (
-                  <span key={i} className="text-[12px] font-bold text-foreground/20 uppercase tracking-[0.2em]">
-                    {service}
-                  </span>
-                ))}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center transition-all duration-300 group-hover:bg-primary-container group-hover:text-on-primary text-primary relative z-10">
+                    {item.icon}
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-7 h-7 bg-primary text-on-primary rounded-full flex items-center justify-center font-label-sm text-label-sm shadow-sm">
+                    {item.step}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-title-lg text-title-lg text-on-surface">{item.title}</h3>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">{item.desc}</p>
+                </div>
               </motion.div>
-            </div>
-          </section>
+            ))}
+          </div>
+        </section>
 
-          {/* 03. Workflow */}
-          <section id="security" className="py-4">
-            <div className="text-center mb-4 space-y-1">
-              <h2 className="text-base font-bold tracking-tight uppercase">How it works.</h2>
-              <p className="text-muted-foreground text-[8px] font-bold uppercase tracking-widest opacity-90">Simple steps to get your certificate.</p>
+        {/* 04. Infrastructure */}
+        <section id="infrastructure" className="bg-surface-variant/30 border border-outline-variant p-8 relative overflow-hidden rounded-2xl max-w-5xl mx-auto w-full">
+          <div className="max-w-xl mx-auto text-center space-y-6 relative z-10">
+            <div className="bg-primary/10 text-primary font-label-sm text-label-sm px-3 py-1 rounded-full uppercase tracking-widest inline-block border border-primary/20">
+              SYSTEM STATUS
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
+            <h2 className="font-display-lg text-[32px] md:text-[40px] text-on-surface leading-tight">
+              PRECISION <span className="text-primary">ENGINE</span>
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mx-auto">
+              Fast processing with enterprise security. Your personal data is never stored on our servers.
+            </p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-6">
               {[
-                { 
-                  step: "01", 
-                  icon: <Fingerprint className="w-5 h-5" />, 
-                  title: "IDENTITY", 
-                  desc: "Provide your identification details."
-                },
-                { 
-                  step: "02", 
-                  icon: <Cpu className="w-5 h-5" />, 
-                  title: "PROCESSING", 
-                  desc: "System synchronizes with KRA records."
-                },
-                { 
-                  step: "03", 
-                  icon: <Layers className="w-5 h-5" />, 
-                  title: "CERTIFICATE", 
-                  desc: "Download official PDF certificate."
-                }
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="group flex flex-col items-center text-center space-y-3"
-                >
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-background border border-white/10 flex items-center justify-center transition-all duration-300 relative z-10">
-                      <div className="text-primary">
-                        {item.icon}
-                      </div>
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 glass rounded-full flex items-center justify-center text-[7px] font-bold italic border border-white/20">
-                      {item.step}
-                    </div>
+                { label: "UPTIME", value: "99.9%" },
+                { label: "SPEED", value: "< 35S" },
+                { label: "ENCRYPT", value: "AES-256" },
+                { label: "VOLUME", value: "128K+" }
+              ].map((stat, i) => (
+                <div key={i} className="space-y-2 bg-surface-container-lowest p-4 rounded-lg border border-outline-muted">
+                  <div className="font-label-sm text-label-sm uppercase text-on-surface-variant">{stat.label}</div>
+                  <div className="font-headline-lg text-headline-lg text-primary">
+                    <Counter value={stat.value} />
                   </div>
-                  <div className="space-y-0.5">
-                    <h3 className="text-[9px] font-bold uppercase tracking-widest">{item.title}</h3>
-                    <p className="text-muted-foreground font-medium leading-relaxed opacity-90 text-[8px] uppercase px-2">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* 04. Infrastructure */}
-          <section id="infrastructure" className="glass border border-white/5 p-8 relative overflow-hidden rounded-2xl">
-            <div className="max-w-xl mx-auto text-center space-y-4">
-              <Badge className="bg-primary/10 text-primary border border-primary/20 font-bold px-2 py-0.5 rounded-full text-[7px] tracking-[0.2em] uppercase mx-auto">
-                SYSTEM STATUS
-              </Badge>
-              <h2 className="text-xl font-bold text-foreground tracking-tight uppercase leading-tight">
-                PRECISION<br />
-                <span className="text-primary">ENGINE.</span>
-              </h2>
-              <p className="text-[10px] text-muted-foreground leading-relaxed font-normal opacity-80 uppercase tracking-wide max-w-sm mx-auto">
-                Fast processing with enterprise security. Your personal data is never stored on our servers.
-              </p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-4">
-                {[
-                  { label: "UPTIME", value: "99.9%" },
-                  { label: "SPEED", value: "< 35S" },
-                  { label: "ENCRYPT", value: "AES-256" },
-                  { label: "VOLUME", value: "128K+" }
-                ].map((stat, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="text-[7px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</div>
-                    <div className="text-sm font-bold uppercase tracking-tight text-foreground">{stat.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* 05. FAQ - Simplified */}
-          <section id="faqs" className="max-w-7xl mx-auto py-2 space-y-3">
-            <div className="text-center space-y-1">
-              <h2 className="text-base font-bold uppercase tracking-widest">Inquiries.</h2>
-              <div className="h-[1px] w-8 bg-primary mx-auto" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {[
-                { q: "IS THIS OFFICIAL?", a: "This is a reliable independent service for easy KRA portal access." },
-                { q: "HOW LONG DOES IT TAKE?", a: "Your certificate will be ready in about 45 seconds." },
-                { q: "IS MY DATA SAFE?", a: "Yes. We don't save any of your details. Your session is deleted immediately." },
-                { q: "CAN I FILE RETURNS?", a: "Yes, we support Nil returns and other basic filing tasks." }
-              ].map((faq, i) => (
-                <div 
-                  key={i}
-                  className="glass rounded-2xl p-3 border border-white/5 transition-all"
-                >
-                  <h4 className="text-[8px] font-bold uppercase tracking-[0.2em] mb-0.5 text-primary">{faq.q}</h4>
-                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide opacity-80">
-                    {faq.a}
-                  </p>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
+        </section>
 
+        {/* 05. FAQ */}
+        <section id="faqs" className="max-w-4xl mx-auto w-full py-8 space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="font-headline-lg text-headline-lg text-on-surface">Frequently Asked Questions</h2>
+            <div className="h-1 w-12 bg-primary mx-auto rounded" />
+          </div>
 
-        </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
+            {[
+              { q: "IS THIS OFFICIAL?", a: "This is a reliable independent service for easy KRA portal access." },
+              { q: "HOW LONG DOES IT TAKE?", a: "Your certificate will be ready in about 45 seconds." },
+              { q: "IS MY DATA SAFE?", a: "Yes. We don't save any of your details. Your session is deleted immediately." },
+              { q: "CAN I FILE RETURNS?", a: "Yes, we support Nil returns and other basic filing tasks." }
+            ].map((faq, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                whileHover={{ scale: 1.02 }}
+                className="bg-surface-container-lowest border border-outline-muted rounded-xl p-6 transition-all hover:border-primary/30 hover:shadow-soft"
+              >
+                <h4 className="font-title-lg text-[18px] mb-2 text-primary">{faq.q}</h4>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  {faq.a}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-      </div>
-    </PageBackground>
+      </motion.div>
+    </div>
   )
 }

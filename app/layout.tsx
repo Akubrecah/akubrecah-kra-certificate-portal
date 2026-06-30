@@ -33,6 +33,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+      </head>
       <body className={`${inter.variable} ${plusJakarta.variable} ${alfa.variable} ${satisfy.variable} font-sans`} data-theme={theme} suppressHydrationWarning={true}>
         <ClerkProvider 
           signInUrl="/sign-in"
@@ -49,11 +52,7 @@ export default async function RootLayout({
             enableSystem
           >
             <TooltipProviderWrapper>
-              <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
-                {/* Design Background Glows */}
-                <div className="pointer-events-none fixed left-[-10%] top-[-10%] h-[60%] w-[60%] animate-float bg-glow-teal opacity-80 blur-[100px]" />
-                <div className="pointer-events-none fixed right-[-10%] bottom-[-10%] h-[60%] w-[60%] animate-float bg-glow-red opacity-30 blur-[100px] [animation-delay:2s]" />
-                
+              <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">                
                 <KRAAnnouncementBanner />
                 <AdminLayoutWrapper>
                   {children}

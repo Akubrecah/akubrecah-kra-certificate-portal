@@ -26,6 +26,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
 
 # vercel
@@ -34,3 +35,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test & debug artifacts
+/build_output.txt
+/captcha-ocr-test.png
+/captcha-test.png
+/debug_output.json
+/file-scenario.txt
+/test-certificate-output.pdf
+/components/receipt - 2026-03-19T144327.386 (Autosaved).pdf
+/public/jeremy-id.png
+/signin_screen.html
+/dashboard.html
+/income.html
+/pin-checker-result.html
+/pin-checker-source.html
