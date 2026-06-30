@@ -36,7 +36,7 @@ export function SiteFooter(): JSX.Element {
               <Logo width={200} height={60} />
             </Link>
             <p className="text-sm text-on-surface-variant max-w-xs text-center md:text-left">
-              Professional compliance suite for KRA services and PDF management.
+              Professional compliance suite for KRA services and CV building.
             </p>
           </div>
 

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Camera,
   CheckCircle2,
@@ -21,12 +21,16 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { updateProfileDetails } from "@/app/dashboard/profile/actions";
 
 interface ProfileClientProps {
   fullName: string;
   email: string | null;
   phone: string | null;
   imageUrl: string;
+  initialDob?: string;
+  initialGender?: string;
+  initialNationality?: string;
 }
 
 const NATIONALITIES = [
@@ -90,14 +94,17 @@ export default function ProfileClient({
   email: initialEmail,
   phone: initialPhone,
   imageUrl,
+  initialDob = "1985-05-12",
+  initialGender = "Male",
+  initialNationality = "Kenyan",
 }: ProfileClientProps) {
   // State
   const [fullName, setFullName] = useState(initialFullName);
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(initialPhone);
-  const [dob, setDob] = useState("1985-05-12");
-  const [gender, setGender] = useState("Male");
-  const [nationality, setNationality] = useState("Kenyan");
+  const [dob, setDob] = useState(initialDob);
+  const [gender, setGender] = useState(initialGender);
+  const [nationality, setNationality] = useState(initialNationality);
   const [twoFAEnabled, setTwoFAEnabled] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -125,6 +132,17 @@ export default function ProfileClient({
     setTimeout(() => setToast(null), 3500);
   };
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("message") === "incomplete_profile") {
+        setTimeout(() => {
+          showToast("Please update your full name and phone number to unlock services.");
+        }, 100);
+      }
+    }
+  }, []);
+
   const openPersonalModal = () => {
     const [first, ...rest] = fullName.split(" ");
     setTempFirstName(first || "");
@@ -135,13 +153,26 @@ export default function ProfileClient({
     setModal("personal");
   };
 
-  const savePersonal = () => {
-    setFullName(`${tempFirstName} ${tempLastName}`.trim());
-    setDob(tempDob);
-    setGender(tempGender);
-    setNationality(tempNationality);
-    setModal(null);
-    showToast("Personal information updated successfully.");
+  const savePersonal = async () => {
+    try {
+      const res = await updateProfileDetails({
+        firstName: tempFirstName,
+        lastName: tempLastName,
+        dob: tempDob,
+        gender: tempGender,
+        nationality: tempNationality,
+      });
+      if (res.success) {
+        setFullName(`${tempFirstName} ${tempLastName}`.trim());
+        setDob(tempDob);
+        setGender(tempGender);
+        setNationality(tempNationality);
+        setModal(null);
+        showToast("Personal information updated successfully.");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to update personal information.");
+    }
   };
 
   const openContactModal = () => {
@@ -150,11 +181,20 @@ export default function ProfileClient({
     setModal("contact");
   };
 
-  const saveContact = () => {
-    setEmail(tempEmail || null);
-    setPhone(tempPhone || null);
-    setModal(null);
-    showToast("Contact information updated successfully.");
+  const saveContact = async () => {
+    try {
+      const res = await updateProfileDetails({
+        phone: tempPhone,
+      });
+      if (res.success) {
+        setEmail(tempEmail || null);
+        setPhone(tempPhone || null);
+        setModal(null);
+        showToast("Contact information updated successfully.");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to update contact information.");
+    }
   };
 
   const savePassword = () => {
@@ -176,6 +216,12 @@ export default function ProfileClient({
 
   const missingPhone = !phone;
   const missingEmail = !email;
+
+  const hasName = fullName.trim().length > 0;
+  const hasPhone = !missingPhone;
+  let completeness = 0;
+  if (hasName) completeness += 50;
+  if (hasPhone) completeness += 50;
 
   const inputCls =
     "w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm";
@@ -213,6 +259,35 @@ export default function ProfileClient({
               <ShieldCheck className="w-4 h-4" /> KYC Verified
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* Profile Completeness Status */}
+      <section className="bg-surface-container-lowest rounded-2xl p-6 mb-6 shadow-soft border border-outline-variant">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+          <div>
+            <h3 className="font-bold text-on-surface text-lg">Profile Completeness</h3>
+            <p className="text-on-surface-variant text-xs mt-0.5">
+              {completeness === 100 
+                ? "Your profile is fully complete. All services unlocked!" 
+                : "Complete your profile details to unlock all portal services."}
+            </p>
+          </div>
+          <span className={`px-3 py-1 text-xs font-bold rounded-full h-max ${
+            completeness === 100 
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300" 
+              : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
+          }`}>
+            {completeness}% Complete
+          </span>
+        </div>
+        <div className="w-full bg-surface-container rounded-full h-3 overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-500 rounded-full ${
+              completeness === 100 ? "bg-green-600" : "bg-amber-500"
+            }`} 
+            style={{ width: `${completeness}%` }}
+          />
         </div>
       </section>
 
