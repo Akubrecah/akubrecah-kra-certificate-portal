@@ -201,9 +201,15 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     phoneNumber: '', email: '', captchaWrong: false,
   };
 
-  if (html.includes('Wrong result of the arithmetic operation.') ||
-      html.includes('wrong result') ||
-      html.includes('captchaError')) {
+  const hasTaxpayerDetails = html.toLowerCase().includes('taxpayer name') ||
+                             html.toLowerCase().includes('tax payer name') ||
+                             html.toLowerCase().includes('pin details');
+  const hasCaptchaForm = html.includes('captcahText') ||
+                         html.includes('Security Stamp') ||
+                         html.includes('ajaxCaptchaLoad') ||
+                         html.includes('Wrong result');
+
+  if (!hasTaxpayerDetails && hasCaptchaForm) {
     result.captchaWrong = true;
     return result;
   }
