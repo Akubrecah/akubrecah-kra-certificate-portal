@@ -379,7 +379,47 @@ async function fetchManufacturerDetails(pin: string, cookieString: string, proxy
     
     if (!raw || raw.trim().length === 0) return null;
     const parsedData = JSON.parse(raw);
-    if (parsedData) {
+    if (parsedData && !parsedData.isError) {
+      const basic = parsedData.timsManBasicRDtlDTO || {};
+      const business = parsedData.manBusinessRDtlDTO || {};
+      const contact = parsedData.manContactRDtlDTO || {};
+      const address = parsedData.manAddRDtlDTO || {};
+
+      const firstName = basic.firstName || '';
+      const middleName = basic.middleName || '';
+      const lastName = basic.lastName || '';
+      const directFullName = [firstName, middleName, lastName].filter(Boolean).join(' ') 
+        || basic.manufacturerName 
+        || business.businessName 
+        || '';
+
+      const directEmail = contact.mainEmail || contact.secondaryEmail || '';
+      const directPhone = contact.mobileNo || contact.telephoneNo || '';
+      const directCounty = address.county || '';
+      const directTown = address.cityTown || address.town || '';
+      const directDistrict = address.district || '';
+      const directTaxArea = address.taxAreaLocality || '';
+      const directBuilding = address.buldgNo || address.descriptiveAddress || '';
+      const directStreet = address.streetRoad || '';
+      const directPoBox = address.poBox || '';
+      const directPostalCode = address.postalCode || '';
+
+      if (directFullName || directEmail || directCounty || directTown) {
+        return {
+          name: directFullName,
+          email: directEmail,
+          phoneNumber: directPhone,
+          building: directBuilding,
+          street: directStreet,
+          town: directTown,
+          county: directCounty,
+          district: directDistrict,
+          taxArea: directTaxArea,
+          poBox: directPoBox,
+          postalCode: directPostalCode,
+        };
+      }
+
       const mergedData: Record<string, any> = {};
       Object.values(parsedData).forEach(val => {
         if (val && typeof val === 'object' && !Array.isArray(val)) {
@@ -409,10 +449,10 @@ async function fetchManufacturerDetails(pin: string, cookieString: string, proxy
         return '';
       };
 
-      const firstName = get('firstName', 'first_name', 'fName');
-      const middleName = get('middleName', 'middle_name', 'secondName', 'mName');
-      const lastName = get('lastName', 'last_name', 'surname', 'lName');
-      const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ')
+      const fn = get('firstName', 'first_name', 'fName');
+      const mn = get('middleName', 'middle_name', 'secondName', 'mName');
+      const ln = get('lastName', 'last_name', 'surname', 'lName');
+      const fullName = [fn, mn, ln].filter(Boolean).join(' ')
         || get('taxpayerName', 'fullName', 'manufacturerName', 'name');
 
       let email = get('emailAddress', 'emailId', 'email');
