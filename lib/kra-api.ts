@@ -210,8 +210,7 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
     }
   }
 
-  // Secondary Fallback: Query internal iTax direct validation to guarantee zero downtime
-  return fetchTaxpayerViaItaxFallback(pin);
+  throw new Error(`Taxpayer record for PIN ${pin} could not be retrieved from KRA Live Gateway.`);
 }
 
 /**
@@ -263,8 +262,7 @@ export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'au
     }
   }
 
-  // Secondary Fallback: Query internal iTax DWR lookup to ensure user always gets their data
-  return fetchTaxpayerViaItaxIdFallback(idNumber);
+  throw new Error(`Taxpayer record for National ID ${idNumber} could not be retrieved from KRA Live Gateway.`);
 }
 
 /**
@@ -425,80 +423,4 @@ function normalizeKraTaxpayerResponse(
     obligations,
     source,
   };
-}
-
-/**
- * Fallback via internal KRA portal endpoint
- */
-async function fetchTaxpayerViaItaxFallback(pin: string): Promise<TaxpayerProfile> {
-  const hash = (str: string) => {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
-    return Math.abs(h);
-  };
-
-  const pHash = hash(pin);
-  const firstNames = ['JOHN', 'MARY', 'PETER', 'GRACE', 'DAVID', 'JAMES', 'ALICE', 'JOSEPH', 'SARAH', 'DANIEL', 'GEOFFREY', 'EMILY', 'BRIAN', 'LILIAN'];
-  const middleNames = ['KAMAU', 'NJERI', 'MWANGI', 'AUMA', 'KIPROP', 'MUTUA', 'OTIENO', 'WANGUI', 'CHEPKEMOI', 'KARIUKI', 'KIMANI', 'WANJIKU'];
-  const lastNames = ['NJOROGE', 'KARAURI', 'ODHIAMBO', 'MAINA', 'ONYANGO', 'KIPLAGAT', 'NTHIGA', 'WANYAMA', 'OMONDI', 'MUTISO', 'GICHERU', 'MBUGUA'];
-
-  const fName = firstNames[pHash % firstNames.length];
-  const mName = middleNames[(pHash >> 1) % middleNames.length];
-  const lName = lastNames[(pHash >> 2) % lastNames.length];
-  const fullName = `${fName} ${mName} ${lName}`;
-
-  const counties = ['NAIROBI', 'MOMBASA', 'KISUMU', 'KIAMBU', 'NAKURU', 'UASIN GISHU', 'MACHAKOS', 'MERU', 'KILIFI', 'KAKAMEGA', 'NYERI'];
-  const county = counties[pHash % counties.length];
-  const station = getKraStationForCounty(county);
-  const year = 2012 + (pHash % 12);
-  const day = String(1 + (pHash % 28)).padStart(2, '0');
-  const month = String(1 + ((pHash >> 1) % 12)).padStart(2, '0');
-  const regDate = `${day}/${month}/${year}`;
-
-  const email = `${fName.toLowerCase()}.${lName.toLowerCase()}${10 + (pHash % 89)}@gmail.com`;
-  const phoneNumber = `07${Math.floor(10000000 + (pHash % 89999999))}`;
-
-  return {
-    pin,
-    taxpayerName: fullName,
-    status: 'Active',
-    registrationDate: regDate,
-    station,
-    taxArea: `${county} Central Locality`,
-    county,
-    town: county.charAt(0) + county.slice(1).toLowerCase(),
-    district: `${county} District`,
-    building: `Commercial Plaza, Fl ${1 + (pHash % 8)}`,
-    street: 'Kenyatta Avenue',
-    poBox: `P.O. Box ${1000 + (pHash % 8999)}`,
-    postalCode: `00${100 + (pHash % 800)}`,
-    phoneNumber,
-    email,
-    obligations: [
-      {
-        name: 'Income Tax - Individual (IT1)',
-        status: 'Active',
-        effectiveFrom: regDate,
-      },
-    ],
-    source: 'itax_live',
-  };
-}
-
-async function fetchTaxpayerViaItaxIdFallback(idNumber: string): Promise<TaxpayerProfile> {
-  const hash = (str: string) => {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
-    return Math.abs(h);
-  };
-
-  const iHash = hash(idNumber);
-  const pinLetterStart = ['A', 'P'][iHash % 2];
-  const pinDigits = String(10000000 + (iHash % 89999999)).slice(0, 9);
-  const pinLetterEnd = String.fromCharCode(65 + (iHash % 26));
-  const generatedPin = `${pinLetterStart}${pinDigits}${pinLetterEnd}`;
-
-  const profile = await fetchTaxpayerViaItaxFallback(generatedPin);
-  profile.idNumber = idNumber;
-  return profile;
 }

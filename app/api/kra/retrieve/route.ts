@@ -894,6 +894,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[retrieve] Critical retrieve handler error:', error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Unable to retrieve details. Please verify your credentials and try again.',
+    }, { status: 400 });
   }
 }
