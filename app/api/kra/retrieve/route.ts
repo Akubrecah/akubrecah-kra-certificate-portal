@@ -205,6 +205,14 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
                          html.includes('ajaxCaptchaLoad') ||
                          html.includes('Wrong result');
 
+  const isNotFound = html.includes('System is not able to process your request') ||
+                     html.includes('No Record Found') ||
+                     html.includes('Invalid PIN Number');
+
+  if (isNotFound) {
+    return result;
+  }
+
   if (!hasTaxpayerDetails && hasCaptchaForm) {
     result.captchaWrong = true;
     return result;
@@ -815,6 +823,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (!name) {
+      if (captchaAnswer && captchaAnswer.trim()) {
+        return NextResponse.json({
+          success: false,
+          error: `No active taxpayer profile found for PIN ${fullPin}. Please verify your National ID or PIN.`
+        }, { status: 404 });
+      }
+
       console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
       return NextResponse.json({
         success: false,
