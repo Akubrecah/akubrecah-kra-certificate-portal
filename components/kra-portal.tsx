@@ -303,18 +303,31 @@ export function KRAPortal() {
                     <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
                       
                       {/* Query Engine Switcher */}
-                      <div className="flex flex-col items-center gap-1.5 mb-4 max-w-sm mx-auto">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Verification Engine
-                        </span>
+                      <div className="flex flex-col items-center gap-2 mb-5 max-w-md mx-auto">
+                        <div className="flex items-center justify-between w-full px-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Retrieval Protocol
+                          </span>
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                            engineMode === "api" ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                            engineMode === "dwr" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                            "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                          )}>
+                            {engineMode === "api" ? "⚡ GavaConnect Live Gateway" :
+                             engineMode === "dwr" ? "🌐 DWR Remoting Pipeline" :
+                             "🔄 Dual-Engine (API + DWR)"}
+                          </span>
+                        </div>
+
                         <div className="grid grid-cols-3 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-full border border-outline-variant/60">
                           <button
                             type="button"
                             onClick={() => setEngineMode("auto")}
                             className={cn(
-                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              "py-2 px-2 text-xs font-semibold rounded transition-all flex items-center justify-center gap-1.5",
                               engineMode === "auto"
-                                ? "bg-white dark:bg-zinc-900 text-primary shadow-sm"
+                                ? "bg-white dark:bg-zinc-900 text-primary shadow-sm font-bold"
                                 : "text-muted-foreground hover:text-foreground"
                             )}
                           >
@@ -324,7 +337,7 @@ export function KRAPortal() {
                             type="button"
                             onClick={() => setEngineMode("api")}
                             className={cn(
-                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              "py-2 px-2 text-xs font-semibold rounded transition-all flex items-center justify-center gap-1.5",
                               engineMode === "api"
                                 ? "bg-red-600 text-white shadow-sm font-bold"
                                 : "text-muted-foreground hover:text-foreground"
@@ -336,7 +349,7 @@ export function KRAPortal() {
                             type="button"
                             onClick={() => setEngineMode("dwr")}
                             className={cn(
-                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              "py-2 px-2 text-xs font-semibold rounded transition-all flex items-center justify-center gap-1.5",
                               engineMode === "dwr"
                                 ? "bg-emerald-600 text-white shadow-sm font-bold"
                                 : "text-muted-foreground hover:text-foreground"
@@ -344,6 +357,35 @@ export function KRAPortal() {
                           >
                             🌐 DWR
                           </button>
+                        </div>
+
+                        {/* Engine Context Card */}
+                        <div className={cn(
+                          "w-full rounded-lg p-3 text-left text-xs border transition-all",
+                          engineMode === "api"
+                            ? "bg-red-500/5 border-red-500/20 text-red-900 dark:text-red-300"
+                            : engineMode === "dwr"
+                            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-900 dark:text-emerald-300"
+                            : "bg-blue-500/5 border-blue-500/20 text-blue-900 dark:text-blue-300"
+                        )}>
+                          {engineMode === "api" && (
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold flex items-center gap-1">⚡ KRA Live API (GavaConnect OAuth 2.0)</span>
+                              <span className="text-[11px] opacity-80">Direct verification via official government gateway endpoints (`/checker/v1/pin`, `/checker/v1/pinbypin`).</span>
+                            </div>
+                          )}
+                          {engineMode === "dwr" && (
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold flex items-center gap-1">🌐 KRA Direct Web Remoting (DWR)</span>
+                              <span className="text-[11px] opacity-80">Real-time session handshake (`findPinByIdno.findPinByIdnumber`) with instant live unmasking.</span>
+                            </div>
+                          )}
+                          {engineMode === "auto" && (
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold flex items-center gap-1">🔄 Intelligent Dual-Engine Mode</span>
+                              <span className="text-[11px] opacity-80">Coordinates Live API and DWR remoting for fastest response and accuracy.</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
