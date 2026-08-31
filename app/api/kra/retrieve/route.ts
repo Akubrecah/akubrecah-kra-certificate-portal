@@ -229,10 +229,7 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
 
   const extractAfterLabel = (label: string, searchArea: string): string => {
     const escapedLabel = label.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(
-      `<td[^>]*>(?:<[^>]+>)*\\s*${escapedLabel}\\s*(?:<[^>]+>)*\\s*<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\/td>`,
-      'i'
-    );
+    const regex = new RegExp(`<td[^>]*>(?:<[^>]+>)*[\\s\\S]*?${escapedLabel}[\\s\\S]*?<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>`, 'i');
     const match = searchArea.match(regex);
     if (match) {
       return stripTags(match[1]);
@@ -245,9 +242,11 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
 
   result.name = extractAfterLabel('Taxpayer Name', fullSection)
     || extractAfterLabel('Tax Payer Name', fullSection)
+    || extractAfterLabel('TaxpayerName', fullSection)
     || extractAfterLabel('Full Name', fullSection);
 
   result.pin = extractAfterLabel('PIN Number', fullSection)
+    || extractAfterLabel('Taxpayer PIN', fullSection)
     || extractAfterLabel('KRA PIN', fullSection)
     || extractAfterLabel('PIN', fullSection);
 
@@ -763,8 +762,17 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // If name is not yet extracted from Live API / pinChecker, assign clean default so user can proceed
+    // If name is not yet extracted from Live API / pinChecker, prompt for CAPTCHA so user can get real name
     if (!name) {
+      if (!captchaAnswer || !captchaAnswer.trim()) {
+        console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
+        return NextResponse.json({
+          success: false,
+          captchaRequired: true,
+          pin: fullPin,
+          error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
+        }, { status: 422 });
+      }
       name = first(api?.taxpayerName, pc?.name, man?.name, 'Registered Taxpayer');
     }
 
