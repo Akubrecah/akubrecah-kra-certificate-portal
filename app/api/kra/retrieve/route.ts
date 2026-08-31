@@ -302,7 +302,9 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
   result.email = extractAfterLabel('Email', fullSection)
     || extractAfterLabel('Email Address', fullSection);
 
-  if (result.email && !result.email.includes('@')) result.email = '';
+  if (result.email && (result.email.toLowerCase().includes('callcentre@kra.go.ke') || !result.email.includes('@'))) {
+    result.email = '';
+  }
 
   const oblIdx = fullSection.toLowerCase().indexOf('obligation details');
   const targetOBLSection = oblIdx !== -1 ? fullSection.substring(oblIdx) : fullSection;
