@@ -660,7 +660,10 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-lg mx-auto pt-4">
+                  <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-lg mx-auto pt-4">
+                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(2)}>
+                      <User className="w-4 h-4" /> Edit Details
+                    </button>
                     <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
