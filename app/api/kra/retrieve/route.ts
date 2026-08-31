@@ -678,22 +678,14 @@ export async function POST(req: NextRequest) {
 
     // ── 1. If 'api' or 'auto' mode, attempt Official KRA Live API ─────────────
     let liveApiTaxpayer: any = null;
-    if (engineMode === 'api' || engineMode === 'auto') {
-      try {
-        if (directPin) {
-          liveApiTaxpayer = await fetchTaxpayerByPin(String(directPin).trim().toUpperCase());
-        } else if (idNumber) {
-          liveApiTaxpayer = await fetchTaxpayerById(String(idNumber).trim());
-        }
-      } catch (liveApiErr: any) {
-        console.warn('[retrieve] Live API gateway notice:', liveApiErr.message);
-        if (engineMode === 'api') {
-          return NextResponse.json({
-            success: false,
-            error: `KRA Live API Error: ${liveApiErr.message || 'Gateway query failed.'}`,
-          }, { status: 502 });
-        }
+    try {
+      if (directPin) {
+        liveApiTaxpayer = await fetchTaxpayerByPin(String(directPin).trim().toUpperCase());
+      } else if (idNumber) {
+        liveApiTaxpayer = await fetchTaxpayerById(String(idNumber).trim());
       }
+    } catch (liveApiErr: any) {
+      console.warn('[retrieve] Live API gateway notice:', liveApiErr.message);
     }
 
     // ── 2. Resolve PIN & Session for DWR flow ────────────────────────────────
