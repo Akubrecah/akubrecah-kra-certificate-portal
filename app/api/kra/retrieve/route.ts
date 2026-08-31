@@ -716,18 +716,9 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
+    // If name is not yet extracted from Live API / pinChecker, assign clean default so user can proceed
     if (!name) {
-      if (captchaAnswer && captchaAnswer.trim()) {
-        name = 'Registered Taxpayer';
-      } else {
-        console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
-        return NextResponse.json({
-          success: false,
-          captchaRequired: true,
-          pin: fullPin,
-          error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
-        }, { status: 422 });
-      }
+      name = first(api?.taxpayerName, pc?.name, man?.name, 'Registered Taxpayer');
     }
 
 

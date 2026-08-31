@@ -139,7 +139,7 @@ export function KRAPortal() {
         return
       }
 
-      if (result.success && result.data?.name) {
+      if (result.success && (result.data?.name || result.data?.pin)) {
         setFormData(prev => ({
           ...prev,
           fullName: result.data?.name || prev.fullName,
