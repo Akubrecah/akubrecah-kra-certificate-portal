@@ -78,19 +78,18 @@ export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<str
 
   const authHeader = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
 
-  // Token endpoints commonly utilized by KRA API Gateway (WSO2 / Apigee)
+  // Token endpoints commonly utilized by KRA / GavaConnect API Gateway
   const tokenEndpoints = [
-    `${KRA_BASE_URL}/token?grant_type=client_credentials`,
-    `${KRA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`,
-    `${KRA_BASE_URL}/v1/token/generate?grant_type=client_credentials`,
-    `${KRA_BASE_URL}/token`,
-    `${KRA_BASE_URL}/oauth2/token`,
+    'https://api.kra.go.ke/v1/token/generate?grant_type=client_credentials',
+    'https://sbx.kra.go.ke/v1/token/generate?grant_type=client_credentials',
+    'https://api.kra.go.ke/oauth/v1/generate?grant_type=client_credentials',
+    'https://sbx.kra.go.ke/oauth/v1/generate?grant_type=client_credentials',
   ];
 
   let lastError: any = null;
 
   for (const endpoint of tokenEndpoints) {
-    // 1. Try GET method (standard for KRA Gateway OAuth)
+    // 1. Try GET method (standard for GavaConnect / KRA OAuth)
     try {
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -99,36 +98,7 @@ export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<str
           Accept: 'application/json',
         },
         cache: 'no-store',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const token = data.access_token || data.accessToken || data.token;
-        const expiresInSec = parseInt(data.expires_in || data.expiresIn || '3599', 10);
-
-        if (token) {
-          tokenCache[type] = {
-            token,
-            expiresAt: now + expiresInSec * 1000,
-          };
-          return token;
-        }
-      }
-    } catch (err: any) {
-      lastError = err;
-    }
-
-    // 2. Try POST method
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${authHeader}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-        },
-        body: 'grant_type=client_credentials',
-        cache: 'no-store',
+        signal: AbortSignal.timeout(4000),
       });
 
       if (response.ok) {
@@ -149,7 +119,7 @@ export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<str
     }
   }
 
-  // Fallback to consumerKey as direct API Key for live production gateway
+  // Fallback to consumerKey
   if (consumerKey) {
     tokenCache[type] = {
       token: consumerKey,
@@ -162,7 +132,7 @@ export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<str
 }
 
 /**
- * Fetch Taxpayer details by KRA PIN via Live API Gateway or DWR
+ * Fetch Taxpayer details by KRA PIN via Official GavaConnect / KRA API Gateway
  */
 export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | 'auto' = 'auto'): Promise<TaxpayerProfile> {
   const pin = rawPin.trim().toUpperCase();
@@ -177,11 +147,10 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
     console.warn('[KRA-API] Live token retrieval notice:', tokenErr.message);
   }
 
+  // Official KRA GavaConnect endpoints for PIN Checker by PIN
   const endpoints = [
-    `${KRA_BASE_URL}/kra/pinchecker/v1/pin-checker`,
-    `${KRA_BASE_URL}/pinchecker/v1/pin-checker`,
-    `${KRA_BASE_URL}/api/v1/pin-checker`,
-    `${KRA_BASE_URL}/pin-checker`,
+    'https://api.kra.go.ke/checker/v1/pinbypin',
+    'https://sbx.kra.go.ke/checker/v1/pinbypin',
   ];
 
   for (const url of endpoints) {
@@ -190,20 +159,25 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          apiKey: KRA_PIN_CONSUMER_KEY,
-          apikey: KRA_PIN_CONSUMER_KEY,
-          'x-api-key': KRA_PIN_CONSUMER_KEY,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ pin, pinNo: pin, kraPin: pin }),
+        body: JSON.stringify({ KRAPIN: pin }),
         cache: 'no-store',
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(4000),
       });
 
       if (response.ok) {
         const data = await response.json();
-        return normalizeKraTaxpayerResponse(data, pin, 'live_api');
+        // Check for error codes
+        if (data.ErrorCode && data.ErrorCode !== '0') {
+          console.warn(`[KRA-API] Endpoint ${url} returned error code:`, data.ErrorCode, data.ErrorMessage);
+          continue;
+        }
+        const pinData = data.PINDATA || data.pindata || data;
+        if (pinData && (pinData.Name || pinData.name || pinData.KRAPIN || pinData.krapin)) {
+          return normalizeKraTaxpayerResponse(pinData, pin, 'live_api');
+        }
       }
     } catch (e: any) {
       console.warn(`[KRA-API] Live endpoint ${url} attempt:`, e.message);
@@ -214,7 +188,7 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
 }
 
 /**
- * Fetch Taxpayer details by National ID via Live API Gateway or DWR
+ * Fetch Taxpayer details by National ID via Official GavaConnect / KRA API Gateway
  */
 export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'auto' = 'auto'): Promise<TaxpayerProfile> {
   const idNumber = rawId.trim();
@@ -229,11 +203,10 @@ export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'au
     console.warn('[KRA-API] Live token retrieval notice (ID checker):', tokenErr.message);
   }
 
+  // Official KRA GavaConnect endpoints for PIN Checker by ID
   const endpoints = [
-    `${KRA_BASE_URL}/kra/pincheckerbyid/v1/id-checker`,
-    `${KRA_BASE_URL}/pincheckerbyid/v1/id-checker`,
-    `${KRA_BASE_URL}/idchecker/v1/id-checker`,
-    `${KRA_BASE_URL}/id-checker`,
+    'https://api.kra.go.ke/checker/v1/pin',
+    'https://sbx.kra.go.ke/checker/v1/pin',
   ];
 
   for (const url of endpoints) {
@@ -242,20 +215,26 @@ export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'au
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          apiKey: KRA_ID_CONSUMER_KEY,
-          apikey: KRA_ID_CONSUMER_KEY,
-          'x-api-key': KRA_ID_CONSUMER_KEY,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ idNumber, nationalId: idNumber, idNo: idNumber }),
+        body: JSON.stringify({ TaxpayerType: 'KE', TaxpayerID: idNumber }),
         cache: 'no-store',
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(4000),
       });
 
       if (response.ok) {
         const data = await response.json();
-        return normalizeKraTaxpayerResponse(data, data.pin || data.pinNo || '', 'live_api', idNumber);
+        // Check for error codes
+        if (data.ErrorCode && data.ErrorCode !== '0') {
+          console.warn(`[KRA-API] Live ID endpoint ${url} returned code:`, data.ErrorCode, data.ErrorMessage);
+          continue;
+        }
+        const resolvedPin = data.TaxpayerPIN || data.taxpayerpin || data.pin || '';
+        const resolvedName = data.TaxpayerName || data.taxpayername || data.name || '';
+        if (resolvedPin || resolvedName) {
+          return normalizeKraTaxpayerResponse(data, resolvedPin, 'live_api', idNumber);
+        }
       }
     } catch (e: any) {
       console.warn(`[KRA-API] Live ID endpoint ${url} attempt:`, e.message);
