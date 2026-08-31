@@ -444,99 +444,6 @@ async function fetchManufacturerDetails(pin: string, cookieString: string, proxy
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 4: DWR for taxpayer details
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function fetchTaxpayerByDWR(pin: string, cookieString: string, proxyUrl?: string): Promise<Record<string, string> | null> {
-  const sid = `${randHex(12)}/${randHex(12)}`;
-  const wn  = `W${Date.now()}`;
-
-  const body = [
-    'callCount=1', `windowName=${wn}`,
-    'c0-scriptName=TaxPayerRDWR', 'c0-methodName=getTaxpayerBasicRdtlsByPin', 'c0-id=0',
-    `c0-param0=string:${pin}`, 'batchId=1', 'instanceId=0',
-    'page=%2FKRA-Portal%2FpinChecker.htm', 'httpSessionId=', `scriptSessionId=${sid}`,
-  ].join('\n') + '\n';
-
-  const raw = await httpsPost(
-    '/KRA-Portal/dwr/call/plaincall/TaxPayerRDWR.getTaxpayerBasicRdtlsByPin.dwr',
-    body, cookieString, 'text/plain', proxyUrl
-  );
-  console.log('[retrieve] DWR TaxPayer raw:', raw ? raw.substring(0, 400) : 'EMPTY');
-  return parseDWR(raw);
-}
-
-function parseDWR(raw: string): Record<string, string> | null {
-  if (!raw || raw.trim().length === 0) return null;
-
-  const stringVars: Record<string, string> = {};
-  let m: RegExpExecArray | null;
-  const svp = /(?:var\s+)?(s\d+)\s*=\s*"([^"]*)"/g;
-  while ((m = svp.exec(raw)) !== null) stringVars[m[1]] = m[2];
-
-  const objectFields: Record<string, Record<string, string>> = {};
-  const pp = /(s\d+)\.(\w+)\s*=\s*([^;\n]+)/g;
-  while ((m = pp.exec(raw)) !== null) {
-    const [, obj, key, rawVal] = m;
-    let val = rawVal.trim();
-    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-    else if (stringVars[val] !== undefined) val = stringVars[val];
-    else if (val === 'null' || val === 'undefined') val = '';
-    if (!objectFields[obj]) objectFields[obj] = {};
-    objectFields[obj][key] = val;
-  }
-
-  const cbMatch = raw.match(/handleCallback\([^,]*,[^,]*,\s*(s\d+|\{[^}]*\})\s*\)/);
-  let fields: Record<string, string> = {};
-  if (cbMatch) {
-    const ref = cbMatch[1].trim();
-    if (ref.startsWith('{')) {
-      try { fields = JSON.parse(ref.replace(/(\w+)\s*:/g, '"$1":').replace(/'/g, '"')); } catch {}
-    } else {
-      fields = objectFields[ref] || {};
-    }
-  }
-  if (Object.keys(fields).length === 0) {
-    for (const v of Object.values(objectFields)) Object.assign(fields, v);
-  }
-  if (Object.keys(fields).length === 0) return null;
-
-  const get = (...keys: string[]) => {
-    for (const k of keys) {
-      for (const [fk, fv] of Object.entries(fields)) {
-        if (fk.toLowerCase() === k.toLowerCase() && fv && fv !== 'null' && fv.trim()) return fv.trim();
-      }
-    }
-    return '';
-  };
-
-  const firstName  = get('firstName', 'fName');
-  const middleName = get('middleName', 'secondName', 'mName');
-  const lastName   = get('lastName', 'lName', 'surname');
-  const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ')
-    || get('taxpayerName', 'fullName', 'name');
-
-  let email = get('emailAddress', 'emailId', 'email');
-  if (!email) { const em = JSON.stringify(fields).match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/); if (em) email = em[0]; }
-
-  return {
-    name: fullName,
-    email,
-    building:    get('buildingName', 'building', 'bldgName', 'bldgNm', 'physicalAddress', 'bldg'),
-    street:      get('streetName', 'street', 'roadName', 'roadNm', 'streetNm', 'road'),
-    city:        get('city', 'town', 'cityName', 'townName', 'cityNm', 'townNm'),
-    county:      get('county', 'countyName', 'cName', 'countyNm', 'cNme'),
-    district:    get('district', 'districtName', 'subCounty', 'distName', 'distNm', 'districtNm'),
-    taxArea:     get('taxArea', 'taxAreaName', 'taxAreaNm', 'locality', 'area'),
-    poBox:       get('poBox', 'pobox', 'postBox', 'boxNo', 'pBox'),
-    postalCode:  get('postalCode', 'postCode', 'pCode', 'zipCode'),
-    station:     get('station', 'stationName', 'stationNm', 'taxStation', 'krastation'),
-    phoneNumber: get('mobileNo', 'mobNo', 'phoneNumber', 'phone', 'contactNo', 'phoneNo', 'telNo'),
-    registeredDate: get('registeredDate', 'regDate', 'effectiveDate', 'pinRegistrationDate', 'pinRegDate', 'effectiveFromDate', 'effectiveFrom', 'reg_date', 'registration_date', 'regDt'),
-  };
-}
-
 const COUNTY_TOWN_MAP: Record<string, string> = {
   'mombasa': 'Mombasa',
   'kwale': 'Kwale',
@@ -751,10 +658,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 3. Run Concurrent Lookups: Pin Checker, Manufacturer, and DWR ──────
+    // ── 3. Run Concurrent Lookups: Pin Checker and Manufacturer ────────────
     let pinCheckerData: PinCheckerResult | null = null;
     let manData: ManufacturerResult | null = null;
-    let dwrData: Record<string, string> | null = null;
     let parseError = false;
 
     if (fullPin) {
@@ -762,10 +668,9 @@ export async function POST(req: NextRequest) {
         if (captchaAnswer && captchaAnswer.trim()) {
           const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
           
-          const [pcHtml, manResult, dwrResult] = await Promise.all([
+          const [pcHtml, manResult] = await Promise.all([
             httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString, 'application/x-www-form-urlencoded', proxyUrl).catch(() => ''),
             fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null),
-            fetchTaxpayerByDWR(fullPin, freshCookieString, proxyUrl).catch(() => null),
           ]);
 
           if (pcHtml.length > 100) {
@@ -787,14 +692,8 @@ export async function POST(req: NextRequest) {
             }
           }
           manData = manResult;
-          dwrData = dwrResult;
         } else {
-          const [manResult, dwrResult] = await Promise.all([
-            fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null),
-            fetchTaxpayerByDWR(fullPin, freshCookieString, proxyUrl).catch(() => null),
-          ]);
-          manData = manResult;
-          dwrData = dwrResult;
+          manData = await fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null);
         }
       } catch (err: any) {
         console.warn('[retrieve] iTax details fetch notice:', err.message);
@@ -802,17 +701,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 4. Merge fields: Live API + DWR + Manufacturer + Pin Checker ───────
+    // ── 4. Merge fields: Live API + Manufacturer + Pin Checker ─────────────
     const pc = pinCheckerData;
     const man = manData;
-    const dw = dwrData;
     const api = liveApiTaxpayer;
 
-    // Priority depends on engineMode: if 'dwr', prioritize DWR over manufacturer
-    const isDwr = engineMode === 'dwr' || !api;
-
-    const name           = isDwr ? first(dw?.name, pc?.name, api?.taxpayerName, man?.name, '')
-                                 : first(api?.taxpayerName, dw?.name, pc?.name, man?.name, '');
+    const name = first(api?.taxpayerName, pc?.name, man?.name, '');
 
     if (!fullPin) {
       console.error('[retrieve] Live & DWR retrieval returned no taxpayer record.');
@@ -839,32 +733,20 @@ export async function POST(req: NextRequest) {
       }, { status: 422 });
     }
 
-    const email          = isDwr ? first(dw?.email, pc?.email, api?.email, man?.email, '')
-                                 : first(api?.email, dw?.email, pc?.email, man?.email, '');
 
-    const phoneNumber    = isDwr ? first(dw?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, man?.phoneNumber, '')
-                                 : first(api?.phoneNumber, dw?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '');
+    const email          = first(api?.email, pc?.email, man?.email, '');
+    const phoneNumber    = first(api?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '');
+    const building       = first(api?.building, pc?.building, man?.building, '');
+    const street         = first(api?.street, pc?.street, man?.street, '');
 
-    const building       = isDwr ? first(dw?.building, pc?.building, api?.building, man?.building, '')
-                                 : first(api?.building, dw?.building, pc?.building, man?.building, '');
-
-    const street         = isDwr ? first(dw?.street, pc?.street, api?.street, man?.street, '')
-                                 : first(api?.street, dw?.street, pc?.street, man?.street, '');
-
-    const town           = isDwr ? first(dw?.city, pc?.town, api?.town, man?.town, '')
-                                 : first(api?.town, dw?.city, pc?.town, man?.town, '');
-
-    const county         = isDwr ? first(dw?.county, pc?.county, api?.county, man?.county, 'NAIROBI')
-                                 : first(api?.county, dw?.county, pc?.county, man?.county, 'NAIROBI');
-
-    const district       = isDwr ? first(dw?.district, pc?.district, api?.district, man?.district, '')
-                                 : first(api?.district, dw?.district, pc?.district, man?.district, '');
+    const town           = first(api?.town, pc?.town, man?.town, '');
+    const county         = first(api?.county, pc?.county, man?.county, 'NAIROBI');
+    const district       = first(api?.district, pc?.district, man?.district, '');
 
     // Strictly enforce KRA Station Matrix based on County
     const station        = getKraStationForCounty(county);
 
-    let taxArea          = isDwr ? first(dw?.taxArea, pc?.taxArea, api?.taxArea, man?.taxArea, '')
-                                 : first(api?.taxArea, dw?.taxArea, pc?.taxArea, man?.taxArea, '');
+    let taxArea          = first(api?.taxArea, pc?.taxArea, man?.taxArea, '');
     if (county) {
       const normalizedCounty = county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim();
       const mappedTown = COUNTY_TOWN_MAP[normalizedCounty] || '';
@@ -873,14 +755,10 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    const poBox          = isDwr ? first(dw?.poBox, pc?.poBox, api?.poBox, man?.poBox, '')
-                                 : first(api?.poBox, dw?.poBox, pc?.poBox, man?.poBox, '');
+    const poBox          = first(api?.poBox, pc?.poBox, man?.poBox, '');
 
-    const postalCode     = isDwr ? first(dw?.postalCode, pc?.postalCode, api?.postalCode, man?.postalCode, '')
-                                 : first(api?.postalCode, dw?.postalCode, pc?.postalCode, man?.postalCode, '');
-
-    const registeredDate = isDwr ? first(dw?.registeredDate, pc?.registeredDate, pc?.obligationDate, api?.registrationDate, '')
-                                 : first(api?.registrationDate, dw?.registeredDate, pc?.registeredDate, pc?.obligationDate, '');
+    const postalCode     = first(api?.postalCode, pc?.postalCode, man?.postalCode, '');
+    const registeredDate = first(api?.registrationDate, pc?.registeredDate, pc?.obligationDate, '');
 
     const result = {
       success: true,
