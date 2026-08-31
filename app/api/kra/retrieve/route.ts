@@ -138,14 +138,18 @@ function httpsPost(path: string, body: string, cookieString: string, contentType
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function lookupPinByIdNumber(idNumber: string, cookieString: string, proxyUrl?: string): Promise<string | null> {
-  const sid = `${randHex(12)}/${randHex(12)}`;
-  const wn  = `W${Date.now()}`;
-
   const body = [
-    'callCount=1', `windowName=${wn}`,
-    'c0-scriptName=findPinByIdno', 'c0-methodName=findPinByIdnumber', 'c0-id=0',
-    `c0-param0=string:${idNumber}`, 'batchId=0', 'instanceId=0',
-    'page=%2FKRA-Portal%2FpinChecker.htm', 'httpSessionId=', `scriptSessionId=${sid}`,
+    'callCount=1',
+    'page=/KRA-Portal/pinChecker.htm',
+    'httpSessionId=',
+    'scriptSessionId=',
+    'windowName=',
+    'c0-scriptName=findPinByIdno',
+    'c0-methodName=findPinByIdnumber',
+    'c0-id=0',
+    `c0-param0=string:${idNumber}`,
+    'c0-param1=string:N',
+    'batchId=0',
   ].join('\n') + '\n';
 
   const raw = await httpsPost(
