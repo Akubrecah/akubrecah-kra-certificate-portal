@@ -337,68 +337,38 @@ function normalizeKraTaxpayerResponse(
   const district = get('district', 'subcounty', 'districtname') || `${county} District`;
   const building = get('building', 'buildingname', 'physicaladdress', 'bldgname') || 'Commercial Plaza';
   const street = get('street', 'streetname', 'roadname') || 'Harambee Avenue';
-  const poBox = get('pobox', 'postbox', 'boxno') || 'P.O. Box 40001';
-  const postalCode = get('postalcode', 'postcode') || '00100';
+  const poBox = get('pobox', 'postbox', 'boxno') || '';
+  const postalCode = get('postalcode', 'postcode') || '';
 
-  const pin = get('pin', 'pinno', 'krapin', 'taxpayerpin') || fallbackPin;
-
-  // Fallback defaults to ensure NO "N/A" values ever appear
-  const pinHash = (str: string) => {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
-    return Math.abs(h);
-  };
-  const pHash = pinHash(pin || fallbackId || 'A000000000X');
-
-  if (!email) {
-    const cleanName = (fullName || 'taxpayer').toLowerCase().replace(/[^a-z0-9]/g, '.');
-    email = `${cleanName}@gmail.com`;
-  }
-
-  if (!phoneNumber) {
-    phoneNumber = `07${Math.floor(10000000 + (pHash % 89999999))}`;
-  }
-
-  if (!registrationDate) {
-    const day = String(1 + (pHash % 28)).padStart(2, '0');
-    const month = String(1 + ((pHash >> 2) % 12)).padStart(2, '0');
-    const year = 2012 + (pHash % 12);
-    registrationDate = `${day}/${month}/${year}`;
-  }
+  const pin = get('pin', 'pinno', 'krapin', 'taxpayerpin') || fallbackPin || '';
 
   const obligationsRaw = raw.obligations || raw.taxObligations || raw.obligationDetails || [];
   const obligations: TaxpayerObligation[] = Array.isArray(obligationsRaw) && obligationsRaw.length > 0
     ? obligationsRaw.map((o: any) => ({
         name: o.obligationName || o.name || o.taxType || 'Income Tax - Individual (IT1)',
         status: o.status || o.obligationStatus || 'Active',
-        effectiveFrom: o.effectiveFrom || o.effectiveDate || registrationDate,
+        effectiveFrom: o.effectiveFrom || o.effectiveDate || registrationDate || '',
         effectiveTo: o.effectiveTo || '',
       }))
-    : [
-        {
-          name: 'Income Tax - Individual (IT1)',
-          status: 'Active',
-          effectiveFrom: registrationDate,
-        },
-      ];
+    : [];
 
   return {
     pin,
-    taxpayerName: fullName || 'Verified Taxpayer',
+    taxpayerName: fullName || '',
     status: get('status', 'taxpayerstatus', 'pinstatus') || 'Active',
-    idNumber: get('idnumber', 'nationalid', 'idno') || fallbackId,
-    registrationDate,
-    station,
-    taxArea,
-    county,
-    town,
-    district,
-    building,
-    street,
-    poBox,
-    postalCode,
-    email,
-    phoneNumber,
+    idNumber: get('idnumber', 'nationalid', 'idno') || fallbackId || '',
+    registrationDate: registrationDate || '',
+    station: station || '',
+    taxArea: taxArea || '',
+    county: county || '',
+    town: town || '',
+    district: district || '',
+    building: building || '',
+    street: street || '',
+    poBox: poBox || '',
+    postalCode: postalCode || '',
+    email: email || '',
+    phoneNumber: phoneNumber || '',
     obligations,
     source,
   };

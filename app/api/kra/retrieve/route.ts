@@ -551,56 +551,6 @@ const COUNTY_TOWN_MAP: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dynamic High-Fidelity Taxpayer Generator (Deterministic Mock Fallback)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function generateMockTaxpayer(idNumber: string, pin: string) {
-  const firstNames = ["POWEL", "JOHN", "MARY", "DAVID", "JOSEPH", "PETER", "JANE", "GRACE", "JAMES", "ALICE"];
-  const middleNames = ["DAYCK", "KAMAU", "AUMA", "NJERI", "MWANGI", "MUTUA", "OTIENO", "WANGUI", "KIPROP", "CHEPKEMOI"];
-  const lastNames = ["KARAURI", "NJOROGE", "ODHIAMBO", "MAINA", "ONYANGO", "KIPLAGAT", "NTHIGA", "NDUTA", "WANYAMA", "OMONDI"];
-  
-  const hash = (str: string) => {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
-    return Math.abs(h);
-  };
-  
-  const idHash = hash(idNumber || "12345678");
-  const fName = firstNames[idHash % firstNames.length];
-  const mName = middleNames[(idHash >> 1) % middleNames.length];
-  const lName = lastNames[(idHash >> 2) % lastNames.length];
-  const fullName = `${fName} ${mName} ${lName}`;
-  
-  const counties = ["NAIROBI", "MOMBASA", "KISUMU", "KIAMBU", "NAKURU", "UASIN GISHU", "KERICHO", "MACHAKOS"];
-  const county = counties[idHash % counties.length];
-  const mappedTown = COUNTY_TOWN_MAP[county.toLowerCase()] || "Nairobi";
-  
-  const dateNum = (idHash % 28) + 1;
-  const monthNum = (idHash % 12) + 1;
-  const year = 2012 + (idHash % 12);
-  const regDate = `${dateNum.toString().padStart(2, '0')}/${monthNum.toString().padStart(2, '0')}/${year}`;
-
-  return {
-    pin,
-    name: fullName,
-    email: `${fullName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-    status: 'Active',
-    certificate_url: `https://itax.kra.go.ke/KRA-Portal/dotDownloadCertificate.htm?pin=${pin}`,
-    building: `Plot No. ${100 + (idHash % 900)}`,
-    street: `${fName} Road`,
-    town: mappedTown,
-    county,
-    district: `${county} District`,
-    taxArea: mappedTown,
-    station: `${mappedTown} Station`,
-    poBox: `P.O. Box ${1000 + (idHash % 9000)}`,
-    postalCode: `00${100 + (idHash % 800)}`,
-    phoneNumber: `07${Math.floor(10000000 + (idHash % 90000000))}`,
-    registeredDate: regDate,
-  };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Utility
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -786,44 +736,44 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const county         = first(api?.county, pc?.county, man?.county, 'NAIROBI');
-    const normalizedCounty = county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim();
-    const defaultTown    = COUNTY_TOWN_MAP[normalizedCounty] || 'Nairobi';
+    const county         = first(api?.county, pc?.county, man?.county, '');
+    const normalizedCounty = county ? county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim() : '';
+    const defaultTown    = normalizedCounty ? (COUNTY_TOWN_MAP[normalizedCounty] || county) : '';
     const town           = first(api?.town, pc?.town, man?.town, defaultTown);
-    const district       = first(api?.district, pc?.district, man?.district, `${county} Central`);
+    const district       = first(api?.district, pc?.district, man?.district, '');
 
-    // Strictly enforce KRA Station Matrix based on County
-    const station        = getKraStationForCounty(county);
+    // Strictly enforce KRA Station Matrix based on County if county is known
+    const station        = county ? getKraStationForCounty(county) : '';
 
-    let taxArea          = first(api?.taxArea, pc?.taxArea, man?.taxArea, `${town} Central`);
+    let taxArea          = first(api?.taxArea, pc?.taxArea, man?.taxArea, '');
     
-    const building       = first(api?.building, pc?.building, man?.building, 'Plaza');
-    const street         = first(api?.street, pc?.street, man?.street, 'Main Street');
-    const poBox          = first(api?.poBox, pc?.poBox, man?.poBox, 'P.O. Box 40001');
-    const postalCode     = first(api?.postalCode, pc?.postalCode, man?.postalCode, '00100');
-    const email          = first(api?.email, pc?.email, man?.email, 'taxpayer@gmail.com');
-    const phoneNumber    = first(api?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '0712345678');
-    const registeredDate = first(api?.registrationDate, pc?.registeredDate, pc?.obligationDate, '15/03/2018');
+    const building       = first(api?.building, pc?.building, man?.building, '');
+    const street         = first(api?.street, pc?.street, man?.street, '');
+    const poBox          = first(api?.poBox, pc?.poBox, man?.poBox, '');
+    const postalCode     = first(api?.postalCode, pc?.postalCode, man?.postalCode, '');
+    const email          = first(api?.email, pc?.email, man?.email, '');
+    const phoneNumber    = first(api?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '');
+    const registeredDate = first(api?.registrationDate, pc?.registeredDate, pc?.obligationDate, '');
 
     const result = {
       success: true,
       data: {
         pin:           fullPin,
-        name,
-        email,
+        name:          name || '',
+        email:         email || '',
         status:        'Active',
         certificate_url: `https://itax.kra.go.ke/KRA-Portal/dotDownloadCertificate.htm?pin=${fullPin}`,
-        building,
-        street,
-        town,
-        county,
-        district,
-        taxArea,
-        station,
-        poBox,
-        postalCode,
-        phoneNumber,
-        registeredDate,
+        building:      building || '',
+        street:        street || '',
+        town:          town || '',
+        county:        county || '',
+        district:      district || '',
+        taxArea:       taxArea || '',
+        station:       station || '',
+        poBox:         poBox || '',
+        postalCode:    postalCode || '',
+        phoneNumber:   phoneNumber || '',
+        registeredDate: registeredDate || '',
       }
     };
 
