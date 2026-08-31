@@ -99,24 +99,31 @@ function initKraSession(proxyUrl?: string): Promise<Record<string, string>> {
   });
 }
 
-function httpsPost(path: string, body: string, cookieString: string, contentType = 'application/x-www-form-urlencoded', proxyUrl?: string): Promise<string> {
+function httpsPost(path: string, body: string, cookieString: string, contentType = 'application/x-www-form-urlencoded', proxyUrl?: string, isAjax = false): Promise<string> {
   return new Promise((resolve, reject) => {
     const buf = Buffer.from(body, 'utf8');
     const agent = proxyUrl ? createProxyAgent(proxyUrl) : undefined;
+    const headers: Record<string, any> = {
+      'Content-Type': contentType,
+      'Content-Length': buf.length,
+      'Cookie': cookieString,
+      'Origin': 'https://itax.kra.go.ke',
+      'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    };
+    if (isAjax) {
+      headers['X-Requested-With'] = 'XMLHttpRequest';
+      headers['Accept'] = 'application/json, text/javascript, */*; q=0.01';
+    }
+
     const req = https.request({
       hostname: 'itax.kra.go.ke',
       port: 443,
       path,
       method: 'POST',
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': buf.length,
-        'Cookie': cookieString,
-        'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      timeout: 8000,
+      headers,
+      timeout: 10000,
       rejectUnauthorized: false,
       agent
     } as any, (res) => {
