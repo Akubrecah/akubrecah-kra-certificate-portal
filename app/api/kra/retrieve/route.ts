@@ -706,7 +706,7 @@ export async function POST(req: NextRequest) {
     const man = manData;
     const api = liveApiTaxpayer;
 
-    const name = first(api?.taxpayerName, pc?.name, man?.name, '');
+    let name = first(api?.taxpayerName, pc?.name, man?.name, '');
 
     if (!fullPin) {
       console.error('[retrieve] Live & DWR retrieval returned no taxpayer record.');
@@ -718,19 +718,16 @@ export async function POST(req: NextRequest) {
 
     if (!name) {
       if (captchaAnswer && captchaAnswer.trim()) {
+        name = 'Registered Taxpayer';
+      } else {
+        console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
         return NextResponse.json({
           success: false,
-          error: `No active taxpayer profile found for PIN ${fullPin}. Please verify your National ID or PIN.`
-        }, { status: 404 });
+          captchaRequired: true,
+          pin: fullPin,
+          error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
+        }, { status: 422 });
       }
-
-      console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
-      return NextResponse.json({
-        success: false,
-        captchaRequired: true,
-        pin: fullPin,
-        error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
-      }, { status: 422 });
     }
 
 
