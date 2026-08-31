@@ -800,12 +800,22 @@ export async function POST(req: NextRequest) {
     const name           = isDwr ? first(dw?.name, pc?.name, api?.taxpayerName, man?.name, '')
                                  : first(api?.taxpayerName, dw?.name, pc?.name, man?.name, '');
 
-    if (!fullPin && !name) {
+    if (!fullPin) {
       console.error('[retrieve] Live & DWR retrieval returned no taxpayer record.');
       return NextResponse.json({
         success: false,
         error: 'KRA record not found. Please verify the ID number or PIN and try again.'
       }, { status: 404 });
+    }
+
+    if (!name) {
+      console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
+      return NextResponse.json({
+        success: false,
+        captchaRequired: true,
+        pin: fullPin,
+        error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
+      }, { status: 422 });
     }
 
     const email          = isDwr ? first(dw?.email, pc?.email, api?.email, man?.email, '')

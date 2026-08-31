@@ -128,9 +128,12 @@ export function KRAPortal() {
       const result = await response.json()
 
       // If server specifically requires CAPTCHA answer
-      if (result.captchaWrong || response.status === 422) {
-        toast.error("Verification answer required.")
-        setError("Please enter the verification answer from the image.")
+      if (result.captchaRequired || result.captchaWrong || response.status === 422) {
+        if (result.pin) {
+          setFormData(prev => ({ ...prev, pin: result.pin }))
+        }
+        toast(result.error || "Security verification required. Please solve the arithmetic question.", { icon: "🔒" })
+        setError(result.error || "Please enter the verification answer from the image.")
         setIdSearchStatus("idle")
         await loadCaptcha()
         return
