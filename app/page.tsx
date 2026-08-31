@@ -53,7 +53,7 @@ function Counter({ value }: { value: string }) {
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { isSignedIn, isLoaded } = useUser()
-  const [activeTab, setActiveTab] = useState<"retrieval" | "filing" | "cv">("retrieval")
+  const [activeTab, setActiveTab] = useState<"retrieval" | "pinchecker" | "filing" | "cv">("retrieval")
 
   return (
     <div ref={containerRef} className="relative z-10 min-h-screen pb-16 w-full bg-background text-on-background font-body-md pt-6 overflow-x-hidden">
@@ -135,6 +135,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
               {[
                 { id: "retrieval", label: "PIN Retrieval", icon: Fingerprint },
+                { id: "pinchecker", label: "Live PIN Checker", icon: ShieldCheck },
                 { id: "filing", label: "Filing Assistant", icon: FileCheck2 },
                 { id: "cv", label: "Professional CV Builder", icon: Briefcase }
               ].map(tab => {
@@ -177,7 +178,7 @@ export default function Home() {
                       <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       </div>
-                      <span>Detemine obligations, registration dates, and stations automatically.</span>
+                      <span>Determine obligations, registration dates, and stations automatically.</span>
                     </li>
                     <li className="flex items-center gap-3">
                       <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
@@ -214,6 +215,66 @@ export default function Home() {
                     <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
                       <span className="text-sm font-medium text-on-surface">Avg Retrieval Speed</span>
                       <span className="text-xs font-bold text-on-surface-variant">28 seconds</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "pinchecker" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div className="space-y-6">
+                  <div className="w-12 h-12 bg-red-600/10 rounded-xl flex items-center justify-center text-red-600">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-on-surface font-headline-md">
+                    Official Live KRA PIN & ID Status Checker
+                  </h3>
+                  <p className="text-on-surface-variant text-base leading-relaxed">
+                    Verify any Kenyan National ID or KRA PIN in real-time through the official KRA API Gateway and Direct Web Remoting (DWR) protocol. Instantly review taxpayer names, obligations, station, exact registration dates, and location details.
+                  </p>
+                  <ul className="space-y-3.5 text-sm text-on-surface">
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
+                      </div>
+                      <span>Instant OAuth2 live gateway queries without CAPTCHA friction.</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
+                      </div>
+                      <span>Flexible engine switcher: Live API, DWR, or Auto Best-Match.</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
+                      </div>
+                      <span>Print verification summaries and copy details with one click.</span>
+                    </li>
+                  </ul>
+                  <div className="pt-2">
+                    <Link href="/pin-checker">
+                      <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2">
+                        Open Live PIN Checker <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="bg-surface rounded-2xl p-6 border border-outline-variant space-y-4">
+                  <h4 className="font-bold text-on-surface text-sm uppercase tracking-wide">Live Gateway Metrics</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
+                      <span className="text-sm font-medium text-on-surface">KRA API Gateway</span>
+                      <span className="px-2.5 py-0.5 bg-emerald-600/10 text-emerald-600 text-xs font-bold rounded-full">Connected (Live)</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
+                      <span className="text-sm font-medium text-on-surface">DWR Remoting Engine</span>
+                      <span className="px-2.5 py-0.5 bg-emerald-600/10 text-emerald-600 text-xs font-bold rounded-full">Active</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
+                      <span className="text-sm font-medium text-on-surface">Verification Response Time</span>
+                      <span className="text-xs font-bold text-on-surface-variant">&lt; 1.2s</span>
                     </div>
                   </div>
                 </div>

@@ -9,7 +9,10 @@ export function SiteFooter(): JSX.Element {
       title: "Services",
       links: [
         { label: "Home", href: "/" },
-        { label: "Retrieval Portal", href: "/retrieval-portal" },
+        { label: "Certificate Retrieval", href: "/retrieval-portal" },
+        { label: "Live PIN Checker", href: "/pin-checker" },
+        { label: "Taxpayer Dashboard", href: "/dashboard" },
+        { label: "CV Builder", href: "/dashboard/cv-builder" },
       ],
     },
     {

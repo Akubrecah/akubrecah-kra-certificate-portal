@@ -11,11 +11,22 @@ export function SiteHeader() {
 
   return (
     <header className="fixed top-0 w-full bg-surface-container-lowest border-b border-outline-variant dark:border-outline z-50 h-16 flex items-center px-4 md:px-8 justify-between">
-      <div className="flex items-center gap-4">
-        {/* Optional mobile menu toggle could go here */}
+      <div className="flex items-center gap-6">
         <Link href="/">
           <Logo width={160} height={48} className="h-8 md:h-10 w-auto" />
         </Link>
+        <nav className="hidden md:flex items-center gap-1">
+          <Link href="/retrieval-portal">
+            <Button variant="ghost" size="sm" className="text-xs font-semibold hover:text-primary">
+              Certificate Retrieval
+            </Button>
+          </Link>
+          <Link href="/pin-checker">
+            <Button variant="ghost" size="sm" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
+              Live PIN Checker
+            </Button>
+          </Link>
+        </nav>
       </div>
       <div className="flex items-center gap-4">
         <ThemeToggle />

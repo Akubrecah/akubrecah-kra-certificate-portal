@@ -24,6 +24,7 @@ const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
   '/dashboard(.*)',
   '/retrieval-portal(.*)',
+  '/pin-checker(.*)',
   '/onboarding(.*)',
   '/checkout(.*)',
   '/filing-success(.*)',

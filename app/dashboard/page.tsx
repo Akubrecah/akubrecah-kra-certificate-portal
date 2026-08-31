@@ -45,8 +45,8 @@ export default async function TaxpayerDashboard() {
       } else {
         console.warn("[Dashboard] systemLog model not available — schema may not be pushed yet.");
       }
-    } catch (e) {
-      console.error("Error writing auth log:", e);
+    } catch (e: any) {
+      if (e?.code !== "P2021") console.warn("[Dashboard auth log notice]:", e?.message || e);
     }
   }
 
@@ -120,11 +120,9 @@ export default async function TaxpayerDashboard() {
             service: "Certificate-Generation",
           },
         });
-      } else {
-        console.warn("[Dashboard] systemLog model not available — stats cannot be populated yet.");
       }
-    } catch (error) {
-      console.error("Error loading dashboard stats:", error);
+    } catch (error: any) {
+      if (error?.code !== "P2021") console.warn("[Dashboard stats notice]:", error?.message || error);
     }
   }
 

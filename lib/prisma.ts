@@ -26,11 +26,8 @@ export async function createSystemLog(data: {
   details?: Record<string, unknown>;
 }) {
   try {
-    // Use prisma as any to handle the case where Prisma Client hasn't been
-    // generated yet (schema not pushed), gracefully falling back to null.
     const db = prisma as any;
     if (typeof db.systemLog?.create !== "function") {
-      console.warn("[createSystemLog] systemLog model not available — schema may not be pushed yet.");
       return null;
     }
     const log = await db.systemLog.create({
@@ -44,8 +41,11 @@ export async function createSystemLog(data: {
       },
     });
     return log;
-  } catch (error) {
-    console.error("[createSystemLog Error]:", error);
+  } catch (error: any) {
+    // Gracefully handle un-migrated tables or connection timeouts
+    if (error?.code !== "P2021") {
+      console.warn("[SystemLog notice]:", error?.message || error);
+    }
     return null;
   }
 }

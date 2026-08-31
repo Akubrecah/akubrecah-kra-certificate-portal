@@ -46,6 +46,8 @@ export function KRAPortal() {
   
   // Tab state for Step 1
   const [activeTab, setActiveTab] = useState<"id" | "pin">("id")
+  // Engine selection: Live API vs DWR Web Remoting vs Auto
+  const [engineMode, setEngineMode] = useState<"auto" | "api" | "dwr">("auto")
 
   const [formData, setFormData] = useState({
     idNumber: "",
@@ -102,18 +104,8 @@ export function KRAPortal() {
 
   const handleIdSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!formData.idNumber && !formData.pin) return
-
-    // Step 1: If no CAPTCHA loaded yet, load it first
-    if (captchaStatus !== "ready") {
-      setError(null)
-      await loadCaptcha()
-      return
-    }
-
-    // Step 2: Require CAPTCHA answer before submitting
-    if (!captchaAnswer.trim()) {
-      setError("Please enter the verification code shown in the image.")
+    if (!formData.idNumber && !formData.pin) {
+      setError("Please enter your National ID number or KRA PIN.")
       return
     }
 
@@ -129,21 +121,22 @@ export function KRAPortal() {
           pin: formData.pin,
           captchaAnswer: captchaAnswer.trim(),
           sessionToken,
+          engineMode,
         }),
       })
 
       const result = await response.json()
 
-      // CAPTCHA wrong answer
+      // If server specifically requires CAPTCHA answer
       if (result.captchaWrong || response.status === 422) {
-        toast.error("Wrong verification answer. Please try again.")
-        setError("Wrong answer. A new verification image has been loaded.")
+        toast.error("Verification answer required.")
+        setError("Please enter the verification answer from the image.")
         setIdSearchStatus("idle")
         await loadCaptcha()
         return
       }
 
-      if (result.success) {
+      if (result.success && result.data?.name) {
         setFormData(prev => ({
           ...prev,
           fullName: result.data?.name || prev.fullName,
@@ -167,18 +160,15 @@ export function KRAPortal() {
         setCaptchaImage(null)
         setCaptchaAnswer("")
         setCurrentStep(4)
-        toast.success("KRA Certificate Identity Found!")
+        toast.success("KRA Taxpayer Details Found!")
       } else {
-        setIdSearchStatus("error")
-        setError(result.error || "Details not found. Please check your credentials.")
-        toast.error("Certificate Retrieval Failed")
-        await loadCaptcha()
         setIdSearchStatus("idle")
+        setError(result.error || "Details not found. Please check your credentials.")
+        toast.error(result.error || "Retrieval Failed")
       }
     } catch {
-      setIdSearchStatus("error")
+      setIdSearchStatus("idle")
       setError("Connection failed. Please try again.")
-      setCaptchaStatus("idle")
     }
   }
 
@@ -309,16 +299,61 @@ export function KRAPortal() {
                   ) : (
                     <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
                       
-                      {/* Toggle Tabs */}
+                      {/* Query Engine Switcher */}
+                      <div className="flex flex-col items-center gap-1.5 mb-4 max-w-sm mx-auto">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Verification Engine
+                        </span>
+                        <div className="grid grid-cols-3 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-full border border-outline-variant/60">
+                          <button
+                            type="button"
+                            onClick={() => setEngineMode("auto")}
+                            className={cn(
+                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              engineMode === "auto"
+                                ? "bg-white dark:bg-zinc-900 text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            🔄 Auto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEngineMode("api")}
+                            className={cn(
+                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              engineMode === "api"
+                                ? "bg-red-600 text-white shadow-sm font-bold"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            ⚡ Live API
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEngineMode("dwr")}
+                            className={cn(
+                              "py-1.5 px-2 text-xs font-semibold rounded transition-all",
+                              engineMode === "dwr"
+                                ? "bg-emerald-600 text-white shadow-sm font-bold"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            🌐 DWR
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Lookup Type Tabs */}
                       <div className="flex p-1 bg-surface-variant rounded-lg mb-stack-lg max-w-sm mx-auto">
                           <button 
-                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "id" ? "bg-surface-container-lowest text-on-surface" : "text-on-surface-variant hover:text-on-surface")}
+                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "id" ? "bg-surface-container-lowest text-on-surface font-bold" : "text-on-surface-variant hover:text-on-surface")}
                             onClick={() => { setActiveTab("id"); handleInputChange('pin', ''); }}
                           >
                               ID Number
                           </button>
                           <button 
-                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "pin" ? "bg-surface-container-lowest text-on-surface" : "text-on-surface-variant hover:text-on-surface")}
+                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "pin" ? "bg-surface-container-lowest text-on-surface font-bold" : "text-on-surface-variant hover:text-on-surface")}
                             onClick={() => { setActiveTab("pin"); handleInputChange('idNumber', ''); }}
                           >
                               KRA PIN
@@ -462,6 +497,16 @@ export function KRAPortal() {
                         onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
                         placeholder="email@example.com" 
                         type="email"
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Mobile Phone Number</label>
+                      <input 
+                        value={formData.phoneNumber} 
+                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
+                        placeholder="e.g. 0712345678" 
+                        type="tel"
                         className={inputClass} 
                       />
                     </div>

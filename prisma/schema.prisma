@@ -1,11 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model ai_conversations {
+  id              String     @id
+  channel         String
+  external_id     String?
+  user_name       String?
+  user_email      String?
+  user_phone      String?
+  model_used      String?
+  messages        Json       @default("[]")
+  context_summary String?
+  token_count     Int        @default(0)
+  status          String     @default("active")
+  metadata        Json       @default("{}")
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @default(now())
+  ai_tasks        ai_tasks[]
+  tickets         tickets[]
+}
+
+model ai_task_logs {
+  id         String   @id
+  task_id    String
+  log_level  String   @default("info")
+  message    String
+  metadata   Json     @default("{}")
+  created_at DateTime @default(now())
+  ai_tasks   ai_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade)
+}
+
+model ai_tasks {
+  id               String            @id
+  conversation_id  String?
+  parent_task_id   String?
+  agent_type       String
+  task_type        String
+  priority         String            @default("medium")
+  status           String            @default("queued")
+  input_data       Json              @default("{}")
+  output_data      Json              @default("{}")
+  error_message    String?
+  retry_count      Int               @default(0)
+  max_retries      Int               @default(3)
+  dependencies     String[]          @default([])
+  assigned_at      DateTime?
+  started_at       DateTime?
+  completed_at     DateTime?
+  deadline         DateTime?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now())
+  ai_task_logs     ai_task_logs[]
+  ai_conversations ai_conversations? @relation(fields: [conversation_id], references: [id])
+  ai_tasks         ai_tasks?         @relation("ai_tasksToai_tasks", fields: [parent_task_id], references: [id])
+  other_ai_tasks   ai_tasks[]        @relation("ai_tasksToai_tasks")
+  tickets          tickets[]
+}
+
+model app_settings {
+  id          String   @id
+  category    String
+  setting_key String   @unique
+  value       Json     @default("{}")
+  updated_at  DateTime @default(now())
+}
+
+model blog_posts {
+  id         String   @id
+  title      String
+  date       String
+  excerpt    String
+  content    String
+  image      String?
+  created_at DateTime @default(now())
+  updated_at DateTime
+}
+
+model job_positions {
+  id                      String   @id
+  title                   String
+  location                String?
+  type                    String?
+  department              String?
+  jobNumber               String?  @unique
+  worksite                String?
+  travel                  String?
+  roleType                String?
+  profession              String?
+  discipline              String?
+  employmentType          String?
+  datePosted              String?
+  description             String?
+  overview                String[] @default([])
+  responsibilities        String[] @default([])
+  requiredQualifications  String[] @default([])
+  preferredQualifications String[] @default([])
+  additionalRequirements  String[] @default([])
+  compensation            String?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @default(now())
+}
+
+model kra_pin_cache {
+  id              String   @id
+  pin             String   @unique
+  id_number       String?
+  name            String
+  email           String?
+  building        String?
+  street          String?
+  city            String?
+  county          String?
+  district        String?
+  tax_area        String?
+  po_box          String?
+  postal_code     String?
+  station         String?
+  phone_number    String?
+  registered_date String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+
+  @@index([id_number])
+}
+
+model service_settings {
+  id           String   @id
+  service_key  String   @unique
+  service_name String
+  is_active    Boolean  @default(true)
+  description  String?
+  updated_at   DateTime @default(now())
+}
+
+model session_activities {
+  id            String   @id
+  session_id    String
+  activity_type String
+  description   String?
+  metadata      Json     @default("{}")
+  created_at    DateTime @default(now())
+  sessions      sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
+}
+
+model sessions {
+  id                 String               @id
+  pin                String?
+  status             String               @default("prospect")
+  current_step       Int                  @default(1)
+  device_info        Json?
+  ip_address         String?
+  user_agent         String?
+  is_mobile          Boolean              @default(false)
+  form_data          Json                 @default("{}")
+  last_activity      DateTime             @default(now())
+  completed_at       DateTime?
+  created_at         DateTime             @default(now())
+  user_id            String?
+  session_activities session_activities[]
+}
+
+model ticket_messages {
+  id          String   @id
+  ticket_id   String
+  sender_type String
+  sender_name String?
+  message     String
+  attachments Json     @default("[]")
+  is_internal Boolean  @default(false)
+  metadata    Json     @default("{}")
+  created_at  DateTime @default(now())
+  tickets     tickets  @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
+
+model tickets {
+  id                      String            @id
+  conversation_id         String?
+  task_id                 String?
+  ticket_number           String            @unique
+  category                String
+  priority                String            @default("medium")
+  status                  String            @default("open")
+  subject                 String
+  description             String?
+  requester_name          String?
+  requester_email         String?
+  requester_phone         String?
+  assigned_to             String?
+  escalation_level        Int               @default(0)
+  sla_response_deadline   DateTime?
+  sla_resolution_deadline DateTime?
+  first_response_at       DateTime?
+  resolved_at             DateTime?
+  resolution_notes        String?
+  tags                    String[]          @default([])
+  metadata                Json              @default("{}")
+  created_at              DateTime          @default(now())
+  updated_at              DateTime          @default(now())
+  ticket_messages         ticket_messages[]
+  ai_conversations        ai_conversations? @relation(fields: [conversation_id], references: [id])
+  ai_tasks                ai_tasks?         @relation(fields: [task_id], references: [id])
+}
+
+model user_activities {
+  id            String   @id
+  user_id       String
+  activity_type String
+  description   String?
+  status        String   @default("success")
+  metadata      Json     @default("{}")
+  created_at    DateTime @default(now())
+  users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id              String            @id
+  clerkId         String            @unique
+  email           String            @unique
+  firstName       String?
+  lastName        String?
+  profileImage    String?
+  lastLogin       DateTime?         @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  role            String            @default("user")
+  user_activities user_activities[]
 }
 
 model SystemLog {
@@ -20,3 +246,4 @@ model SystemLog {
 
   @@map("system_logs")
 }
+

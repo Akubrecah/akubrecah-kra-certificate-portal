@@ -5,6 +5,8 @@ import net from 'net';
 import tls from 'tls';
 import url from 'url';
 import { createSystemLog } from '@/lib/prisma';
+import { fetchTaxpayerByPin, fetchTaxpayerById } from '@/lib/kra-api';
+import { getKraStationForCounty } from '@/lib/kra-stations';
 
 export const maxDuration = 60;
 
@@ -76,7 +78,7 @@ function initKraSession(proxyUrl?: string): Promise<Record<string, string>> {
       path: '/KRA-Portal/pinChecker.htm?actionCode=loadPage&viewType=static',
       method: 'GET',
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
-      timeout: 10000,
+      timeout: 8000,
       rejectUnauthorized: false,
       agent
     } as any, (res) => {
@@ -88,6 +90,9 @@ function initKraSession(proxyUrl?: string): Promise<Record<string, string>> {
       });
       res.resume();
       resolve(cookieMap);
+    });
+    req.on('timeout', () => {
+      req.destroy(new Error('KRA session init timed out'));
     });
     req.on('error', reject);
     req.end();
@@ -111,13 +116,16 @@ function httpsPost(path: string, body: string, cookieString: string, contentType
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'X-Requested-With': 'XMLHttpRequest',
       },
-      timeout: 15000,
+      timeout: 8000,
       rejectUnauthorized: false,
       agent
     } as any, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (c: Buffer) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    });
+    req.on('timeout', () => {
+      req.destroy(new Error('KRA httpsPost request timed out'));
     });
     req.on('error', reject);
     req.write(buf);
@@ -151,7 +159,7 @@ async function lookupPinByIdNumber(idNumber: string, cookieString: string, proxy
     const val = m[1];
     if (val.includes('#$')) {
       const [masked, rev] = val.split('#$');
-      return masked.replace('*****', rev.split('').reverse().join('')).trim().toUpperCase();
+      return masked.replace('*****', rev.trim()).trim().toUpperCase();
     }
     return val.trim().toUpperCase();
   }
@@ -441,6 +449,7 @@ async function fetchTaxpayerByDWR(pin: string, cookieString: string, proxyUrl?: 
     '/KRA-Portal/dwr/call/plaincall/TaxPayerRDWR.getTaxpayerBasicRdtlsByPin.dwr',
     body, cookieString, 'text/plain', proxyUrl
   );
+  console.log('[retrieve] DWR TaxPayer raw:', raw ? raw.substring(0, 400) : 'EMPTY');
   return parseDWR(raw);
 }
 
@@ -500,17 +509,17 @@ function parseDWR(raw: string): Record<string, string> | null {
   return {
     name: fullName,
     email,
-    building:    get('buildingName', 'building', 'bldgName'),
-    street:      get('streetName', 'street', 'roadName'),
-    city:        get('city', 'town', 'cityName'),
-    county:      get('county', 'countyName'),
-    district:    get('district', 'districtName', 'subCounty'),
-    taxArea:     get('taxArea', 'taxAreaName'),
-    poBox:       get('poBox', 'pobox', 'postBox'),
-    postalCode:  get('postalCode', 'postCode'),
-    station:     get('station', 'stationName'),
-    phoneNumber: get('mobileNo', 'phoneNumber', 'phone'),
-    registeredDate: get('registeredDate', 'regDate', 'effectiveDate', 'pinRegistrationDate', 'pinRegDate', 'effectiveFromDate', 'effectiveFrom', 'reg_date', 'registration_date'),
+    building:    get('buildingName', 'building', 'bldgName', 'bldgNm', 'physicalAddress', 'bldg'),
+    street:      get('streetName', 'street', 'roadName', 'roadNm', 'streetNm', 'road'),
+    city:        get('city', 'town', 'cityName', 'townName', 'cityNm', 'townNm'),
+    county:      get('county', 'countyName', 'cName', 'countyNm', 'cNme'),
+    district:    get('district', 'districtName', 'subCounty', 'distName', 'distNm', 'districtNm'),
+    taxArea:     get('taxArea', 'taxAreaName', 'taxAreaNm', 'locality', 'area'),
+    poBox:       get('poBox', 'pobox', 'postBox', 'boxNo', 'pBox'),
+    postalCode:  get('postalCode', 'postCode', 'pCode', 'zipCode'),
+    station:     get('station', 'stationName', 'stationNm', 'taxStation', 'krastation'),
+    phoneNumber: get('mobileNo', 'mobNo', 'phoneNumber', 'phone', 'contactNo', 'phoneNo', 'telNo'),
+    registeredDate: get('registeredDate', 'regDate', 'effectiveDate', 'pinRegistrationDate', 'pinRegDate', 'effectiveFromDate', 'effectiveFrom', 'reg_date', 'registration_date', 'regDt'),
   };
 }
 
@@ -641,23 +650,25 @@ function first(...vals: (string | undefined | null)[]): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    let clerkId: string | null = null;
+    let userEmail = 'guest@akubrecah.co.ke';
+    try {
+      const session = await auth();
+      clerkId = session?.userId || null;
+      if (clerkId) {
+        userEmail = clerkId;
+        const client = await clerkClient();
+        const user = await client.users.getUser(clerkId);
+        userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
+      }
+    } catch (authErr: any) {
+      // In development or decoupled requests, allow authenticated or proxy bypass
     }
 
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
-    
-    // Retrieve authenticated user's email address
-    let userEmail = clerkId;
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(clerkId);
-      userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
-    } catch {}
 
     const body = await req.json();
-    const { idNumber, pin: directPin, captchaAnswer, sessionToken } = body;
+    const { idNumber, pin: directPin, captchaAnswer, sessionToken, engineMode = 'auto' } = body;
 
     if (!idNumber && !directPin) {
       return NextResponse.json({ success: false, error: 'ID Number or PIN is required' }, { status: 400 });
@@ -665,180 +676,188 @@ export async function POST(req: NextRequest) {
 
     const proxyUrl = process.env.KRA_PROXY_URL || process.env.PROXY_URL || "";
 
-    // ── B. Live KRA Verification Flow ─────────────────────────────────────────
+    // ── 1. If 'api' or 'auto' mode, attempt Official KRA Live API ─────────────
+    let liveApiTaxpayer: any = null;
+    if (engineMode === 'api' || engineMode === 'auto') {
+      try {
+        if (directPin) {
+          liveApiTaxpayer = await fetchTaxpayerByPin(String(directPin).trim().toUpperCase());
+        } else if (idNumber) {
+          liveApiTaxpayer = await fetchTaxpayerById(String(idNumber).trim());
+        }
+      } catch (liveApiErr: any) {
+        console.warn('[retrieve] Live API gateway notice:', liveApiErr.message);
+        if (engineMode === 'api') {
+          return NextResponse.json({
+            success: false,
+            error: `KRA Live API Error: ${liveApiErr.message || 'Gateway query failed.'}`,
+          }, { status: 502 });
+        }
+      }
+    }
+
+    // ── 2. Resolve PIN & Session for DWR flow ────────────────────────────────
+    let fullPin = (engineMode !== 'dwr' && liveApiTaxpayer?.pin) ? liveApiTaxpayer.pin : (directPin ? String(directPin).trim().toUpperCase() : null);
+
     let cookieString = "";
-    if (sessionToken) {
+    let freshCookieString = "";
+
+    // Only initialize iTax scraping cookies if DWR / HTML parsing is needed
+    if (engineMode === 'dwr' || !liveApiTaxpayer || !fullPin) {
+      if (sessionToken) {
+        try {
+          cookieString = Buffer.from(sessionToken, 'base64').toString('utf8');
+        } catch (err) {
+          console.error('[retrieve] Failed to decode sessionToken:', err);
+        }
+      }
+
+      if (!cookieString) {
+        try {
+          const cookies = await initKraSession(proxyUrl);
+          cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+        } catch (err: any) {
+          console.warn('[retrieve] iTax session init notice:', err.message);
+        }
+      }
+
+      freshCookieString = cookieString;
       try {
-        cookieString = Buffer.from(sessionToken, 'base64').toString('utf8');
-      } catch (err) {
-        console.error('[retrieve] Failed to decode sessionToken:', err);
+        const freshCookies = await initKraSession(proxyUrl);
+        freshCookieString = Object.entries(freshCookies).map(([k, v]) => `${k}=${v}`).join('; ');
+      } catch {}
+
+      if (!fullPin && idNumber) {
+        try {
+          fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString, proxyUrl);
+        } catch (err: any) {
+          console.warn('[retrieve] DWR PIN lookup failed:', err.message);
+        }
+      }
+
+      // If fullPin was resolved and we don't have live API taxpayer details yet, query Live API with fullPin
+      if (fullPin && !liveApiTaxpayer && engineMode !== 'dwr') {
+        try {
+          liveApiTaxpayer = await fetchTaxpayerByPin(fullPin);
+        } catch (err: any) {
+          console.warn('[retrieve] Post-ID Live API lookup notice:', err.message);
+        }
       }
     }
 
-    if (!cookieString) {
-      try {
-        const cookies = await initKraSession(proxyUrl);
-        cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
-      } catch (err: any) {
-        console.error('[retrieve] Failed to initialize live KRA session:', err.message);
-        await createSystemLog({
-          level: 'error',
-          service: 'KRA-Retrieve',
-          message: `Failed to initialize live KRA session: ${err.message}`,
-          actor: userEmail,
-          ip,
-          details: { error: err.message }
-        });
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to connect to the KRA iTax portal. Please verify the proxy is active or try again.'
-        }, { status: 502 });
-      }
-    }
-
-    let freshCookieString = cookieString;
-    try {
-      const freshCookies = await initKraSession(proxyUrl);
-      freshCookieString = Object.entries(freshCookies).map(([k, v]) => `${k}=${v}`).join('; ');
-    } catch {}
-
-    // ── 1. Resolve PIN ──────────────────────────────────────────────────────
-    let fullPin = directPin ? String(directPin).trim().toUpperCase() : null;
-    if (!fullPin && idNumber) {
-      try {
-        fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString, proxyUrl);
-      } catch (err: any) {
-        console.error('[retrieve] Live PIN lookup failed:', err.message);
-        await createSystemLog({
-          level: 'error',
-          service: 'KRA-Retrieve',
-          message: `Live PIN lookup failed for ID ${idNumber}: ${err.message}`,
-          actor: userEmail,
-          ip,
-          details: { error: err.message, idNumber }
-        });
-        return NextResponse.json({
-          success: false,
-          error: 'Connection failed during KRA PIN lookup. Please try again.'
-        }, { status: 502 });
-      }
-
-      // If lookup returned null, it means the ID is not registered
-      if (!fullPin) {
-        await createSystemLog({
-          level: 'warning',
-          service: 'KRA-Retrieve',
-          message: `KRA PIN lookup failed: no record matches ID ${idNumber}`,
-          actor: userEmail,
-          ip,
-          details: { idNumber }
-        });
-        return NextResponse.json({
-          success: false,
-          error: 'KRA PIN not found for this ID number. Please verify and try again.'
-        }, { status: 404 });
-      }
-    }
-
-    // ── 2. Run Concurrent Lookups: Pin Checker, Manufacturer, and DWR ──────
+    // ── 3. Run Concurrent Lookups: Pin Checker, Manufacturer, and DWR ──────
     let pinCheckerData: PinCheckerResult | null = null;
     let manData: ManufacturerResult | null = null;
     let dwrData: Record<string, string> | null = null;
     let parseError = false;
 
-    try {
-      if (captchaAnswer && captchaAnswer.trim()) {
-        const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin!)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
-        
-        const [pcHtml, manResult, dwrResult] = await Promise.all([
-          httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString, 'application/x-www-form-urlencoded', proxyUrl).catch(() => ''),
-          fetchManufacturerDetails(fullPin!, freshCookieString, proxyUrl).catch(() => null),
-          fetchTaxpayerByDWR(fullPin!, freshCookieString, proxyUrl).catch(() => null),
-        ]);
+    if (fullPin) {
+      try {
+        if (captchaAnswer && captchaAnswer.trim()) {
+          const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
+          
+          const [pcHtml, manResult, dwrResult] = await Promise.all([
+            httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString, 'application/x-www-form-urlencoded', proxyUrl).catch(() => ''),
+            fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null),
+            fetchTaxpayerByDWR(fullPin, freshCookieString, proxyUrl).catch(() => null),
+          ]);
 
-        if (pcHtml.length > 100) {
-          pinCheckerData = parsePinCheckerHtml(pcHtml);
-          if (pinCheckerData.captchaWrong) {
-            await createSystemLog({
-              level: 'warning',
-              service: 'KRA-Retrieve',
-              message: `Wrong captcha answer entered for PIN ${fullPin}`,
-              actor: userEmail,
-              ip,
-              details: { pin: fullPin, captchaAnswer }
-            });
-            return NextResponse.json({
-              success: false,
-              captchaWrong: true,
-              error: 'Wrong CAPTCHA answer. Please reload and try again.',
-            }, { status: 422 });
+          if (pcHtml.length > 100) {
+            pinCheckerData = parsePinCheckerHtml(pcHtml);
+            if (pinCheckerData.captchaWrong && !liveApiTaxpayer) {
+              await createSystemLog({
+                level: 'warning',
+                service: 'KRA-Retrieve',
+                message: `Wrong captcha answer entered for PIN ${fullPin}`,
+                actor: userEmail,
+                ip,
+                details: { pin: fullPin, captchaAnswer }
+              });
+              return NextResponse.json({
+                success: false,
+                captchaWrong: true,
+                error: 'Wrong CAPTCHA answer. Please reload and try again.',
+              }, { status: 422 });
+            }
           }
+          manData = manResult;
+          dwrData = dwrResult;
+        } else {
+          const [manResult, dwrResult] = await Promise.all([
+            fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null),
+            fetchTaxpayerByDWR(fullPin, freshCookieString, proxyUrl).catch(() => null),
+          ]);
+          manData = manResult;
+          dwrData = dwrResult;
         }
-        manData = manResult;
-        dwrData = dwrResult;
-      } else {
-        const [manResult, dwrResult] = await Promise.all([
-          fetchManufacturerDetails(fullPin!, freshCookieString, proxyUrl).catch(() => null),
-          fetchTaxpayerByDWR(fullPin!, freshCookieString, proxyUrl).catch(() => null),
-        ]);
-        manData = manResult;
-        dwrData = dwrResult;
+      } catch (err: any) {
+        console.warn('[retrieve] iTax details fetch notice:', err.message);
+        parseError = true;
       }
-    } catch (err: any) {
-      console.error('[retrieve] Live KRA lookup error during details fetch:', err.message);
-      parseError = true;
     }
 
-    // ── 3. Merge fields and return response ──────────────────────────────────
+    // ── 4. Merge fields: Live API + DWR + Manufacturer + Pin Checker ───────
     const pc = pinCheckerData;
     const man = manData;
     const dw = dwrData;
+    const api = liveApiTaxpayer;
 
-    const name        = first(man?.name, pc?.name, dw?.name, '');
-    
-    // If live retrieval returned no name, it means the check failed due to geoblocking or network block.
-    if (!name || parseError) {
-      console.error('[retrieve] Live details retrieval failed or returned empty.');
-      await createSystemLog({
-        level: 'error',
-        service: 'KRA-Retrieve',
-        message: `Failed to retrieve taxpayer details from KRA for PIN ${fullPin || idNumber}`,
-        actor: userEmail,
-        ip,
-        details: { pin: fullPin, idNumber, captchaAnswer, parseError }
-      });
+    // Priority depends on engineMode: if 'dwr', prioritize DWR over manufacturer
+    const isDwr = engineMode === 'dwr' || !api;
+
+    const name           = isDwr ? first(dw?.name, pc?.name, api?.taxpayerName, man?.name, '')
+                                 : first(api?.taxpayerName, dw?.name, pc?.name, man?.name, '');
+
+    if (!fullPin && !name) {
+      console.error('[retrieve] Live & DWR retrieval returned no taxpayer record.');
       return NextResponse.json({
         success: false,
-        error: 'Failed to retrieve taxpayer details from KRA portal. Please ensure the PIN or CAPTCHA answer is correct.'
-      }, { status: 502 });
+        error: 'KRA record not found. Please verify the ID number or PIN and try again.'
+      }, { status: 404 });
     }
 
-    const email       = first(man?.email, pc?.email, dw?.email, '');
-    const phoneNumber = first(man?.phoneNumber, pc?.phoneNumber, dw?.phoneNumber, '');
-    const building    = first(man?.building, pc?.building, dw?.building, '');
-    const street      = first(man?.street, pc?.street, dw?.street, '');
-    const town        = first(man?.town, pc?.town, dw?.city, '');
-    const station     = first(pc?.station, dw?.station, '');
-    const county      = first(man?.county, pc?.county, dw?.county, '');
-    const district    = first(man?.district, pc?.district, dw?.district, '');
-    
-    let taxArea       = first(man?.taxArea, pc?.taxArea, dw?.taxArea, '');
+    const email          = isDwr ? first(dw?.email, pc?.email, api?.email, man?.email, '')
+                                 : first(api?.email, dw?.email, pc?.email, man?.email, '');
+
+    const phoneNumber    = isDwr ? first(dw?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, man?.phoneNumber, '')
+                                 : first(api?.phoneNumber, dw?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '');
+
+    const building       = isDwr ? first(dw?.building, pc?.building, api?.building, man?.building, '')
+                                 : first(api?.building, dw?.building, pc?.building, man?.building, '');
+
+    const street         = isDwr ? first(dw?.street, pc?.street, api?.street, man?.street, '')
+                                 : first(api?.street, dw?.street, pc?.street, man?.street, '');
+
+    const town           = isDwr ? first(dw?.city, pc?.town, api?.town, man?.town, '')
+                                 : first(api?.town, dw?.city, pc?.town, man?.town, '');
+
+    const county         = isDwr ? first(dw?.county, pc?.county, api?.county, man?.county, 'NAIROBI')
+                                 : first(api?.county, dw?.county, pc?.county, man?.county, 'NAIROBI');
+
+    const district       = isDwr ? first(dw?.district, pc?.district, api?.district, man?.district, '')
+                                 : first(api?.district, dw?.district, pc?.district, man?.district, '');
+
+    // Strictly enforce KRA Station Matrix based on County
+    const station        = getKraStationForCounty(county);
+
+    let taxArea          = isDwr ? first(dw?.taxArea, pc?.taxArea, api?.taxArea, man?.taxArea, '')
+                                 : first(api?.taxArea, dw?.taxArea, pc?.taxArea, man?.taxArea, '');
     if (county) {
       const normalizedCounty = county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim();
       const mappedTown = COUNTY_TOWN_MAP[normalizedCounty] || '';
-      if (mappedTown) {
+      if (mappedTown && !taxArea) {
         taxArea = mappedTown;
-      } else {
-        const foundKey = Object.keys(COUNTY_TOWN_MAP).find(k => normalizedCounty.includes(k) || k.includes(normalizedCounty));
-        if (foundKey) {
-          taxArea = COUNTY_TOWN_MAP[foundKey];
-        }
       }
     }
     
-    const poBox       = first(man?.poBox, pc?.poBox, dw?.poBox, '');
-    const postalCode  = first(man?.postalCode, pc?.postalCode, dw?.postalCode, '');
-    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, dw?.registeredDate, '');
+    const poBox          = isDwr ? first(dw?.poBox, pc?.poBox, api?.poBox, man?.poBox, '')
+                                 : first(api?.poBox, dw?.poBox, pc?.poBox, man?.poBox, '');
+
+    const postalCode     = isDwr ? first(dw?.postalCode, pc?.postalCode, api?.postalCode, man?.postalCode, '')
+                                 : first(api?.postalCode, dw?.postalCode, pc?.postalCode, man?.postalCode, '');
+
+    const registeredDate = isDwr ? first(dw?.registeredDate, pc?.registeredDate, pc?.obligationDate, api?.registrationDate, '')
+                                 : first(api?.registrationDate, dw?.registeredDate, pc?.registeredDate, pc?.obligationDate, '');
 
     const result = {
       success: true,

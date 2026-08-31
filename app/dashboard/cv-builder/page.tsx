@@ -1178,84 +1178,40 @@ function SecDesign({ d, s }: { d: CVData; s: React.Dispatch<React.SetStateAction
 }
 
 /* ── CV Templates ── */
-/* ── CV Templates ── */
+
+// 1. ATS Template (Extreme clean plain text format, parser optimized)
 function ATSTemplate({ d, design }: { d: CVData; design?: string }) {
   const has = (v: any) => v && String(v).trim().length > 0
   
   const fontMap: Record<string, string> = {
-    "sans-serif": "'Segoe UI', Arial, sans-serif",
-    "serif": "Georgia, 'Times New Roman', Times, serif",
-    "monospace": "Menlo, Consolas, monospace"
+    "sans-serif": "Arial, sans-serif",
+    "serif": "'Times New Roman', Times, serif",
+    "monospace": "Courier, monospace"
   }
 
   const customFont = d.customStyles?.fontFamily
     ? fontMap[d.customStyles.fontFamily]
     : null;
+  const fontFamily = customFont || "Arial, sans-serif";
+  const bodySize = d.customStyles?.fontSize || "9.5pt";
+  const pageMargin = d.customStyles?.margins || "15mm";
+  const lineHeight = d.customStyles?.lineHeight || "1.35";
 
-  const fontFamily = customFont || ((design === "classic" || design === "executive")
-    ? "Georgia, 'Times New Roman', Times, serif" 
-    : design === "minimal" 
-      ? "Inter, system-ui, sans-serif" 
-      : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+  const SH = ({ t }: { t: string }) => (
+    <div style={{
+      fontSize: "10pt",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      marginTop: "4mm",
+      marginBottom: "2mm",
+      color: "#000",
+      fontFamily
+    }}>
+      {t}
+    </div>
+  )
 
-  const customColor = d.customStyles?.primaryColor && d.customStyles.primaryColor !== "#1B4332"
-    ? d.customStyles.primaryColor
-    : null;
-
-  const linkColor = customColor || (design === "modern" ? "#1a365d" : "#000000");
-
-  const customSize = d.customStyles?.fontSize
-    ? d.customStyles.fontSize
-    : null;
-
-  const bodySize = customSize || ((design === "minimal" || design === "compact") ? "9pt" : "9.5pt");
-  const titleSize = customSize || ((design === "minimal" || design === "compact") ? "9.5pt" : "10pt");
-
-  const pageMargin = d.customStyles?.margins || ((design === "minimal" || design === "compact") ? "8mm" : "10mm");
-
-  const SH = ({ t }: { t: string }) => {
-    if (design === "executive") {
-      return (
-        <div style={{
-          fontSize: "10.5pt",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: ".1em",
-          color: "#000",
-          borderTop: "1px solid #333",
-          borderBottom: "1px solid #333",
-          padding: "1.2mm 0",
-          marginTop: "4.5mm",
-          marginBottom: "2.5mm",
-          fontFamily: "Georgia, serif",
-          textAlign: "center"
-        }}>
-          {t}
-        </div>
-      )
-    }
-
-    return (
-      <div style={{
-        fontSize: design === "minimal" || design === "compact" ? "9pt" : "11pt",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: ".08em",
-        color: linkColor,
-        borderBottom: design === "minimal" ? "none" : `1.5px solid ${linkColor}`,
-        borderLeft: design === "minimal" ? "3px solid #4a5568" : "none",
-        paddingLeft: design === "minimal" ? "2.2mm" : "0",
-        paddingBottom: design === "minimal" ? "0" : "1.2mm",
-        marginTop: design === "compact" ? "3.5mm" : "4.5mm",
-        marginBottom: design === "compact" ? "2mm" : "2.5mm",
-        fontFamily: (design === "classic" || design === "executive") ? "Georgia, serif" : "Arial, sans-serif"
-      }}>
-        {t}
-      </div>
-    )
-  }
-
-  const contact = [
+  const contacts = [
     d.email,
     d.phone,
     [d.addr, d.county, d.country].filter(has).join(", "),
@@ -1266,125 +1222,79 @@ function ATSTemplate({ d, design }: { d: CVData; design?: string }) {
   const optLine = d.opt ? [
     d.dob && `DOB: ${d.dob}`,
     d.nationality && `Nationality: ${d.nationality}`,
-    d.marital && `Status: ${d.marital}`,
-    d.id_no && `ID No: ${d.id_no}`,
-    d.kra_pin && `KRA PIN: ${d.kra_pin}`
+    d.marital && `Marital: ${d.marital}`,
+    d.id_no && `ID: ${d.id_no}`,
+    d.kra_pin && `KRA: ${d.kra_pin}`
   ].filter(Boolean).join("  |  ") : ""
-
-  const renderHeader = () => {
-    if (design === "modern") {
-      return (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `2.5px solid ${linkColor}`, paddingBottom: "4mm", marginBottom: "4mm" }}>
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontSize: "20pt", fontWeight: 800, color: "#1a202c", letterSpacing: "-0.02em" }}>
-              {d.fullName.toUpperCase() || "YOUR FULL NAME"}
-            </div>
-            {has(d.jobTitle) && (
-              <div style={{ fontSize: "11pt", fontWeight: 700, color: "#4a5568", marginTop: "1.5mm", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {d.jobTitle}
-              </div>
-            )}
-          </div>
-          <div style={{ textAlign: "right", fontSize: "8.5pt", color: "#4a5568", lineHeight: 1.45 }}>
-            <div>{d.phone}  •  {d.email}</div>
-            <div>{[d.addr, d.county, d.country].filter(has).join(", ")}</div>
-            {(has(d.linkedin) || has(d.website)) && (
-              <div>{[d.linkedin, d.website].filter(has).join("  •  ")}</div>
-            )}
-            {has(optLine) && <div style={{ fontSize: "8pt", fontStyle: "italic", color: "#718096" }}>{optLine}</div>}
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <div style={{ textAlign: "center", borderBottom: design === "executive" ? "none" : "2px solid #000", paddingBottom: "4mm", marginBottom: "4mm" }}>
-        <div style={{ fontSize: design === "executive" ? "20pt" : "18pt", fontWeight: 700, letterSpacing: ".01em" }}>
-          {d.fullName.toUpperCase() || "YOUR FULL NAME"}
-        </div>
-        {has(d.jobTitle) && (
-          <div style={{ fontSize: "11pt", fontWeight: 600, color: "#222", marginTop: "1mm" }}>
-            {d.jobTitle.toUpperCase()}
-          </div>
-        )}
-        {has(contact) && (
-          <div style={{ fontSize: "9pt", color: "#333", marginTop: "2mm" }}>
-            {contact}
-          </div>
-        )}
-        {has(optLine) && (
-          <div style={{ fontSize: "9pt", color: "#333", marginTop: "1mm" }}>
-            {optLine}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  const pSize = design === "minimal" || design === "compact" ? "12mm 12mm" : "16mm 16mm";
 
   return (
     <div style={{
-      fontFamily: fontFamily,
-      fontSize: titleSize,
-      lineHeight: design === "minimal" || design === "compact" ? 1.35 : 1.5,
+      fontFamily,
+      fontSize: bodySize,
+      lineHeight,
       color: "#000",
       background: "#fff",
-      padding: pSize,
+      padding: pageMargin,
       maxWidth: "210mm",
       minHeight: "297mm",
       margin: "0 auto",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      textAlign: "left"
     }}>
-      {renderHeader()}
+      <div style={{ marginBottom: "4mm" }}>
+        <h1 style={{ fontSize: "16pt", fontWeight: "bold", margin: "0 0 1mm 0", textTransform: "uppercase" }}>
+          {d.fullName || "YOUR FULL NAME"}
+        </h1>
+        {has(d.jobTitle) && (
+          <div style={{ fontSize: "10.5pt", fontWeight: "bold", textTransform: "uppercase", marginBottom: "2mm" }}>
+            {d.jobTitle}
+          </div>
+        )}
+        <div style={{ fontSize: "9pt", color: "#000" }}>{contacts}</div>
+        {has(optLine) && <div style={{ fontSize: "9pt", color: "#000", marginTop: "1mm" }}>{optLine}</div>}
+      </div>
 
-      {/* Summary */}
       {has(d.summary) && (
         <>
           <SH t="Professional Summary" />
-          <p style={{ textAlign: "justify", margin: 0, fontSize: bodySize }}>{d.summary}</p>
+          <p style={{ margin: "0 0 3mm 0", textAlign: "justify" }}>{d.summary}</p>
         </>
       )}
 
-      {/* Experience */}
       {d.exp.some(e => has(e.title) || has(e.company)) && (
         <>
           <SH t="Work Experience" />
           {d.exp.filter(e => has(e.title) || has(e.company)).map(e => (
-            <div key={e.id} style={{ marginBottom: "3.5mm" }}>
-              <div style={{ display: "flex", fontWeight: 700, fontSize: bodySize, justifyContent: "space-between" }}>
-                <span>{[e.title, e.company].filter(has).join("  —  ")}</span>
-                <span style={{ fontWeight: 400, fontSize: "9pt" }}>
-                  {[e.start, e.current ? "Present" : e.end].filter(has).join(" – ")}
-                </span>
+            <div key={e.id} style={{ marginBottom: "3mm" }}>
+              <div style={{ fontWeight: "bold" }}>
+                {e.title.toUpperCase()}  |  {e.company.toUpperCase()}
               </div>
-              {has(e.loc) && <div style={{ fontSize: "9pt", color: "#444", marginBottom: "1mm", fontStyle: "italic" }}>{e.loc}</div>}
-              {e.bullets.filter(b => has(b)).map((b, i) => (
-                <div key={i} style={{ display: "flex", gap: "2mm", marginBottom: "0.8mm", fontSize: bodySize, paddingLeft: "2mm" }}>
-                  <span style={{ flexShrink: 0 }}>•</span>
-                  <span>{b}</span>
-                </div>
-              ))}
+              <div style={{ fontSize: "9pt", fontStyle: "italic" }}>
+                {[e.start, e.current ? "Present" : e.end].filter(has).join(" – ")} {has(e.loc) && ` | ${e.loc}`}
+              </div>
+              <ul style={{ margin: "1mm 0 0 0", paddingLeft: "5mm", listStyleType: "disc" }}>
+                {e.bullets.filter(b => has(b)).map((b, i) => (
+                  <li key={i} style={{ marginBottom: "0.5mm" }}>{b}</li>
+                ))}
+              </ul>
             </div>
           ))}
         </>
       )}
 
-      {/* Education */}
       {d.edu.some(e => has(e.degree) || has(e.inst)) && (
         <>
           <SH t="Education" />
           {d.edu.filter(e => has(e.degree) || has(e.inst)).map(e => (
-            <div key={e.id} style={{ marginBottom: "3mm" }}>
-              <div style={{ display: "flex", fontWeight: 700, fontSize: bodySize, justifyContent: "space-between" }}>
-                <span>{[e.degree, e.field].filter(has).join(" in ")}</span>
-                <span style={{ fontWeight: 400, fontSize: "9pt" }}>
-                  {[e.start, e.end].filter(has).join(" – ")}
-                </span>
+            <div key={e.id} style={{ marginBottom: "2.5mm" }}>
+              <div style={{ fontWeight: "bold" }}>
+                {[e.degree, e.field].filter(has).join(" in ").toUpperCase()}
               </div>
-              <div style={{ fontSize: "9pt" }}>{[e.inst, e.loc].filter(has).join(", ")}</div>
+              <div>
+                {e.inst} {has(e.loc) && ` | ${e.loc}`} ({[e.start, e.end].filter(has).join(" – ")})
+              </div>
               {(has(e.grade) || has(e.honors)) && (
-                <div style={{ fontSize: "9pt", color: "#444", marginTop: "0.5mm" }}>
+                <div style={{ fontSize: "9pt" }}>
                   {[e.grade && `Grade: ${e.grade}`, e.honors].filter(Boolean).join("  |  ")}
                 </div>
               )}
@@ -1393,64 +1303,48 @@ function ATSTemplate({ d, design }: { d: CVData; design?: string }) {
         </>
       )}
 
-      {/* Skills */}
       {d.skills.some(sk => has(sk.items)) && (
         <>
           <SH t="Skills" />
           {d.skills.filter(sk => has(sk.items)).map(sk => (
-            <div key={sk.id} style={{ marginBottom: "1.5mm", fontSize: bodySize }}>
+            <div key={sk.id} style={{ marginBottom: "1mm" }}>
               <strong>{sk.cat}:</strong> {sk.items}
             </div>
           ))}
         </>
       )}
 
-      {/* Certifications */}
       {d.certs.some(c => has(c.name)) && (
         <>
           <SH t="Certifications" />
           {d.certs.filter(c => has(c.name)).map(c => (
-            <div key={c.id} style={{ display: "flex", marginBottom: "1.5mm", fontSize: bodySize, justifyContent: "space-between" }}>
-              <span>
-                <strong>{c.name}</strong>
-                {has(c.issuer) ? `  —  ${c.issuer}` : ""}
-              </span>
-              <span style={{ fontSize: "9pt" }}>
-                {[c.date, has(c.expiry) && `Expiry: ${c.expiry}`].filter(Boolean).join("  |  ")}
-              </span>
+            <div key={c.id} style={{ marginBottom: "1mm" }}>
+              <strong>{c.name}</strong> {has(c.issuer) && ` – ${c.issuer}`} ({c.date})
             </div>
           ))}
         </>
       )}
 
-      {/* Languages */}
       {d.langs.some(l => has(l.lang)) && (
         <>
           <SH t="Languages" />
-          <div style={{ fontSize: bodySize }}>
-            {d.langs.filter(l => has(l.lang)).map(l => `${l.lang} (${l.prof})`).join("     |     ")}
+          <div>
+            {d.langs.filter(l => has(l.lang)).map(l => `${l.lang} (${l.prof})`).join(", ")}
           </div>
         </>
       )}
 
-      {/* References */}
       {d.showRefs && (
         <>
-          <SH t="Professional References" />
+          <SH t="References" />
           {d.refs.some(r => has(r.name)) ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4mm", fontSize: "9pt" }}>
-              {d.refs.filter(r => has(r.name)).map(r => (
-                <div key={r.id}>
-                  <div style={{ fontWeight: 700 }}>{r.name}</div>
-                  {has(r.title) && <div style={{ fontSize: "8.5pt" }}>{r.title}</div>}
-                  {has(r.org) && <div style={{ fontSize: "8.5pt" }}>{r.org}</div>}
-                  {has(r.phone) && <div style={{ fontSize: "8pt", color: "#333" }}>{r.phone}</div>}
-                  {has(r.email) && <div style={{ fontSize: "8pt", color: "#333" }}>{r.email}</div>}
-                </div>
-              ))}
-            </div>
+            d.refs.filter(r => has(r.name)).map(r => (
+              <div key={r.id} style={{ marginBottom: "2mm" }}>
+                <strong>{r.name}</strong> {has(r.title) && ` | ${r.title}`} {has(r.org) && ` | ${r.org}`} {has(r.phone) && ` | Phone: ${r.phone}`} {has(r.email) && ` | Email: ${r.email}`}
+              </div>
+            ))
           ) : (
-            <div style={{ fontStyle: "italic", fontSize: "9.5pt" }}>Available upon request</div>
+            <div>Available upon request</div>
           )}
         </>
       )}
@@ -1458,6 +1352,7 @@ function ATSTemplate({ d, design }: { d: CVData; design?: string }) {
   )
 }
 
+// 2. Visual Template (Striking two-column corporate/creative)
 function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
   const has = (v: any) => v && String(v).trim().length > 0
 
@@ -1500,26 +1395,6 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
     themeColBg = "#fafafa";
     themeColBorder = "#edf2f7";
     themeTagBg = "#edf2f7";
-  }
-
-  if (!customColor && !customAccent) {
-    if (design === "navy") {
-      themeColBg = "#f8fafc";
-      themeColBorder = "#e2e8f0";
-      themeTagBg = "#dbeafe";
-    } else if (design === "crimson") {
-      themeColBg = "#fffafb";
-      themeColBorder = "#ffe4e6";
-      themeTagBg = "#ffe4e6";
-    } else if (design === "charcoal") {
-      themeColBg = "#f8fafc";
-      themeColBorder = "#e2e8f0";
-      themeTagBg = "#f1f5f9";
-    } else if (design === "slate") {
-      themeColBg = "#f0fdfa";
-      themeColBorder = "#ccfbf1";
-      themeTagBg = "#ccfbf1";
-    }
   }
 
   const SH = ({ t }: { t: string }) => (
@@ -1569,7 +1444,6 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
       display: "flex",
       flexDirection: "column"
     }}>
-      {/* Top Banner */}
       <div style={{ background: themeG, color: "#fff", padding: "8mm 10mm" }}>
         <div style={{ fontSize: "20pt", fontWeight: 700, letterSpacing: ".01em" }}>
           {d.fullName || "YOUR FULL NAME"}
@@ -1581,7 +1455,6 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
         )}
       </div>
 
-      {/* Contact Bar */}
       <div style={{
         background: themeContactBg,
         color: themeContactText,
@@ -1601,9 +1474,7 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
         {has(d.website) && <span>🌐 {d.website}</span>}
       </div>
 
-      {/* Main split content */}
       <div style={{ display: "flex", flex: 1, alignItems: "stretch" }}>
-        {/* Left Column (37% width) */}
         <div style={{
           width: "37%",
           background: themeColBg,
@@ -1695,7 +1566,6 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
           )}
         </div>
 
-        {/* Right Column */}
         <div style={{ flex: 1, padding: "5mm 8mm", boxSizing: "border-box" }}>
           {has(d.summary) && (
             <>
@@ -1779,94 +1649,56 @@ function VisualTemplate({ d, design }: { d: CVData; design?: string }) {
   )
 }
 
+// 3. Regular Template (Kenyan Traditional Style, matches training CV data formats)
 function RegularTemplate({ d, design }: { d: CVData; design?: string }) {
   const has = (v: any) => v && String(v).trim().length > 0
 
   const fontMap: Record<string, string> = {
-    "sans-serif": "'Segoe UI', Arial, sans-serif",
-    "serif": "Georgia, 'Times New Roman', Times, serif",
-    "monospace": "Menlo, Consolas, monospace"
+    "sans-serif": "Arial, sans-serif",
+    "serif": "'Times New Roman', Times, serif",
+    "monospace": "Courier, monospace"
   }
 
   const customFont = d.customStyles?.fontFamily
     ? fontMap[d.customStyles.fontFamily]
     : null;
-  const fontFamily = customFont || "'Segoe UI', Arial, sans-serif";
-
-  const customColor = d.customStyles?.primaryColor && d.customStyles.primaryColor !== "#1B4332"
-    ? d.customStyles.primaryColor
-    : null;
-  const themeG = customColor || (design === "navy" ? "#1e3a8a" : design === "crimson" ? "#4c0519" : design === "charcoal" ? "#1e293b" : design === "slate" ? "#0f172a" : "#1B4332");
-
-  const customAccent = d.customStyles?.secondaryColor && d.customStyles.secondaryColor !== "#E9A23B"
-    ? d.customStyles.secondaryColor
-    : null;
-  const themeA = customAccent || (design === "navy" ? "#3b82f6" : design === "crimson" ? "#9f1239" : design === "charcoal" ? "#64748b" : design === "slate" ? "#0d9488" : "#E9A23B");
+  const fontFamily = customFont || "Arial, sans-serif";
 
   const fSize = d.customStyles?.fontSize || "9.5pt";
-  const lHeight = Number(d.customStyles?.lineHeight || "1.6");
-  const pageMargin = d.customStyles?.margins || "12mm";
-
-  // Themes
-  let themeColBg = design === "navy" ? "#f8fafc" : design === "crimson" ? "#fffafb" : design === "charcoal" ? "#f8fafc" : design === "slate" ? "#f0fdfa" : "#f4f8f5";
-  let themeColBorder = design === "navy" ? "#e2e8f0" : design === "crimson" ? "#ffe4e6" : design === "charcoal" ? "#e2e8f0" : design === "slate" ? "#ccfbf1" : "#e2ece6";
-  let themeTagBg = design === "navy" ? "#dbeafe" : design === "crimson" ? "#ffe4e6" : design === "charcoal" ? "#f1f5f9" : design === "slate" ? "#ccfbf1" : "#e8f4ec";
+  const lHeight = Number(d.customStyles?.lineHeight || "1.4");
+  const pageMargin = d.customStyles?.margins || "15mm";
 
   const SH = ({ t }: { t: string }) => {
-    if (design === "block") {
-      return (
-        <div style={{
-          fontSize: "10pt",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: ".08em",
-          color: themeG,
-          background: themeColBg,
-          borderLeft: `4px solid ${themeG}`,
-          padding: "1.5mm 3mm",
-          marginTop: "5mm",
-          marginBottom: "3.5mm",
-          fontFamily
-        }}>
-          {t}
-        </div>
-      )
+    let headerStyle: React.CSSProperties = {
+      fontSize: "11pt",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      borderBottom: "1.5px solid #000",
+      paddingBottom: "0.8mm",
+      marginTop: "5mm",
+      marginBottom: "3mm",
+      fontFamily
     }
 
-    if (design === "elegant") {
-      return (
-        <div style={{
-          fontSize: "10pt",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: ".08em",
-          color: themeG,
-          borderBottom: `1.5px solid ${themeG}`,
-          paddingBottom: "0.8mm",
-          marginTop: "5mm",
-          marginBottom: "3.5mm",
-          fontFamily,
-          position: "relative"
-        }}>
-          {t}
-          <div style={{ position: "absolute", bottom: "-3.5px", left: 0, right: 0, height: "1px", background: themeG }} />
-        </div>
-      )
+    if (design === "block") {
+      headerStyle = {
+        ...headerStyle,
+        borderBottom: "none",
+        borderLeft: "4px solid #000",
+        paddingLeft: "3mm",
+        background: "#f3f4f6",
+        paddingTop: "1mm",
+        paddingBottom: "1mm"
+      }
+    } else if (design === "elegant") {
+      headerStyle = {
+        ...headerStyle,
+        borderBottom: "double 3px #000"
+      }
     }
 
     return (
-      <div style={{
-        fontSize: "10pt",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: ".08em",
-        color: themeG,
-        borderBottom: `2px solid ${themeA}`,
-        paddingBottom: "1.2mm",
-        marginTop: "5mm",
-        marginBottom: "3.5mm",
-        fontFamily
-      }}>
+      <div style={headerStyle}>
         {t}
       </div>
     )
@@ -1876,164 +1708,157 @@ function RegularTemplate({ d, design }: { d: CVData; design?: string }) {
     <div style={{
       fontFamily,
       fontSize: fSize,
-      lineHeight: d.customStyles?.lineHeight ? Number(d.customStyles.lineHeight) : 1.5,
+      lineHeight: lHeight,
       color: "#000",
       background: "#fff",
       maxWidth: "210mm",
       minHeight: "297mm",
       margin: "0 auto",
-      padding: `${pageMargin} ${pageMargin}`,
+      padding: pageMargin,
       boxSizing: "border-box",
       display: "flex",
       flexDirection: "column"
     }}>
-      {/* Document Header */}
-      {design === "block" ? (
-        <div style={{ borderBottom: `2px solid ${themeColBorder}`, paddingBottom: "3mm", marginBottom: "5mm" }}>
-          <h1 style={{ fontSize: "16pt", fontWeight: 800, color: themeG, textTransform: "uppercase", margin: 0 }}>
-            CURRICULUM VITAE
-          </h1>
-          <div style={{ fontSize: "10pt", color: "#4a5568", marginTop: "1mm", fontWeight: 600 }}>
-            PERSONAL & PROFESSIONAL RECORD
-          </div>
-        </div>
-      ) : design === "elegant" ? (
-        <div style={{ display: "flex", alignItems: "center", gap: "4mm", marginBottom: "5mm" }}>
-          <div style={{ width: "6px", height: "40px", background: themeG }} />
-          <h1 style={{ fontSize: "16pt", fontWeight: 800, color: themeG, textTransform: "uppercase", margin: 0, letterSpacing: "0.05em" }}>
-            CURRICULUM VITAE
-          </h1>
-        </div>
-      ) : (
-        <div style={{ textAlign: "center", marginBottom: "5mm" }}>
-          <h1 style={{ fontSize: "16pt", fontWeight: 800, color: themeG, letterSpacing: "0.06em", textTransform: "uppercase", margin: 0 }}>
-            CURRICULUM VITAE
-          </h1>
-          <div style={{ height: "3px", background: themeA, width: "70px", margin: "1.5mm auto 0 auto" }} />
-        </div>
-      )}
-
-      {/* Personal / Contact Details Grid */}
-      <div style={{
-        background: themeColBg,
-        border: `1px solid ${themeColBorder}`,
-        borderRadius: "8px",
-        padding: "4mm 6mm",
-        marginBottom: "4mm",
-        fontSize: "8.5pt",
-        display: "grid",
-        gridTemplateColumns: "1.1fr 0.9fr",
-        gap: "3mm 6mm"
-      }}>
-        {/* Left side details */}
-        <div>
-          <div style={{ marginBottom: "1.5mm" }}>
-            <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Full Name: </span>
-            <span style={{ fontWeight: 700, fontSize: "9.5pt", color: themeG }}>{d.fullName || "Your Full Name"}</span>
-          </div>
-          {d.opt && (
-            <>
-              {has(d.dob) && (
-                <div style={{ marginBottom: "1.5mm" }}>
-                  <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Date of Birth: </span>
-                  <span style={{ fontWeight: 600 }}>{d.dob}</span>
-                </div>
-              )}
-              {has(d.nationality) && (
-                <div style={{ marginBottom: "1.5mm" }}>
-                  <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Nationality: </span>
-                  <span style={{ fontWeight: 600 }}>{d.nationality}</span>
-                </div>
-              )}
-              {has(d.marital) && (
-                <div style={{ marginBottom: "1.5mm" }}>
-                  <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Marital Status: </span>
-                  <span style={{ fontWeight: 600 }}>{d.marital}</span>
-                </div>
-              )}
-              {has(d.id_no) && (
-                <div style={{ marginBottom: "1.5mm" }}>
-                  <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>National ID No: </span>
-                  <span style={{ fontWeight: 600 }}>{d.id_no}</span>
-                </div>
-              )}
-              {has(d.kra_pin) && (
-                <div>
-                  <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>KRA PIN No: </span>
-                  <span style={{ fontWeight: 600 }}>{d.kra_pin}</span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        {/* Right side details */}
-        <div>
-          {has(d.phone) && (
-            <div style={{ marginBottom: "1.5mm" }}>
-              <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Phone Number: </span>
-              <span style={{ fontWeight: 600 }}>{d.phone}</span>
-            </div>
-          )}
-          {has(d.email) && (
-            <div style={{ marginBottom: "1.5mm" }}>
-              <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Email Address: </span>
-              <span style={{ fontWeight: 600, color: themeG }}>{d.email}</span>
-            </div>
-          )}
-          {(has(d.addr) || has(d.county)) && (
-            <div style={{ marginBottom: "1.5mm" }}>
-              <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Postal Address: </span>
-              <span style={{ fontWeight: 600 }}>{[d.addr, d.county, d.country].filter(has).join(", ")}</span>
-            </div>
-          )}
-          {has(d.linkedin) && (
-            <div style={{ marginBottom: "1.5mm" }}>
-              <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>LinkedIn: </span>
-              <span style={{ fontWeight: 600 }}>{d.linkedin}</span>
-            </div>
-          )}
-          {has(d.website) && (
-            <div>
-              <span style={{ fontWeight: 700, color: "#4a5568", textTransform: "uppercase", fontSize: "7.5pt" }}>Website: </span>
-              <span style={{ fontWeight: 600 }}>{d.website}</span>
-            </div>
-          )}
-        </div>
+      <div style={{ textAlign: "center", marginBottom: "5mm" }}>
+        <h1 style={{ 
+          fontSize: "15pt", 
+          fontWeight: "bold", 
+          textTransform: "uppercase", 
+          margin: 0, 
+          letterSpacing: "0.05em",
+          textDecoration: design === "elegant" ? "none" : "underline"
+        }}>
+          CURRICULUM VITAE
+        </h1>
+        {design === "elegant" && <div style={{ borderBottom: "1px solid #000", width: "120px", margin: "1.5mm auto 0 auto" }} />}
       </div>
 
-      {/* Career Profile / Objectives */}
+      <SH t="Personal Details" />
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "180px 1fr",
+        gap: "2mm 4mm",
+        marginBottom: "4mm",
+        fontSize: "9.5pt"
+      }}>
+        <div><strong>Full Name:</strong></div>
+        <div>{d.fullName || "Your Full Name"}</div>
+        
+        {has(d.jobTitle) && (
+          <>
+            <div><strong>Profession/Title:</strong></div>
+            <div>{d.jobTitle}</div>
+          </>
+        )}
+
+        <div><strong>Email Address:</strong></div>
+        <div>{d.email}</div>
+
+        <div><strong>Phone Number:</strong></div>
+        <div>{d.phone}</div>
+
+        {(has(d.addr) || has(d.county)) && (
+          <>
+            <div><strong>Postal Address:</strong></div>
+            <div>{[d.addr, d.county, d.country].filter(has).join(", ")}</div>
+          </>
+        )}
+
+        {d.opt && (
+          <>
+            {has(d.dob) && (
+              <>
+                <div><strong>Date of Birth:</strong></div>
+                <div>{d.dob}</div>
+              </>
+            )}
+            {has(d.nationality) && (
+              <>
+                <div><strong>Nationality:</strong></div>
+                <div>{d.nationality}</div>
+              </>
+            )}
+            {has(d.marital) && (
+              <>
+                <div><strong>Marital Status:</strong></div>
+                <div>{d.marital}</div>
+              </>
+            )}
+            {has(d.id_no) && (
+              <>
+                <div><strong>National ID No:</strong></div>
+                <div>{d.id_no}</div>
+              </>
+            )}
+            {has(d.kra_pin) && (
+              <>
+                <div><strong>KRA PIN No:</strong></div>
+                <div>{d.kra_pin}</div>
+              </>
+            )}
+          </>
+        )}
+
+        {has(d.linkedin) && (
+          <>
+            <div><strong>LinkedIn:</strong></div>
+            <div>{d.linkedin}</div>
+          </>
+        )}
+        {has(d.website) && (
+          <>
+            <div><strong>Website:</strong></div>
+            <div>{d.website}</div>
+          </>
+        )}
+      </div>
+
       {has(d.summary) && (
         <div>
-          <SH t="Career Profile" />
-          <p style={{ margin: 0, fontSize: "9pt", textAlign: "justify", color: "#2d3748" }}>
+          <SH t="Career Objectives & Profile" />
+          <p style={{ margin: 0, fontSize: "9.5pt", textAlign: "justify" }}>
             {d.summary}
           </p>
         </div>
       )}
 
-      {/* Work Experience */}
+      {d.edu.some(ed => has(ed.degree) || has(ed.inst)) && (
+        <div>
+          <SH t="Academic Qualifications" />
+          {d.edu.filter(ed => has(ed.degree) || has(ed.inst)).map((ed, index) => (
+            <div key={ed.id} style={{ marginBottom: "3.5mm", fontSize: "9.5pt" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                <span>{ed.inst} — <span style={{ fontWeight: "normal" }}>{ed.degree} {has(ed.field) && `(${ed.field})`}</span></span>
+                <span>{[ed.start, ed.end].filter(has).join(" – ")}</span>
+              </div>
+              <div style={{ fontSize: "9pt", color: "#333", display: "flex", gap: "4mm" }}>
+                {has(ed.loc) && <span>Location: {ed.loc}</span>}
+                {has(ed.grade) && <span>Grade: {ed.grade}</span>}
+                {has(ed.honors) && <span style={{ fontStyle: "italic" }}>{ed.honors}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {d.exp.some(e => has(e.title) || has(e.company)) && (
         <div>
-          <SH t="Professional Work Experience" />
+          <SH t="Work Experience" />
           {d.exp.filter(e => has(e.title) || has(e.company)).map((e, index) => (
-            <div key={e.id} style={{ marginBottom: index === d.exp.length - 1 ? 0 : "4mm" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5mm" }}>
-                <span style={{ fontWeight: 700, fontSize: "9.5pt", color: themeG }}>
-                  {e.company} — <span style={{ color: "#2d3748" }}>{e.title}</span>
-                </span>
-                <span style={{ fontSize: "8.5pt", color: "#4a5568", fontWeight: 700 }}>
-                  {[e.start, e.current ? "Present" : e.end].filter(has).join(" – ")}
-                </span>
+            <div key={e.id} style={{ marginBottom: "4mm", fontSize: "9.5pt" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                <span>{e.company} — <span style={{ fontWeight: "normal" }}>{e.title}</span></span>
+                <span>{[e.start, e.current ? "Present" : e.end].filter(has).join(" – ")}</span>
               </div>
               {has(e.loc) && (
-                <div style={{ fontSize: "8.5pt", fontStyle: "italic", color: "#718096", marginBottom: "1.5mm" }}>
+                <div style={{ fontSize: "9pt", fontStyle: "italic", color: "#333", marginBottom: "1mm" }}>
                   Location: {e.loc}
                 </div>
               )}
               {e.bullets && e.bullets.length > 0 && e.bullets[0] !== "" && (
-                <ul style={{ paddingLeft: "5mm", margin: 0, fontSize: "8.5pt", color: "#2d3748", listStyleType: "square" }}>
+                <ul style={{ paddingLeft: "5mm", margin: "1mm 0 0 0", listStyleType: "disc" }}>
                   {e.bullets.filter(b => has(b)).map((b, bi) => (
-                    <li key={bi} style={{ marginBottom: "1mm", lineHeight: 1.5 }}>{b}</li>
+                    <li key={bi} style={{ marginBottom: "0.8mm", lineHeight: 1.4 }}>{b}</li>
                   ))}
                 </ul>
               )}
@@ -2042,118 +1867,60 @@ function RegularTemplate({ d, design }: { d: CVData; design?: string }) {
         </div>
       )}
 
-      {/* Academic Qualifications */}
-      {d.edu.some(ed => has(ed.degree) || has(ed.inst)) && (
+      {d.certs.some(c => has(c.name)) && (
         <div>
-          <SH t="Academic Qualifications" />
-          {d.edu.filter(ed => has(ed.degree) || has(ed.inst)).map((ed, index) => (
-            <div key={ed.id} style={{ marginBottom: index === d.edu.length - 1 ? 0 : "3mm" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5mm" }}>
-                <span style={{ fontWeight: 700, fontSize: "9.5pt", color: "#2d3748" }}>
-                  {ed.inst} — <span style={{ fontWeight: 600 }}>{ed.degree} {has(ed.field) && `(${ed.field})`}</span>
-                </span>
-                <span style={{ fontSize: "8.5pt", color: "#4a5568", fontWeight: 700 }}>
-                  {[ed.start, ed.end].filter(has).join(" – ")}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: "4mm", fontSize: "8pt", color: "#718096" }}>
-                {has(ed.loc) && <span>Location: {ed.loc}</span>}
-                {has(ed.grade) && <span>Grade: {ed.grade}</span>}
-                {has(ed.honors) && <span style={{ fontWeight: 600, color: themeG }}>{ed.honors}</span>}
-              </div>
+          <SH t="Professional Qualifications & Memberships" />
+          <ul style={{ paddingLeft: "5mm", margin: 0, listStyleType: "square", fontSize: "9.5pt" }}>
+            {d.certs.filter(c => has(c.name)).map(c => (
+              <li key={c.id} style={{ marginBottom: "1.5mm" }}>
+                <strong>{c.name}</strong> {has(c.issuer) && `— Issued by ${c.issuer}`} {has(c.date) && `(${c.date})`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {d.skills.some(sk => has(sk.items)) && (
+        <div>
+          <SH t="Key Skills & Competencies" />
+          {d.skills.filter(sk => has(sk.items)).map(sk => (
+            <div key={sk.id} style={{ marginBottom: "2.5mm", fontSize: "9.5pt" }}>
+              <strong>{sk.cat}:</strong> {sk.items}
             </div>
           ))}
         </div>
       )}
 
-      {/* Professional Certificates */}
-      {d.certs.some(c => has(c.name)) && (
-        <div>
-          <SH t="Professional Qualifications & Memberships" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3mm" }}>
-            {d.certs.filter(c => has(c.name)).map(c => (
-              <div key={c.id} style={{ fontSize: "8.5pt" }}>
-                <div style={{ fontWeight: 700, color: themeG }}>{c.name}</div>
-                <div style={{ display: "flex", gap: "2mm", fontSize: "8pt", color: "#718096" }}>
-                  {has(c.issuer) && <span>Issuer: {c.issuer}</span>}
-                  {has(c.date) && <span>Date: {c.date}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Skills */}
-      {d.skills.some(sk => has(sk.items)) && (
-        <div>
-          <SH t="Key Skills & Competencies" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4mm" }}>
-            {d.skills.filter(sk => has(sk.items)).map(sk => (
-              <div key={sk.id}>
-                <div style={{ fontSize: "8pt", fontWeight: 700, color: themeG, textTransform: "uppercase", letterSpacing: ".02em", marginBottom: "1.5mm" }}>
-                  {sk.cat}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5mm" }}>
-                  {sk.items.split(",").map(i => i.trim()).filter(Boolean).map((i, x) => (
-                    <span key={x} style={{
-                      background: themeColBg,
-                      color: themeG,
-                      borderRadius: "4px",
-                      padding: "1.5px 6px",
-                      fontSize: "8pt",
-                      fontWeight: 600
-                    }}>
-                      {i}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Languages */}
       {d.langs.some(l => has(l.lang)) && (
         <div>
           <SH t="Languages" />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5mm" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6mm", fontSize: "9.5pt" }}>
             {d.langs.filter(l => has(l.lang)).map(l => (
-              <div key={l.id} style={{ fontSize: "8.5pt" }}>
-                <span style={{ fontWeight: 700 }}>{l.lang}: </span>
-                <span style={{ color: "#4a5568" }}>{l.prof}</span>
+              <div key={l.id}>
+                <strong>{l.lang}:</strong> {l.prof}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Referees */}
       {d.showRefs && (
         <div>
           <SH t="Referees" />
           {d.refs.some(r => has(r.name)) ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4mm" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4mm", marginTop: "2mm" }}>
               {d.refs.filter(r => has(r.name)).map(r => (
-                <div key={r.id} style={{
-                  fontSize: "8pt",
-                  background: "#fafafa",
-                  border: "1px solid #edf2f7",
-                  borderRadius: "6px",
-                  padding: "3mm 4mm",
-                  boxSizing: "border-box"
-                }}>
-                  <div style={{ fontWeight: 700, color: themeG, textTransform: "uppercase", fontSize: "8.5pt", marginBottom: "1mm" }}>{r.name}</div>
-                  {has(r.title) && <div style={{ fontWeight: 600, color: "#4a5568" }}>{r.title}</div>}
-                  {has(r.org) && <div style={{ color: "#718096", marginBottom: "1mm" }}>{r.org}</div>}
-                  {has(r.phone) && <div style={{ color: "#2d3748" }}>📞 {r.phone}</div>}
-                  {has(r.email) && <div style={{ color: "#2d3748", wordBreak: "break-all" }}>✉ {r.email}</div>}
+                <div key={r.id} style={{ fontSize: "9pt", lineHeight: 1.4 }}>
+                  <div style={{ fontWeight: "bold", textTransform: "uppercase" }}>{r.name}</div>
+                  {has(r.title) && <div>{r.title}</div>}
+                  {has(r.org) && <div>{r.org}</div>}
+                  {has(r.phone) && <div>Tel: {r.phone}</div>}
+                  {has(r.email) && <div style={{ wordBreak: "break-all" }}>Email: {r.email}</div>}
                 </div>
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: "9pt", fontStyle: "italic", margin: 0, color: "#718096" }}>Available upon request</p>
+            <p style={{ fontSize: "9.5pt", fontStyle: "italic", margin: 0 }}>Available upon request</p>
           )}
         </div>
       )}
@@ -2161,9 +1928,203 @@ function RegularTemplate({ d, design }: { d: CVData; design?: string }) {
   )
 }
 
+// 4. Classic Template (Elegant center serif corporate layout)
+function ClassicTemplate({ d, design }: { d: CVData; design?: string }) {
+  const has = (v: any) => v && String(v).trim().length > 0
+
+  const fontMap: Record<string, string> = {
+    "sans-serif": "Arial, sans-serif",
+    "serif": "Georgia, 'Times New Roman', Times, serif",
+    "monospace": "Courier, monospace"
+  }
+
+  const customFont = d.customStyles?.fontFamily
+    ? fontMap[d.customStyles.fontFamily]
+    : null;
+  const fontFamily = customFont || "Georgia, 'Times New Roman', Times, serif";
+
+  const fSize = d.customStyles?.fontSize || "9.5pt";
+  const lHeight = Number(d.customStyles?.lineHeight || "1.4");
+  const pageMargin = d.customStyles?.margins || "15mm";
+
+  const SH = ({ t }: { t: string }) => (
+    <div style={{
+      fontSize: "10.5pt",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      color: "#1a202c",
+      borderBottom: "1px solid #4a5568",
+      paddingBottom: "0.8mm",
+      marginTop: "5mm",
+      marginBottom: "3mm",
+      fontFamily
+    }}>
+      {t}
+    </div>
+  )
+
+  const contacts = [
+    d.email,
+    d.phone,
+    [d.addr, d.county, d.country].filter(has).join(", "),
+    d.linkedin,
+    d.website
+  ].filter(has).join("  •  ")
+
+  const optLine = d.opt ? [
+    d.dob && `DOB: ${d.dob}`,
+    d.nationality && `Nationality: ${d.nationality}`,
+    d.marital && `Marital: ${d.marital}`,
+    d.id_no && `ID No: ${d.id_no}`,
+    d.kra_pin && `KRA PIN: ${d.kra_pin}`
+  ].filter(Boolean).join("  •  ") : ""
+
+  return (
+    <div style={{
+      fontFamily,
+      fontSize: fSize,
+      lineHeight: lHeight,
+      color: "#2d3748",
+      background: "#fff",
+      maxWidth: "210mm",
+      minHeight: "297mm",
+      margin: "0 auto",
+      padding: pageMargin,
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column"
+    }}>
+      <div style={{ textAlign: "center", marginBottom: "4mm" }}>
+        <h1 style={{ fontSize: "20pt", fontWeight: "bold", color: "#1a202c", letterSpacing: "-0.01em", margin: "0 0 1mm 0" }}>
+          {d.fullName || "YOUR FULL NAME"}
+        </h1>
+        {has(d.jobTitle) && (
+          <div style={{ fontSize: "10.5pt", fontStyle: "italic", color: "#4a5568", marginBottom: "2mm", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {d.jobTitle}
+          </div>
+        )}
+        <div style={{ fontSize: "8.5pt", color: "#4a5568", lineHeight: 1.4 }}>{contacts}</div>
+        {has(optLine) && <div style={{ fontSize: "8.5pt", color: "#718096", marginTop: "1mm", fontStyle: "italic" }}>{optLine}</div>}
+      </div>
+
+      {has(d.summary) && (
+        <div>
+          <SH t="Professional Summary" />
+          <p style={{ margin: 0, textAlign: "justify", fontSize: "9pt" }}>{d.summary}</p>
+        </div>
+      )}
+
+      {d.exp.some(e => has(e.title) || has(e.company)) && (
+        <div>
+          <SH t="Professional Experience" />
+          {d.exp.filter(e => has(e.title) || has(e.company)).map(e => (
+            <div key={e.id} style={{ marginBottom: "3.5mm" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "9.5pt", color: "#1a202c" }}>
+                <span>{e.title}  —  <span style={{ fontWeight: "normal", fontStyle: "italic" }}>{e.company}</span></span>
+                <span style={{ fontWeight: "normal", fontSize: "8.5pt", color: "#4a5568" }}>
+                  {[e.start, e.current ? "Present" : e.end].filter(has).join(" – ")}
+                </span>
+              </div>
+              {has(e.loc) && <div style={{ fontSize: "8.5pt", color: "#718096", fontStyle: "italic", marginBottom: "1mm" }}>{e.loc}</div>}
+              {e.bullets.filter(b => has(b)).map((b, i) => (
+                <div key={i} style={{ display: "flex", gap: "2mm", fontSize: "9pt", marginBottom: "0.5mm", paddingLeft: "3mm" }}>
+                  <span>•</span>
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {d.edu.some(e => has(e.degree) || has(e.inst)) && (
+        <div>
+          <SH t="Education" />
+          {d.edu.filter(e => has(e.degree) || has(e.inst)).map(e => (
+            <div key={e.id} style={{ marginBottom: "3mm" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "9.5pt", color: "#1a202c" }}>
+                <span>{[e.degree, e.field].filter(has).join(" in ")}</span>
+                <span style={{ fontWeight: "normal", fontSize: "8.5pt", color: "#4a5568" }}>
+                  {[e.start, e.end].filter(has).join(" – ")}
+                </span>
+              </div>
+              <div style={{ fontSize: "9pt", color: "#4a5568" }}>
+                {e.inst} {has(e.loc) && `, ${e.loc}`}
+              </div>
+              {(has(e.grade) || has(e.honors)) && (
+                <div style={{ fontSize: "8.5pt", fontStyle: "italic", color: "#718096" }}>
+                  {[e.grade && `Grade: ${e.grade}`, e.honors].filter(Boolean).join("  |  ")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {d.certs.some(c => has(c.name)) && (
+        <div>
+          <SH t="Certifications & Memberships" />
+          {d.certs.filter(c => has(c.name)).map(c => (
+            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "9pt", marginBottom: "1.5mm" }}>
+              <span>
+                <strong>{c.name}</strong>
+                {has(c.issuer) ? `  —  ${c.issuer}` : ""}
+              </span>
+              <span style={{ color: "#718096", fontSize: "8.5pt" }}>
+                {[c.date, has(c.expiry) && `Expiry: ${c.expiry}`].filter(Boolean).join("  |  ")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {d.skills.some(sk => has(sk.items)) && (
+        <div>
+          <SH t="Skills & Competencies" />
+          {d.skills.filter(sk => has(sk.items)).map(sk => (
+            <div key={sk.id} style={{ marginBottom: "1.5mm", fontSize: "9pt" }}>
+              <strong>{sk.cat}:</strong> {sk.items}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {d.langs.some(l => has(l.lang)) && (
+        <div>
+          <SH t="Languages" />
+          <div style={{ fontSize: "9pt" }}>
+            {d.langs.filter(l => has(l.lang)).map(l => `${l.lang} (${l.prof})`).join("   |   ")}
+          </div>
+        </div>
+      )}
+
+      {d.showRefs && (
+        <div>
+          <SH t="References" />
+          {d.refs.some(r => has(r.name)) ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4mm", fontSize: "8.5pt" }}>
+              {d.refs.filter(r => has(r.name)).map(r => (
+                <div key={r.id}>
+                  <div style={{ fontWeight: "bold", color: "#1a202c" }}>{r.name}</div>
+                  {has(r.title) && <div>{r.title}</div>}
+                  {has(r.org) && <div style={{ color: "#718096" }}>{r.org}</div>}
+                  {has(r.phone) && <div>{r.phone}</div>}
+                  {has(r.email) && <div>{r.email}</div>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontStyle: "italic", fontSize: "9pt" }}>Available upon request</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 /* ── Selection Screen ── */
 interface SelectScreenProps {
-  onSelect: (type: "ats" | "regular" | "visual", sampleKey: keyof typeof SAMPLES) => void
+  onSelect: (type: "ats" | "regular" | "classic" | "visual", sampleKey: keyof typeof SAMPLES) => void
 }
 
 function SelectScreen({ onSelect }: SelectScreenProps) {
@@ -2191,9 +2152,23 @@ function SelectScreen({ onSelect }: SelectScreenProps) {
       desc: "Standard full-width single-column formatting designed to match typical professional Kenyan public and private sector CV structures. Ideal for KeRRA, ministries, banks, and corporate entities.",
       feats: [
         "Structured single-column formal block layout",
-        "Curated premium color highlighting themes",
         "Referees & certificates styled at the bottom",
-        "Formal personal details table/grid"
+        "Kenyan standard layout with full details",
+        "Traditional Kenyan formatting"
+      ]
+    },
+    {
+      type: "classic" as const,
+      icon: "🏛️",
+      title: "Classic Elegant CV",
+      btnC: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/10",
+      btnL: "Create Blank Classic CV →",
+      desc: "Traditional, elegant serif formatting with centered headers and thin dividing lines. The gold standard for executive, academic, legal, and corporate applications.",
+      feats: [
+        "Elegant centered typography structure",
+        "Premium serif font styling (Georgia/Times)",
+        "Chronological balanced timeline view",
+        "Formal professional references layout"
       ]
     },
     {
@@ -2230,7 +2205,7 @@ function SelectScreen({ onSelect }: SelectScreenProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full z-10">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl w-full z-10">
         {cards.map(c => (
           <div
             key={c.type}
@@ -2304,7 +2279,7 @@ type TabType = keyof typeof SECTION_MAP
 export default function CVBuilder() {
   const { user, isLoaded, isSignedIn } = useUser()
   const [step, setStep] = useState<"select" | "build">("select")
-  const [cvType, setCvType] = useState<"ats" | "regular" | "visual">("ats")
+  const [cvType, setCvType] = useState<"ats" | "regular" | "classic" | "visual">("ats")
   const [d, setD] = useState<CVData>(() => JSON.parse(JSON.stringify(INIT)))
   const [tab, setTab] = useState<TabType>("Personal")
   const [preview, setPreview] = useState(false)
@@ -2371,7 +2346,6 @@ export default function CVBuilder() {
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
       setD(prev => {
-        // Only override if fields are empty to prevent overwriting selected samples
         const updated = { ...prev }
         if (!updated.fullName && user.fullName) {
           updated.fullName = user.fullName
@@ -2390,7 +2364,7 @@ export default function CVBuilder() {
   const SectionComp = SECTION_MAP[tab]
   const tabIdx = SECTS.findIndex(s => s.id === tab)
 
-  const handleSelectStyle = (type: "ats" | "regular" | "visual", sampleKey: keyof typeof SAMPLES) => {
+  const handleSelectStyle = (type: "ats" | "regular" | "classic" | "visual", sampleKey: keyof typeof SAMPLES) => {
     setCvType(type)
     if (type === "visual") {
       setVariant("emerald")
@@ -2424,12 +2398,10 @@ export default function CVBuilder() {
     <div className="flex flex-col min-h-[85vh] bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden relative shadow-soft">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* Hide sidebar, site header, form panels, and toolbar actions */
           header, aside, nav, footer, .sidebar, .navbar, .np, button, select, input, textarea, label {
             display: none !important;
           }
           
-          /* Reset parent layout containers to block to prevent pagination/scale distortion */
           html, body, #__next, main {
             display: block !important;
             position: static !important;
@@ -2441,7 +2413,6 @@ export default function CVBuilder() {
             overflow: visible !important;
           }
 
-          /* Targets parent wrappers, but excludes the CV sheet, its contents, and non-printable elements */
           div:not(#cvout):not(#cvout *):not(.np), 
           section:not(#cvout):not(#cvout *):not(.np) {
             display: block !important;
@@ -2459,7 +2430,7 @@ export default function CVBuilder() {
           #cvout {
             box-shadow: none !important;
             border: none !important;
-            width: 210mm !important; /* Force exact A4 width */
+            width: 210mm !important;
             min-height: 297mm !important;
             height: auto !important;
             margin: 0 auto !important;
@@ -2509,77 +2480,52 @@ export default function CVBuilder() {
             </select>
           </div>
           
-          <div className="flex items-center bg-surface border border-outline-variant p-1 rounded-xl">
-            {cvType === "ats" ? (
-              <>
-                <button
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white transition-all"
-                  onClick={() => {
-                    setCvType("ats")
-                    setVariant("classic")
-                  }}
-                >
-                  📄 ATS CV
-                </button>
-                <button
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all"
-                  onClick={() => {
-                    setCvType("regular")
-                    setVariant("classic")
-                  }}
-                >
-                  📝 Regular CV
-                </button>
-                <button
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all"
-                  onClick={() => {
-                    setCvType("visual")
-                    setVariant("emerald")
-                  }}
-                >
-                  🎨 Visual CV
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    cvType === "regular" ? "bg-[#E9A23B] text-white" : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                  onClick={() => {
-                    setCvType("regular")
-                    setVariant("classic")
-                  }}
-                >
-                  📝 Regular CV
-                </button>
-                <button
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    cvType === "visual" ? "bg-primary text-white" : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                  onClick={() => {
-                    setCvType("visual")
-                    setVariant("emerald")
-                  }}
-                >
-                  🎨 Visual CV
-                </button>
-              </>
-            )}
-          </div>
-
-          {cvType !== "ats" && (
+          <div className="flex items-center bg-surface border border-outline-variant p-1 rounded-xl gap-1">
             <button
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                cvType === "ats" ? "bg-primary text-white" : "text-on-surface-variant hover:text-on-surface"
+              }`}
               onClick={() => {
                 setCvType("ats")
                 setVariant("classic")
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary text-primary hover:bg-primary/5 text-xs font-bold transition-all"
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>To ATS CV</span>
+              📄 ATS CV
             </button>
-          )}
+            <button
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                cvType === "regular" ? "bg-[#E9A23B] text-white" : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => {
+                setCvType("regular")
+                setVariant("classic")
+              }}
+            >
+              📝 Regular CV
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                cvType === "classic" ? "bg-indigo-600 text-white" : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => {
+                setCvType("classic")
+                setVariant("classic")
+              }}
+            >
+              🏛️ Classic CV
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                cvType === "visual" ? "bg-teal-600 text-white" : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => {
+                setCvType("visual")
+                setVariant("emerald")
+              }}
+            >
+              🎨 Visual CV
+            </button>
+          </div>
 
           {/* Design Variant Dropdown Selector */}
           <div className="np flex items-center gap-1.5 bg-surface border border-outline-variant p-1 rounded-xl">
@@ -2602,6 +2548,11 @@ export default function CVBuilder() {
                   <option value="classic">Classic Kenyan</option>
                   <option value="block">Block Accent</option>
                   <option value="elegant">Elegant Accent</option>
+                </>
+              ) : cvType === "classic" ? (
+                <>
+                  <option value="classic">Traditional Serif</option>
+                  <option value="modern">Modern Serif</option>
                 </>
               ) : (
                 <>
@@ -2700,7 +2651,6 @@ export default function CVBuilder() {
 
         {/* Right Side: Tactile Preview canvas */}
         <div className="pvwrap flex-1 bg-surface-container-low p-6 md:p-8 flex justify-center items-start overflow-y-auto select-none min-h-[500px]">
-          {/* Animated 3D Floating container */}
           <motion.div
             id="cvout"
             className="w-full bg-white text-black shadow-2xl origin-top-center border border-zinc-200/60 rounded-sm"
@@ -2735,6 +2685,8 @@ export default function CVBuilder() {
               <ATSTemplate d={d} design={variant} />
             ) : cvType === "regular" ? (
               <RegularTemplate d={d} design={variant} />
+            ) : cvType === "classic" ? (
+              <ClassicTemplate d={d} design={variant} />
             ) : (
               <VisualTemplate d={d} design={variant} />
             )}
@@ -2744,3 +2696,4 @@ export default function CVBuilder() {
     </div>
   )
 }
+

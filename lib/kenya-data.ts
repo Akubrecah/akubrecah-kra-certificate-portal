@@ -697,14 +697,50 @@ export const KENYA_ADMIN_DATA: Record<string, CountyData> = {
   }
 };
 
+import { KRA_STATION_MATRIX, normalizeCountyName } from "./kra-stations";
+
 export const COUNTIES = Object.keys(KENYA_ADMIN_DATA).sort();
 
 export const GET_SUB_COUNTIES = (county: string) => KENYA_ADMIN_DATA[county]?.subCounties || ["OTHER"];
-export const GET_STATIONS = (county: string) => KENYA_ADMIN_DATA[county]?.stations || ["LOCAL KRA OFFICE"];
+
+export const GET_STATIONS = (county: string): string[] => {
+  if (!county) return ["North of Nairobi TSO"];
+  const norm = normalizeCountyName(county);
+
+  // 1. Direct Primary Stations
+  const primaryStations = KRA_STATION_MATRIX.filter(
+    (e) => normalizeCountyName(e.primaryCounty) === norm
+  ).map((e) => e.station);
+
+  // 2. Secondary / Neighboring Stations
+  const secondaryStations = KRA_STATION_MATRIX.filter((e) =>
+    e.secondaryCounties.some((sec) => normalizeCountyName(sec) === norm)
+  ).map((e) => e.station);
+
+  const matched = Array.from(new Set([...primaryStations, ...secondaryStations]));
+  if (matched.length > 0) {
+    return matched;
+  }
+
+  // Check partial match
+  const partial = KRA_STATION_MATRIX.filter(
+    (e) =>
+      norm.includes(normalizeCountyName(e.primaryCounty)) ||
+      normalizeCountyName(e.primaryCounty).includes(norm)
+  ).map((e) => e.station);
+
+  if (partial.length > 0) {
+    return Array.from(new Set(partial));
+  }
+
+  return KENYA_ADMIN_DATA[county]?.stations || ["North of Nairobi TSO"];
+};
+
 export const GET_LOCALITIES = (county: string, subCounty?: string) => {
   if (subCounty && KENYA_ADMIN_DATA[county]?.wards[subCounty]) {
     return KENYA_ADMIN_DATA[county].wards[subCounty];
   }
   return KENYA_ADMIN_DATA[county]?.localities || ["TOWN CENTRE"];
 };
+
 export const GET_POSTAL_CODES = (county: string) => KENYA_ADMIN_DATA[county]?.postalCodes || [{ code: "00100", town: "NAIROBI GPO" }];
