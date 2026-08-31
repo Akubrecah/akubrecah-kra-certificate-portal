@@ -715,14 +715,21 @@ export async function POST(req: NextRequest) {
       try {
         if (captchaAnswer && captchaAnswer.trim()) {
           const postData = `viewType=static&actionCode=checkPin&vo.pinNo=${encodeURIComponent(fullPin)}&captcahText=${encodeURIComponent(captchaAnswer.trim())}`;
+          console.log('[retrieve] Using cookieString for pinChecker:', cookieString);
+          console.log('[retrieve] Posting to pinChecker with postData:', postData);
           
           const [pcHtml, manResult] = await Promise.all([
-            httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString, 'application/x-www-form-urlencoded', proxyUrl).catch(() => ''),
+            httpsPost('/KRA-Portal/pinChecker.htm', postData, cookieString, 'application/x-www-form-urlencoded', proxyUrl).catch((e: any) => {
+              console.warn('[retrieve] pinChecker httpsPost error:', e.message);
+              return '';
+            }),
             fetchManufacturerDetails(fullPin, freshCookieString, proxyUrl).catch(() => null),
           ]);
 
           if (pcHtml.length > 100) {
+            console.log('[retrieve] pinChecker raw response snippet:', pcHtml.substring(0, 600));
             pinCheckerData = parsePinCheckerHtml(pcHtml);
+            console.log('[retrieve] pinChecker parsed name:', pinCheckerData.name, 'pin:', pinCheckerData.pin);
             if (pinCheckerData.captchaWrong && !liveApiTaxpayer) {
               await createSystemLog({
                 level: 'warning',
