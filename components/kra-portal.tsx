@@ -696,6 +696,14 @@ export function KRAPortal() {
                       <span className="font-label-md text-label-md text-on-surface-variant">Phone</span>
                       <span className="font-label-md text-label-md text-on-surface">{formData.phoneNumber || 'N/A'}</span>
                     </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">Tax Station</span>
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">{formData.station || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-outline-muted pb-3">
+                      <span className="font-label-md text-label-md text-on-surface-variant">P.O. Box & Postal Code</span>
+                      <span className="font-label-md text-label-md text-on-surface">{formData.poBox ? `${formData.poBox} - ${formData.postalCode}` : (formData.postalCode || 'N/A')}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="font-label-md text-label-md text-on-surface-variant">Location</span>
                       <span className="font-label-md text-label-md text-on-surface">{formData.town || 'N/A'}, {formData.county || 'N/A'}</span>
