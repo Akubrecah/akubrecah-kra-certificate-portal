@@ -44,15 +44,6 @@ const tokenCache: Record<'pin' | 'id', CachedToken | null> = {
   id: null,
 };
 
-const KRA_BASE_URL = process.env.KRA_API_BASE_URL || 'https://api.kra.go.ke';
-const KRA_PIN_CONSUMER_KEY = process.env.KRA_PIN_CONSUMER_KEY || 'uKQlBNfocI5SplDgO5NUS8uCiTNYPA85ao9GKApMznBvIAwt';
-const KRA_PIN_CONSUMER_SECRET = process.env.KRA_PIN_CONSUMER_SECRET || '2pXMstThd9OSjYTcGd0tvQPAAPIjYGKKVfMPSmlu5eLOM5IzOV7Z8dnVbgTmV5OO';
-const KRA_ID_CONSUMER_KEY = process.env.KRA_ID_CONSUMER_KEY || '21CPboPPSKBS3VB7ZdC2kugb8aGHCJuXcwzpTBWdQdp82oUA';
-const KRA_ID_CONSUMER_SECRET = process.env.KRA_ID_CONSUMER_SECRET || 'pYPGt3wu6Xnx8jhA0LlYJ4gePVEqEImwr9O2XvAsTg9RObLW1bPmcbqZuPmh4Q68';
-
-/**
- * Obtain an OAuth2 Access Token from KRA API Gateway using Consumer Key & Secret
- */
 export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<string> {
   const now = Date.now();
   const cached = tokenCache[type];
@@ -64,13 +55,13 @@ export async function getKraAccessToken(type: 'pin' | 'id' = 'pin'): Promise<str
 
   const consumerKey =
     type === 'pin'
-      ? process.env.KRA_PIN_CONSUMER_KEY || 'uKQlBNfocI5SplDgO5NUS8uCiTNYPA85ao9GKApMznBvIAwt'
-      : process.env.KRA_ID_CONSUMER_KEY || '21CPboPPSKBS3VB7ZdC2kugb8aGHCJuXcwzpTBWdQdp82oUA';
+      ? (process.env.KRA_PIN_CONSUMER_KEY || '').trim()
+      : (process.env.KRA_ID_CONSUMER_KEY || '').trim();
 
   const consumerSecret =
     type === 'pin'
-      ? process.env.KRA_PIN_CONSUMER_SECRET || '2pXMstThd9OSjYTcGd0tvQPAAPIjYGKKVfMPSmlu5eLOM5IzOV7Z8dnVbgTmV5OO'
-      : process.env.KRA_ID_CONSUMER_SECRET || 'pYPGt3wu6Xnx8jhA0LlYJ4gePVEqEImwr9O2XvAsTg9RObLW1bPmcbqZuPmh4Q68';
+      ? (process.env.KRA_PIN_CONSUMER_SECRET || '').trim()
+      : (process.env.KRA_ID_CONSUMER_SECRET || '').trim();
 
   if (!consumerKey || !consumerSecret) {
     throw new Error(`KRA ${type.toUpperCase()} Consumer Key or Secret is missing in environment variables.`);
@@ -140,7 +131,7 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
     throw new Error('Invalid KRA PIN format. It must be an 11-character alphanumeric code (e.g. A012345678Z).');
   }
 
-  let token = KRA_PIN_CONSUMER_KEY;
+  let token = '';
   try {
     token = await getKraAccessToken('pin');
   } catch (tokenErr: any) {
@@ -196,7 +187,7 @@ export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'au
     throw new Error('Invalid National ID number format. Must be 5-12 digits.');
   }
 
-  let token = KRA_ID_CONSUMER_KEY;
+  let token = '';
   try {
     token = await getKraAccessToken('id');
   } catch (tokenErr: any) {
