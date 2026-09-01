@@ -522,12 +522,21 @@ export function KRAPortal() {
                       <User className="text-primary w-6 h-6" />
                     </div>
                     <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Personal Information</h2>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Please confirm your personal details.</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Review and edit your certificate identity details.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 max-w-md mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                     <div>
-                      <label className={labelClass}>Full Name</label>
+                      <label className={labelClass}>KRA PIN</label>
+                      <input 
+                        value={formData.pin} 
+                        onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
+                        placeholder="e.g. A012345678Z" 
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Full Legal Name</label>
                       <input 
                         value={formData.fullName} 
                         onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
@@ -555,7 +564,7 @@ export function KRAPortal() {
                         className={inputClass} 
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-2">
                       <label className={labelClass}>Exact Registration Date</label>
                       <input 
                         value={formData.registeredDate} 
@@ -566,7 +575,7 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-4 max-w-md mx-auto pt-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto pt-4">
                     <button className={secondaryButtonClass} onClick={() => setCurrentStep(1)}>
                       Back
                     </button>
@@ -583,8 +592,8 @@ export function KRAPortal() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <MapPin className="text-primary w-6 h-6" />
                     </div>
-                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Address Details</h2>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Where are you located?</p>
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Address & Location Details</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Review and edit your certificate address information.</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
@@ -592,7 +601,7 @@ export function KRAPortal() {
                       <label className={labelClass}>County</label>
                       <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
                         <SelectTrigger className={cn(inputClass, "h-12")}>
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select County" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
                           {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
@@ -600,10 +609,19 @@ export function KRAPortal() {
                       </Select>
                     </div>
                     <div>
-                      <label className={labelClass}>District</label>
+                      <label className={labelClass}>City / Town</label>
+                      <input 
+                        value={formData.town} 
+                        onChange={(e) => handleInputChange('town', e.target.value)} 
+                        placeholder="e.g. Nairobi" 
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>District / Sub County</label>
                       <Select value={formData.district || ""} onValueChange={(v) => handleInputChange('district', v)}>
                         <SelectTrigger className={cn(inputClass, "h-12")}>
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select District" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
                           {formData.county && GET_SUB_COUNTIES(formData.county).map(sc => (<SelectItem key={sc} value={sc}>{sc}</SelectItem>))}
@@ -611,10 +629,10 @@ export function KRAPortal() {
                       </Select>
                     </div>
                     <div>
-                      <label className={labelClass}>Area</label>
+                      <label className={labelClass}>Tax Area Locality</label>
                       <Select value={formData.taxArea || ""} onValueChange={(v) => handleInputChange('taxArea', v)}>
                         <SelectTrigger className={cn(inputClass, "h-12")}>
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select Locality" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
                           {formData.county && GET_LOCALITIES(formData.county, formData.district || "").map(l => (<SelectItem key={l} value={l}>{l}</SelectItem>))}
@@ -622,10 +640,10 @@ export function KRAPortal() {
                       </Select>
                     </div>
                     <div>
-                      <label className={labelClass}>Station</label>
+                      <label className={labelClass}>Tax Station</label>
                       <Select value={formData.station || ""} onValueChange={(v) => handleInputChange('station', v)}>
                         <SelectTrigger className={cn(inputClass, "h-12")}>
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select Station" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
                           {formData.county && GET_STATIONS(formData.county).map(s => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
@@ -633,24 +651,42 @@ export function KRAPortal() {
                       </Select>
                     </div>
                     <div>
+                      <label className={labelClass}>Building Name</label>
+                      <input 
+                        value={formData.building} 
+                        onChange={(e) => handleInputChange('building', e.target.value)} 
+                        placeholder="e.g. Commercial Plaza" 
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Street / Road</label>
+                      <input 
+                        value={formData.street} 
+                        onChange={(e) => handleInputChange('street', e.target.value)} 
+                        placeholder="e.g. Harambee Avenue" 
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>P.O. Box</label>
+                      <input 
+                        value={formData.poBox} 
+                        onChange={(e) => handleInputChange('poBox', e.target.value)} 
+                        placeholder="e.g. P.O. Box 40001" 
+                        className={inputClass} 
+                      />
+                    </div>
+                    <div className="md:col-span-2">
                       <label className={labelClass}>Postal Code</label>
                       <Select value={formData.postalCode} onValueChange={(v) => { const found = GET_POSTAL_CODES(formData.county).find(p => p.code === v); handleInputChange('postalCode', v); if (found) handleInputChange('town', found.town) }}>
                         <SelectTrigger className={cn(inputClass, "h-12")}>
-                          <SelectValue placeholder="Code" />
+                          <SelectValue placeholder="Select Postal Code" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
                           {formData.county && GET_POSTAL_CODES(formData.county).map(p => (<SelectItem key={p.code} value={p.code}>{p.code}</SelectItem>))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Mobile Number</label>
-                      <input 
-                        value={formData.phoneNumber} 
-                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
-                        placeholder="07XXXXXXXX" 
-                        className={inputClass} 
-                      />
                     </div>
                   </div>
 
@@ -659,7 +695,7 @@ export function KRAPortal() {
                       Back
                     </button>
                     <button className={primaryButtonClass} onClick={() => setCurrentStep(4)}>
-                      Review <ArrowRight className="w-4 h-4" />
+                      Review Certificate <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -671,54 +707,142 @@ export function KRAPortal() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <ShieldCheck className="text-primary w-6 h-6" />
                     </div>
-                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review Certificate</h2>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Please check everything before downloading.</p>
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review & Edit Certificate</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Confirm or edit all details that will appear on your generated KRA PDF certificate.</p>
                   </div>
 
-                  <div className="w-full max-w-lg mx-auto bg-surface-variant/30 rounded-lg p-6 border border-outline-variant space-y-4">
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">KRA PIN</span>
-                      <span className="font-label-md text-label-md text-primary font-bold">{formData.pin || 'NOT FOUND'}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Name</span>
-                      <span className="font-label-md text-label-md text-on-surface font-bold">{formData.fullName}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Email</span>
-                      <span className="font-label-md text-label-md text-on-surface">{formData.email || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Exact Reg Date</span>
-                      <span className="font-label-md text-label-md text-on-surface">{formData.registeredDate || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Phone</span>
-                      <span className="font-label-md text-label-md text-on-surface">{formData.phoneNumber || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Tax Station</span>
-                      <span className="font-label-md text-label-md text-on-surface font-semibold">{formData.station || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-outline-muted pb-3">
-                      <span className="font-label-md text-label-md text-on-surface-variant">P.O. Box & Postal Code</span>
-                      <span className="font-label-md text-label-md text-on-surface">{formData.poBox ? `${formData.poBox} - ${formData.postalCode}` : (formData.postalCode || 'N/A')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-label-md text-label-md text-on-surface-variant">Location</span>
-                      <span className="font-label-md text-label-md text-on-surface">{formData.town || 'N/A'}, {formData.county || 'N/A'}</span>
+                  {/* Summary / Direct Edit Grid */}
+                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-xl p-6 border border-outline-variant space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>KRA PIN</label>
+                        <input 
+                          value={formData.pin} 
+                          onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
+                          placeholder="A012345678Z" 
+                          className={cn(inputClass, "font-bold text-primary")} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Taxpayer Full Name</label>
+                        <input 
+                          value={formData.fullName} 
+                          onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
+                          placeholder="JOHN DOE" 
+                          className={cn(inputClass, "font-semibold")} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Email Address</label>
+                        <input 
+                          value={formData.email} 
+                          onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
+                          placeholder="email@example.com" 
+                          type="email"
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Mobile Phone Number</label>
+                        <input 
+                          value={formData.phoneNumber} 
+                          onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
+                          placeholder="07XXXXXXXX" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Exact Registration Date</label>
+                        <input 
+                          value={formData.registeredDate} 
+                          onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
+                          placeholder="DD/MM/YYYY" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>County</label>
+                        <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
+                          <SelectTrigger className={cn(inputClass, "h-12")}>
+                            <SelectValue placeholder="Select County" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                            {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>City / Town</label>
+                        <input 
+                          value={formData.town} 
+                          onChange={(e) => handleInputChange('town', e.target.value)} 
+                          placeholder="e.g. Nairobi" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>District / Sub County</label>
+                        <input 
+                          value={formData.district} 
+                          onChange={(e) => handleInputChange('district', e.target.value)} 
+                          placeholder="e.g. Central District" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Tax Station</label>
+                        <input 
+                          value={formData.station} 
+                          onChange={(e) => handleInputChange('station', e.target.value)} 
+                          placeholder="e.g. North of Nairobi TSO" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Building Name</label>
+                        <input 
+                          value={formData.building} 
+                          onChange={(e) => handleInputChange('building', e.target.value)} 
+                          placeholder="e.g. Commercial Plaza" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Street / Road</label>
+                        <input 
+                          value={formData.street} 
+                          onChange={(e) => handleInputChange('street', e.target.value)} 
+                          placeholder="e.g. Harambee Avenue" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>P.O. Box</label>
+                        <input 
+                          value={formData.poBox} 
+                          onChange={(e) => handleInputChange('poBox', e.target.value)} 
+                          placeholder="e.g. P.O. Box 40001" 
+                          className={inputClass} 
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className={labelClass}>Postal Code</label>
+                        <input 
+                          value={formData.postalCode} 
+                          onChange={(e) => handleInputChange('postalCode', e.target.value)} 
+                          placeholder="e.g. 00100" 
+                          className={inputClass} 
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-lg mx-auto pt-4">
-                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(2)}>
-                      <User className="w-4 h-4" /> Edit Details
-                    </button>
                     <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
                     <button className={primaryButtonClass} onClick={handleDownload}>
-                      <Download className="w-4 h-4" /> Download PDF
+                      <Download className="w-4 h-4" /> Download PDF Certificate
                     </button>
                   </div>
                 </motion.div>
