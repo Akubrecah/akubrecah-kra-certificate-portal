@@ -83,29 +83,20 @@ export default function Home() {
               An independent, automated helper for fast KRA PIN retrieval, Compliance Certificate downloads, simplified Nil returns filing, and professional resume building.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 w-full">
-              {isLoaded && isSignedIn ? (
-                <Link href="/dashboard" className="w-full sm:w-auto">
-                  <button className="w-full sm:w-auto bg-primary text-white font-bold py-3.5 px-8 rounded-xl hover:bg-primary/95 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-lg shadow-primary/20">
-                    Go to User Dashboard
-                    <ArrowRight className="h-4.5 w-4.5" />
-                  </button>
-                </Link>
-              ) : isLoaded && (
-                <>
-                  <Link href="/sign-in" className="w-full sm:w-auto">
-                    <button className="w-full sm:w-auto bg-primary text-white font-bold py-3.5 px-8 rounded-xl hover:bg-primary/95 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-lg shadow-primary/20">
-                      Get Started Now
-                      <ArrowRight className="h-4.5 w-4.5" />
-                    </button>
-                  </Link>
-                  <Link href="/sign-up" className="w-full sm:w-auto">
-                    <button className="w-full sm:w-auto bg-surface-container-lowest border border-outline-variant text-on-surface font-bold py-3.5 px-8 rounded-xl hover:bg-surface-container transition-all flex justify-center items-center gap-2">
-                      Create Account
-                    </button>
-                  </Link>
-                </>
-              )}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 w-full max-w-xl">
+              <Link href="/retrieval-portal" className="w-full sm:flex-1">
+                <button className="w-full bg-primary text-white font-bold py-3.5 px-6 rounded-xl hover:bg-primary/95 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-lg shadow-primary/20">
+                  <Fingerprint className="h-5 w-5" />
+                  Certificate Portal (ID / PIN)
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+              <Link href="/pin-checker" className="w-full sm:flex-1">
+                <button className="w-full bg-surface-container-lowest border-2 border-red-500/30 hover:border-red-500 text-red-600 dark:text-red-400 font-bold py-3.5 px-6 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-all flex justify-center items-center gap-2 shadow-sm">
+                  <ShieldCheck className="h-5 w-5" />
+                  Live PIN & ID Checker
+                </button>
+              </Link>
             </div>
             
             <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-on-surface-variant font-medium">
