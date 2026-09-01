@@ -736,24 +736,24 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const county         = first(api?.county, pc?.county, man?.county, '');
+    const county         = first(man?.county, pc?.county, api?.county, '');
     const normalizedCounty = county ? county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim() : '';
     const defaultTown    = normalizedCounty ? (COUNTY_TOWN_MAP[normalizedCounty] || county) : '';
-    const town           = first(api?.town, pc?.town, man?.town, defaultTown);
-    const district       = first(api?.district, pc?.district, man?.district, '');
+    const town           = first(man?.town, pc?.town, api?.town, defaultTown);
+    const district       = first(man?.district, pc?.district, api?.district, '');
 
     // Strictly enforce KRA Station Matrix based on County if county is known
-    const station        = county ? getKraStationForCounty(county) : '';
+    const station        = county ? getKraStationForCounty(county) : (api?.station || '');
 
-    let taxArea          = first(api?.taxArea, pc?.taxArea, man?.taxArea, '');
+    let taxArea          = first(man?.taxArea, pc?.taxArea, api?.taxArea, '');
     
-    const building       = first(api?.building, pc?.building, man?.building, '');
-    const street         = first(api?.street, pc?.street, man?.street, '');
-    const poBox          = first(api?.poBox, pc?.poBox, man?.poBox, '');
-    const postalCode     = first(api?.postalCode, pc?.postalCode, man?.postalCode, '');
-    const email          = first(api?.email, pc?.email, man?.email, '');
-    const phoneNumber    = first(api?.phoneNumber, pc?.phoneNumber, man?.phoneNumber, '');
-    const registeredDate = first(api?.registrationDate, pc?.registeredDate, pc?.obligationDate, '');
+    const building       = first(man?.building, pc?.building, api?.building, '');
+    const street         = first(man?.street, pc?.street, api?.street, '');
+    const poBox          = first(man?.poBox, pc?.poBox, api?.poBox, '');
+    const postalCode     = first(man?.postalCode, pc?.postalCode, api?.postalCode, '');
+    const email          = first(man?.email, pc?.email, api?.email, '');
+    const phoneNumber    = first(man?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, '');
+    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, api?.registrationDate, '');
 
     const result = {
       success: true,
