@@ -136,7 +136,6 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     // Force profile completion if accessing services
     const isServicePath = 
       pathname?.startsWith('/dashboard/filing') || 
-      pathname?.startsWith('/retrieval-portal') || 
       pathname?.startsWith('/dashboard/cv-builder');
 
     if (isServicePath && !isProfileComplete) {
@@ -159,9 +158,11 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     userRole === "Admin";
 
   const navLinks = [
+    { href: "/", label: "Home", icon: LayoutDashboard },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/retrieval-portal", label: "Certificate Portal", icon: Hash },
+    { href: "/pin-checker", label: "Live PIN Checker", icon: Shield },
     { href: "/dashboard/filing", label: "File Returns", icon: Send },
-    { href: "/retrieval-portal", label: "KRA Certificate", icon: Hash },
     { href: "/dashboard/cv-builder", label: "CV Builder", icon: FileText },
     { href: "/dashboard/profile", label: "Profile", icon: User },
     ...(isAdmin ? [{ href: "/admin/system-health", label: "Admin Central", icon: Shield }] : []),

@@ -256,27 +256,46 @@ export default async function TaxpayerDashboard() {
             <CardTitle className="text-xl font-headline">Quick Actions</CardTitle>
             <CardDescription>Frequently used services</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Link href="/dashboard/filing" className="flex items-center justify-between p-4 rounded border border-outline-variant hover:bg-surface-container transition-colors">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary animate-pulse" />
-                <span className="font-medium text-on-surface">File Returns</span>
-              </div>
-              <ArrowRight className="h-5 w-5 text-on-surface-variant" />
-            </Link>
-            <Link href="/retrieval-portal" className="flex items-center justify-between p-4 rounded border border-outline-variant hover:bg-surface-container transition-colors">
+          <CardContent className="space-y-3">
+            <Link href="/retrieval-portal" className="flex items-center justify-between p-3.5 rounded-lg border border-outline-variant hover:bg-surface-container hover:border-primary/40 transition-all">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-primary" />
-                <span className="font-medium text-on-surface">KRA Certificate</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-on-surface text-sm">Certificate Portal</span>
+                  <span className="text-[11px] text-on-surface-variant">Retrieve by ID or PIN & Download PDF</span>
+                </div>
               </div>
-              <ArrowRight className="h-5 w-5 text-on-surface-variant" />
+              <ArrowRight className="h-4 w-4 text-on-surface-variant" />
             </Link>
-            <Link href="/dashboard/cv-builder" className="flex items-center justify-between p-4 rounded border border-outline-variant hover:bg-surface-container transition-colors">
+            <Link href="/pin-checker" className="flex items-center justify-between p-3.5 rounded-lg border border-outline-variant hover:bg-surface-container hover:border-red-500/40 transition-all">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-on-surface text-sm">Live PIN & ID Checker</span>
+                  <span className="text-[11px] text-on-surface-variant">Verify taxpayer validity & tax station</span>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-on-surface-variant" />
+            </Link>
+            <Link href="/dashboard/filing" className="flex items-center justify-between p-3.5 rounded-lg border border-outline-variant hover:bg-surface-container transition-all">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-primary" />
-                <span className="font-medium text-on-surface">CV Builder</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-on-surface text-sm">File Nil Returns</span>
+                  <span className="text-[11px] text-on-surface-variant">Fast automated KRA filing assistant</span>
+                </div>
               </div>
-              <ArrowRight className="h-5 w-5 text-on-surface-variant" />
+              <ArrowRight className="h-4 w-4 text-on-surface-variant" />
+            </Link>
+            <Link href="/dashboard/cv-builder" className="flex items-center justify-between p-3.5 rounded-lg border border-outline-variant hover:bg-surface-container transition-all">
+              <div className="flex items-center gap-3">
+                <Briefcase className="h-5 w-5 text-primary" />
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-on-surface text-sm">ATS CV Builder</span>
+                  <span className="text-[11px] text-on-surface-variant">AI-powered professional resumes</span>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-on-surface-variant" />
             </Link>
           </CardContent>
         </Card>
