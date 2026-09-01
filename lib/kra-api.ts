@@ -321,13 +321,13 @@ function normalizeKraTaxpayerResponse(
     get('taxpayername', 'name', 'fullname', 'taxpayer_name', 'tax_payer_name');
 
   // 5. Location / Address Extraction & Station Matrix Resolution
-  const county = (get('county', 'countyname', 'county_name') || 'NAIROBI').toUpperCase();
-  const town = get('town', 'city', 'cityname', 'townname') || 'Nairobi';
-  const station = get('station', 'taxstation', 'krastation', 'stationname') || getKraStationForCounty(county);
-  const taxArea = get('taxarea', 'locality', 'taxareaname') || `${county} Central`;
-  const district = get('district', 'subcounty', 'districtname') || `${county} District`;
-  const building = get('building', 'buildingname', 'physicaladdress', 'bldgname') || 'Commercial Plaza';
-  const street = get('street', 'streetname', 'roadname') || 'Harambee Avenue';
+  const county = (get('county', 'countyname', 'county_name') || '').toUpperCase();
+  const town = get('town', 'city', 'cityname', 'townname') || '';
+  const station = get('station', 'taxstation', 'krastation', 'stationname') || (county ? getKraStationForCounty(county) : '');
+  const taxArea = get('taxarea', 'locality', 'taxareaname') || (county ? `${county} Central` : '');
+  const district = get('district', 'subcounty', 'districtname') || (county ? `${county} District` : '');
+  const building = get('building', 'buildingname', 'physicaladdress', 'bldgname') || '';
+  const street = get('street', 'streetname', 'roadname') || '';
   const poBox = get('pobox', 'postbox', 'boxno') || '';
   const postalCode = get('postalcode', 'postcode') || '';
 
