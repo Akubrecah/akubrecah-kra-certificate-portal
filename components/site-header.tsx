@@ -15,18 +15,6 @@ export function SiteHeader() {
         <Link href="/">
           <Logo width={160} height={48} className="h-8 md:h-10 w-auto" />
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Link href="/retrieval-portal">
-            <Button variant="ghost" size="sm" className="text-xs font-semibold hover:text-primary px-2 sm:px-3">
-              Certificate Portal
-            </Button>
-          </Link>
-          <Link href="/pin-checker">
-            <Button variant="ghost" size="sm" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 sm:px-3">
-              PIN Checker
-            </Button>
-          </Link>
-        </nav>
       </div>
       <div className="flex items-center gap-4">
         <ThemeToggle />
