@@ -6,7 +6,7 @@ import tls from 'tls';
 import url from 'url';
 import { createSystemLog } from '@/lib/prisma';
 import { fetchTaxpayerByPin, fetchTaxpayerById } from '@/lib/kra-api';
-import { getKraStationForCounty } from '@/lib/kra-stations';
+import { getKraStationForCounty, formatKraStation, sanitizeTaxArea } from '@/lib/kra-stations';
 
 export const maxDuration = 60;
 
@@ -195,6 +195,12 @@ interface PinCheckerResult {
   phoneNumber: string;
   email: string;
   captchaWrong: boolean;
+  obligations?: Array<{
+    name: string;
+    status: string;
+    effectiveFrom: string;
+    effectiveTo?: string;
+  }>;
 }
 
 function parsePinCheckerHtml(html: string): PinCheckerResult {
@@ -203,11 +209,13 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     building: '', street: '', town: '', county: '', district: '',
     taxArea: '', station: '', poBox: '', postalCode: '',
     phoneNumber: '', email: '', captchaWrong: false,
+    obligations: [],
   };
 
   const hasTaxpayerDetails = html.toLowerCase().includes('taxpayer name') ||
                              html.toLowerCase().includes('tax payer name') ||
-                             html.toLowerCase().includes('pin details');
+                             html.toLowerCase().includes('pin details') ||
+                             html.toLowerCase().includes('taxpayer details');
   const hasCaptchaForm = html.includes('captcahText') ||
                          html.includes('Security Stamp') ||
                          html.includes('ajaxCaptchaLoad') ||
@@ -226,131 +234,104 @@ function parsePinCheckerHtml(html: string): PinCheckerResult {
     return result;
   }
 
-  const stripTags = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const stripTags = (s: string) =>
+    s
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&copy;/g, '')
+      .replace(/&gt;/g, '>')
+      .replace(/&lt;/g, '<')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-  const extractAfterLabel = (label: string, searchArea: string): string => {
-    const escapedLabel = label.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(`<td[^>]*>(?:<[^>]+>)*[\\s\\S]*?${escapedLabel}[\\s\\S]*?<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>`, 'i');
-    const match = searchArea.match(regex);
-    if (match) {
-      return stripTags(match[1]);
-    }
-    return '';
-  };
+  // 1. Extract table rows and find labeled key-value pairs
+  const rowMatches = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+  const kvPairs: Record<string, string> = {};
 
-  const pinDetailsIdx = html.toLowerCase().indexOf('pin details');
-  const fullSection = pinDetailsIdx !== -1 ? html.substring(pinDetailsIdx) : html;
-
-  result.name = extractAfterLabel('Taxpayer Name', fullSection)
-    || extractAfterLabel('Tax Payer Name', fullSection)
-    || extractAfterLabel('TaxpayerName', fullSection)
-    || extractAfterLabel('Full Name', fullSection);
-
-  result.pin = extractAfterLabel('PIN Number', fullSection)
-    || extractAfterLabel('Taxpayer PIN', fullSection)
-    || extractAfterLabel('KRA PIN', fullSection)
-    || extractAfterLabel('PIN', fullSection);
-
-  result.registeredDate = extractAfterLabel('PIN Registration Date', fullSection)
-    || extractAfterLabel('Registration Date', fullSection)
-    || extractAfterLabel('Effective From Date', fullSection)
-    || extractAfterLabel('Effective From', fullSection)
-    || extractAfterLabel('Effective Date', fullSection);
-
-  if (result.registeredDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(result.registeredDate)) {
-    const m = result.registeredDate.match(/(\d{2}\/\d{2}\/\d{4})/);
-    result.registeredDate = m ? m[1] : '';
-  }
-
-  result.building = extractAfterLabel('Building Name', fullSection)
-    || extractAfterLabel('Building', fullSection)
-    || extractAfterLabel('Plot No', fullSection);
-
-  result.street = extractAfterLabel('Street Name', fullSection)
-    || extractAfterLabel('Street', fullSection)
-    || extractAfterLabel('Road', fullSection);
-
-  result.town = extractAfterLabel('City/Town', fullSection)
-    || extractAfterLabel('Town', fullSection)
-    || extractAfterLabel('City', fullSection);
-
-  result.county = extractAfterLabel('County', fullSection);
-
-  result.district = extractAfterLabel('District', fullSection)
-    || extractAfterLabel('Sub County', fullSection);
-
-  result.taxArea = extractAfterLabel('Tax Area', fullSection)
-    || extractAfterLabel('Tax Area Locality', fullSection)
-    || extractAfterLabel('Locality', fullSection);
-
-  result.station = extractAfterLabel('Station', fullSection)
-    || extractAfterLabel('Taxpayer Station', fullSection)
-    || extractAfterLabel('KRA Station', fullSection);
-
-  result.poBox = extractAfterLabel('P.O. Box', fullSection)
-    || extractAfterLabel('PO Box', fullSection)
-    || extractAfterLabel('Post Box', fullSection)
-    || extractAfterLabel('Box No', fullSection);
-
-  result.postalCode = extractAfterLabel('Postal Code', fullSection)
-    || extractAfterLabel('Post Code', fullSection);
-
-  result.phoneNumber = extractAfterLabel('Mobile No', fullSection)
-    || extractAfterLabel('Phone No', fullSection)
-    || extractAfterLabel('Telephone', fullSection)
-    || extractAfterLabel('Contact No', fullSection);
-
-  result.email = extractAfterLabel('Email', fullSection)
-    || extractAfterLabel('Email Address', fullSection);
-
-  if (result.email && (result.email.toLowerCase().includes('callcentre@kra.go.ke') || !result.email.includes('@'))) {
-    result.email = '';
-  }
-
-  const oblIdx = fullSection.toLowerCase().indexOf('obligation details');
-  const targetOBLSection = oblIdx !== -1 ? fullSection.substring(oblIdx) : fullSection;
-  const rows = targetOBLSection.split(/<tr[^>]*>/gi);
-  const obligations = [];
-  
-  for (let i = 1; i < rows.length; i++) {
-    const rowContent = rows[i].split(/<\/tr>/gi)[0];
-    if (!rowContent) continue;
-    const cellMatches = rowContent.split(/<\/td>/gi);
-    const cells = cellMatches
-      .map(cell => {
-        const tdIdx = cell.toLowerCase().indexOf('<td');
-        if (tdIdx === -1) return '';
-        const contentStart = cell.indexOf('>', tdIdx) + 1;
-        return stripTags(cell.substring(contentStart)).trim();
-      })
-      .filter((_, idx) => idx < cellMatches.length - 1);
-      
-    if (cells.length >= 3) {
-      const name = cells[0];
-      const status = cells[1];
-      const effectiveFrom = cells[2];
-      const effectiveTo = cells[3] || '';
-      if (name && name.toLowerCase() !== 'obligation name') {
-        obligations.push({ name, status, effectiveFrom, effectiveTo });
+  for (const row of rowMatches) {
+    const cellMatches = row.match(/<td[^>]*>[\s\S]*?<\/td>/gi) || [];
+    const textCells = cellMatches.map(c => stripTags(c));
+    for (let i = 0; i < textCells.length - 1; i += 2) {
+      const lbl = textCells[i].replace(/[:*]/g, '').trim();
+      const val = textCells[i + 1].trim();
+      if (lbl && val) {
+        kvPairs[lbl.toLowerCase()] = val;
       }
     }
   }
 
-  if (obligations.length > 0) {
-    const activeObl = obligations.find(o => 
-      o.status.toLowerCase() === 'registered' || 
-      o.status.toLowerCase() === 'active'
-    ) || obligations[0];
-    if (activeObl && activeObl.effectiveFrom) {
-      const m = activeObl.effectiveFrom.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (m) result.obligationDate = m[1];
+  const findVal = (...labels: string[]): string => {
+    for (const l of labels) {
+      const key = l.toLowerCase();
+      if (kvPairs[key]) return kvPairs[key];
+      const found = Object.keys(kvPairs).find(k => k === key || k.endsWith(key) || k.includes(key));
+      if (found && kvPairs[found]) return kvPairs[found];
+    }
+    return '';
+  };
+
+  // Direct regex for PIN to avoid capturing breadcrumb links
+  const pinMatch = html.match(/\b([A-Z]\d{9}[A-Z])\b/i);
+  result.pin = pinMatch ? pinMatch[1].toUpperCase() : '';
+
+  result.name = findVal('taxpayer name', 'tax payer name', 'full name');
+  result.station = findVal('taxpayer station', 'station', 'kra station');
+  result.building = findVal('building name', 'building', 'plot no');
+  result.street = findVal('street name', 'street', 'road');
+  result.town = findVal('city/town', 'town', 'city');
+  result.county = findVal('county');
+  result.district = findVal('district', 'sub county');
+  result.taxArea = findVal('tax area', 'tax area locality', 'locality');
+  result.poBox = findVal('p.o. box', 'po box', 'post box', 'box no');
+  result.postalCode = findVal('postal code', 'post code');
+  result.phoneNumber = findVal('mobile no', 'phone no', 'telephone', 'contact no');
+  result.email = findVal('email', 'email address');
+
+  // 2. Extract Obligations and Effective From Date
+  const oblIdx = html.toLowerCase().indexOf('obligation details');
+  const targetOBLSection = oblIdx !== -1 ? html.substring(oblIdx) : html;
+  const oblRows = targetOBLSection.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+
+  for (const row of oblRows) {
+    const cellMatches = row.match(/<td[^>]*>[\s\S]*?<\/td>/gi) || [];
+    const cells = cellMatches.map(c => stripTags(c));
+    if (cells.length >= 3) {
+      const oblName = cells[0];
+      const oblStatus = cells[1];
+      const effFrom = cells[2];
+      const effTo = cells[3] || '';
+      if (oblName && !oblName.toLowerCase().includes('obligation name') && /^\d{2}\/\d{2}\/\d{4}$/.test(effFrom)) {
+        result.obligations?.push({
+          name: oblName,
+          status: oblStatus,
+          effectiveFrom: effFrom,
+          effectiveTo: effTo
+        });
+      }
     }
   }
 
-  if (!result.registeredDate) result.registeredDate = result.obligationDate || '';
-  if (!result.registeredDate) {
-    const m = fullSection.match(/(\d{2}\/\d{2}\/\d{4})/);
-    if (m) result.registeredDate = m[1];
+  // Find primary active obligation date
+  if (result.obligations && result.obligations.length > 0) {
+    const activeObl = result.obligations.find(o => 
+      o.status.toLowerCase() === 'registered' || 
+      o.status.toLowerCase() === 'active'
+    ) || result.obligations[0];
+    if (activeObl && activeObl.effectiveFrom) {
+      result.obligationDate = activeObl.effectiveFrom;
+      result.registeredDate = activeObl.effectiveFrom;
+    }
+  }
+
+  const directReg = findVal('pin registration date', 'registration date', 'effective from date');
+  if (directReg) {
+    const m = directReg.match(/(\d{2}\/\d{2}\/\d{4})/);
+    if (m && !result.registeredDate) result.registeredDate = m[1];
+  }
+
+  if (result.email && (result.email.toLowerCase().includes('callcentre@kra.go.ke') || !result.email.includes('@'))) {
+    result.email = '';
   }
 
   console.log('[retrieve][parse] Parsed result:', JSON.stringify(result));
@@ -417,7 +398,8 @@ async function fetchManufacturerDetails(pin: string, cookieString?: string, prox
       const directCounty = cleanField(address.county);
       const directTown = cleanField(address.cityTown || address.town);
       const directDistrict = cleanField(address.district);
-      const directTaxArea = cleanField(address.taxAreaLocality);
+      const rawDirectTaxArea = cleanField(address.taxAreaLocality);
+      const directTaxArea = sanitizeTaxArea(rawDirectTaxArea, directCounty, directTown);
       const directBuilding = cleanField(address.buldgNo || address.descriptiveAddress);
       const directStreet = cleanField(address.streetRoad);
       const directPoBox = cleanField(address.poBox);
@@ -620,52 +602,52 @@ export async function POST(req: NextRequest) {
       console.warn('[retrieve] Live API gateway notice:', liveApiErr.message);
     }
 
-    // ── 2. Resolve PIN & Session for DWR flow ────────────────────────────────
+    // ── 2. Resolve PIN & Session Cookies ─────────────────────────────────────
     let fullPin = (engineMode !== 'dwr' && liveApiTaxpayer?.pin) ? liveApiTaxpayer.pin : (directPin ? String(directPin).trim().toUpperCase() : null);
 
     let cookieString = "";
     let freshCookieString = "";
 
-    // Only initialize iTax scraping cookies if DWR / HTML parsing is needed
-    if (engineMode === 'dwr' || !liveApiTaxpayer || !fullPin) {
-      if (sessionToken) {
-        try {
-          cookieString = Buffer.from(sessionToken, 'base64').toString('utf8');
-        } catch (err) {
-          console.error('[retrieve] Failed to decode sessionToken:', err);
-        }
-      }
-
-      if (!cookieString) {
-        try {
-          const cookies = await initKraSession(proxyUrl);
-          cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
-        } catch (err: any) {
-          console.warn('[retrieve] iTax session init notice:', err.message);
-        }
-      }
-
-      freshCookieString = cookieString;
+    // 1. Decode sessionToken if provided by client (from /api/kra/captcha)
+    if (sessionToken) {
       try {
-        const freshCookies = await initKraSession(proxyUrl);
-        freshCookieString = Object.entries(freshCookies).map(([k, v]) => `${k}=${v}`).join('; ');
-      } catch {}
-
-      if (!fullPin && idNumber) {
-        try {
-          fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString, proxyUrl);
-        } catch (err: any) {
-          console.warn('[retrieve] DWR PIN lookup failed:', err.message);
-        }
+        cookieString = Buffer.from(sessionToken, 'base64').toString('utf8');
+      } catch (err) {
+        console.error('[retrieve] Failed to decode sessionToken:', err);
       }
+    }
 
-      // If fullPin was resolved and we don't have live API taxpayer details yet, query Live API with fullPin
-      if (fullPin && !liveApiTaxpayer && engineMode !== 'dwr') {
-        try {
-          liveApiTaxpayer = await fetchTaxpayerByPin(fullPin);
-        } catch (err: any) {
-          console.warn('[retrieve] Post-ID Live API lookup notice:', err.message);
-        }
+    // 2. If cookieString is still empty, initialize a fresh session
+    if (!cookieString) {
+      try {
+        const cookies = await initKraSession(proxyUrl);
+        cookieString = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+      } catch (err: any) {
+        console.warn('[retrieve] iTax session init notice:', err.message);
+      }
+    }
+
+    // Fresh separate session for DWR & manufacturer lookups
+    freshCookieString = cookieString;
+    try {
+      const freshCookies = await initKraSession(proxyUrl);
+      freshCookieString = Object.entries(freshCookies).map(([k, v]) => `${k}=${v}`).join('; ');
+    } catch {}
+
+    if (!fullPin && idNumber) {
+      try {
+        fullPin = await lookupPinByIdNumber(String(idNumber).trim(), freshCookieString, proxyUrl);
+      } catch (err: any) {
+        console.warn('[retrieve] DWR PIN lookup failed:', err.message);
+      }
+    }
+
+    // If fullPin was resolved and we don't have live API taxpayer details yet, query Live API with fullPin
+    if (fullPin && !liveApiTaxpayer && engineMode !== 'dwr') {
+      try {
+        liveApiTaxpayer = await fetchTaxpayerByPin(fullPin);
+      } catch (err: any) {
+        console.warn('[retrieve] Post-ID Live API lookup notice:', err.message);
       }
     }
 
@@ -724,7 +706,8 @@ export async function POST(req: NextRequest) {
     const man = manData;
     const api = liveApiTaxpayer;
 
-    let name = first(api?.taxpayerName, pc?.name, man?.name, '');
+    // Prefer unmasked name from manufacturer/API over masked pinChecker name (e.g. "Powel M*****")
+    let name = first(man?.name, api?.taxpayerName, pc?.name, '');
 
     if (!fullPin) {
       console.error('[retrieve] Live & DWR retrieval returned no taxpayer record.');
@@ -734,20 +717,22 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // If name is not yet extracted from Live API / pinChecker, prompt for CAPTCHA so user can get real name
-    if (!name) {
-      if (!captchaAnswer || !captchaAnswer.trim()) {
-        console.log(`[retrieve] PIN ${fullPin} resolved. Requesting CAPTCHA for official taxpayer name.`);
-        return NextResponse.json({
-          success: false,
-          captchaRequired: true,
-          pin: fullPin,
-          error: `PIN ${fullPin} identified. Please enter the verification answer from the image to fetch your full official name & certificate details.`
-        }, { status: 422 });
-      }
-      name = first(api?.taxpayerName, pc?.name, man?.name, 'Registered Taxpayer');
+    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, api?.registrationDate, '');
+
+    // If name or registration date is not yet extracted, prompt for CAPTCHA
+    if ((!name || !registeredDate) && (!captchaAnswer || !captchaAnswer.trim())) {
+      console.log(`[retrieve] PIN ${fullPin} resolved. Prompting for security stamp to retrieve official details.`);
+      return NextResponse.json({
+        success: false,
+        captchaRequired: true,
+        pin: fullPin,
+        error: `PIN ${fullPin} identified. Please solve the security stamp to retrieve your official registration date and station.`
+      }, { status: 422 });
     }
 
+    if (!name) {
+      name = first(man?.name, api?.taxpayerName, pc?.name, 'Registered Taxpayer');
+    }
 
     const county         = first(man?.county, pc?.county, api?.county, '');
     const normalizedCounty = county ? county.toLowerCase().replace(/\bcounty\b/g, '').replace(/[-\s]+/g, ' ').trim() : '';
@@ -755,10 +740,13 @@ export async function POST(req: NextRequest) {
     const town           = first(man?.town, pc?.town, api?.town, defaultTown);
     const district       = first(man?.district, pc?.district, api?.district, '');
 
-    // Strictly enforce KRA Station Matrix based on County if county is known
-    const station        = county ? getKraStationForCounty(county) : (api?.station || '');
+    // Station: Prefer authentic station from pinChecker.htm (e.g. KITALE -> Kitale TSO), then API, then county matrix
+    const rawStation     = first(pc?.station, api?.station, '');
+    const station        = rawStation ? formatKraStation(rawStation) : (county ? getKraStationForCounty(county) : '');
 
-    let taxArea          = first(man?.taxArea, pc?.taxArea, api?.taxArea, '');
+    // Tax Area: sanitize to prevent cross-county leakage (e.g. Endebbes in West Pokot)
+    const rawTaxArea     = first(man?.taxArea, pc?.taxArea, api?.taxArea, '');
+    const taxArea        = sanitizeTaxArea(rawTaxArea, county, town);
     
     const building       = first(man?.building, pc?.building, api?.building, '');
     const street         = first(man?.street, pc?.street, api?.street, '');
@@ -766,7 +754,6 @@ export async function POST(req: NextRequest) {
     const postalCode     = first(man?.postalCode, pc?.postalCode, api?.postalCode, '');
     const email          = first(man?.email, pc?.email, api?.email, '');
     const phoneNumber    = first(man?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, '');
-    const registeredDate = first(pc?.registeredDate, pc?.obligationDate, api?.registrationDate, '');
 
     const result = {
       success: true,

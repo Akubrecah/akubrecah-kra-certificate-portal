@@ -4,7 +4,7 @@
  */
 
 import https from 'https';
-import { getKraStationForCounty } from './kra-stations';
+import { getKraStationForCounty, formatKraStation, sanitizeTaxArea } from './kra-stations';
 
 export interface TaxpayerObligation {
   name: string;
@@ -105,7 +105,8 @@ export function fetchManufacturerDetails(pin: string, cookieString = ''): Promis
             const county = clean(address.county);
             const town = clean(address.cityTown || address.town);
             const district = clean(address.district);
-            const taxArea = clean(address.taxAreaLocality);
+            const rawTaxArea = clean(address.taxAreaLocality);
+            const taxArea = sanitizeTaxArea(rawTaxArea, county, town);
             const building = clean(address.buldgNo || address.descriptiveAddress);
             const street = clean(address.streetRoad);
             const poBox = clean(address.poBox);
@@ -153,7 +154,8 @@ async function enrichTaxpayerProfile(profile: TaxpayerProfile): Promise<void> {
         if (!profile.county && man.county) profile.county = man.county;
         if (!profile.town && man.town) profile.town = man.town;
         if (!profile.district && man.district) profile.district = man.district;
-        if (!profile.taxArea && man.taxArea) profile.taxArea = man.taxArea;
+        if (man.taxArea) profile.taxArea = sanitizeTaxArea(man.taxArea, profile.county || man.county, profile.town || man.town);
+        else if (profile.taxArea) profile.taxArea = sanitizeTaxArea(profile.taxArea, profile.county || '', profile.town || '');
         if (!profile.building && man.building) profile.building = man.building;
         if (!profile.street && man.street) profile.street = man.street;
         if (!profile.poBox && man.poBox) profile.poBox = man.poBox;
@@ -317,15 +319,17 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
     const man = await fetchManufacturerDetails(pin);
     if (man && (man.name || man.email || man.county)) {
       const county = man.county || '';
+      const town = man.town || '';
+      const taxArea = sanitizeTaxArea(man.taxArea, county, town);
       return {
         pin,
         taxpayerName: man.name || 'Registered Taxpayer',
         status: 'Active',
         registrationDate: '',
         station: county ? getKraStationForCounty(county) : '',
-        taxArea: man.taxArea || (county ? `${county} Central` : ''),
+        taxArea,
         county,
-        town: man.town || '',
+        town,
         district: man.district || '',
         building: man.building || '',
         street: man.street || '',
@@ -337,7 +341,7 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
           {
             name: 'Income Tax - Individual (IT1)',
             status: 'Active',
-            effectiveFrom: '01/01/2015',
+            effectiveFrom: '',
           }
         ],
         source: 'itax_live',
@@ -495,8 +499,10 @@ function normalizeKraTaxpayerResponse(
   // 5. Location / Address Extraction & Station Matrix Resolution
   const county = (get('county', 'countyname', 'county_name') || '').toUpperCase();
   const town = get('town', 'city', 'cityname', 'townname') || '';
-  const station = get('station', 'taxstation', 'krastation', 'stationname') || (county ? getKraStationForCounty(county) : '');
-  const taxArea = get('taxarea', 'locality', 'taxareaname') || (county ? `${county} Central` : '');
+  const rawStation = get('station', 'taxstation', 'krastation', 'stationname') || '';
+  const station = rawStation ? formatKraStation(rawStation) : (county ? getKraStationForCounty(county) : '');
+  const rawTaxArea = get('taxarea', 'locality', 'taxareaname') || '';
+  const taxArea = sanitizeTaxArea(rawTaxArea, county, town);
   const district = get('district', 'subcounty', 'districtname') || (county ? `${county} District` : '');
   const building = get('building', 'buildingname', 'physicaladdress', 'bldgname') || '';
   const street = get('street', 'streetname', 'roadname') || '';
@@ -514,6 +520,16 @@ function normalizeKraTaxpayerResponse(
         effectiveTo: o.effectiveTo || '',
       }))
     : [];
+
+  if (!registrationDate && obligations.length > 0) {
+    const activeObl = obligations.find(o =>
+      (o.status && o.status.toLowerCase().includes('reg')) ||
+      (o.status && o.status.toLowerCase().includes('act'))
+    ) || obligations[0];
+    if (activeObl && activeObl.effectiveFrom) {
+      registrationDate = activeObl.effectiveFrom;
+    }
+  }
 
   return {
     pin,

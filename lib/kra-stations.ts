@@ -125,3 +125,49 @@ export function getCountiesForStation(station: string): { primary: string; secon
 
   return { primary: "Nairobi", secondary: ["Kiambu"] };
 }
+
+/**
+ * Format raw KRA station strings (e.g. "KITALE" -> "Kitale TSO")
+ */
+export function formatKraStation(station: string): string {
+  if (!station) return "";
+  const cleanStation = station.trim();
+  const norm = cleanStation.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const match = KRA_STATION_MATRIX.find(
+    (entry) =>
+      entry.station.toLowerCase().replace(/[^a-z0-9]/g, "") === norm ||
+      entry.station.toLowerCase().includes(cleanStation.toLowerCase()) ||
+      cleanStation.toLowerCase().includes(entry.station.toLowerCase().replace(/\s*tso\b/gi, ""))
+  );
+  if (match) return match.station;
+  if (/^[A-Z0-9\s]+$/.test(cleanStation)) {
+    const titleCased = cleanStation
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+    return titleCased.endsWith("TSO") ? titleCased : `${titleCased} TSO`;
+  }
+  return cleanStation;
+}
+
+/**
+ * Ensures tax area correctly reflects the taxpayer's county/town,
+ * guarding against cross-county mismatches (e.g. Endebbes in West Pokot).
+ */
+export function sanitizeTaxArea(taxArea?: string, county?: string, town?: string): string {
+  const normArea = (taxArea || "").trim();
+  const normCounty = (county || "").toUpperCase().trim();
+
+  if (normArea.toLowerCase().includes("endeb")) {
+    if (!normCounty.includes("TRANS NZOIA")) {
+      return town || (normCounty.includes("POKOT") ? "Kapenguria" : (normCounty ? `${county} Central` : "Central"));
+    }
+  }
+
+  if ((normCounty === "WEST POKOT" || normCounty.includes("POKOT")) && (!normArea || normArea.toLowerCase().includes("endeb"))) {
+    return town || "Kapenguria";
+  }
+
+  return normArea || (normCounty ? `${county} Central` : "");
+}
+
