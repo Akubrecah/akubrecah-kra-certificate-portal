@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { createSystemLog } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -100,6 +101,25 @@ export async function POST(req: NextRequest) {
 
     // 6. Serialize document
     const outBytes = await pdfDoc.save();
+
+    // Track certificate generation event in logs
+    let userEmail = userId;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      userEmail = user.primaryEmailAddress?.emailAddress || userId;
+    } catch {}
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+
+    await createSystemLog({
+      level: 'info',
+      service: 'Certificate-Generation',
+      message: `Compliance certificate generated successfully for PIN ${pin}`,
+      actor: userEmail,
+      ip,
+      details: { pin }
+    });
 
     // 7. Return PDF as binary stream
     return new NextResponse(outBytes, {

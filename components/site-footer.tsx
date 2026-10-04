@@ -9,7 +9,10 @@ export function SiteFooter(): JSX.Element {
       title: "Services",
       links: [
         { label: "Home", href: "/" },
-        { label: "Retrieval Portal", href: "/retrieval-portal" },
+        { label: "Certificate Retrieval", href: "/retrieval-portal" },
+        { label: "Live PIN Checker", href: "/pin-checker" },
+        { label: "Taxpayer Dashboard", href: "/dashboard" },
+        { label: "CV Builder", href: "/dashboard/cv-builder" },
       ],
     },
     {
@@ -36,7 +39,7 @@ export function SiteFooter(): JSX.Element {
               <Logo width={200} height={60} />
             </Link>
             <p className="text-sm text-on-surface-variant max-w-xs text-center md:text-left">
-              Professional compliance suite for KRA services and PDF management.
+              Professional compliance suite for KRA services and CV building.
             </p>
           </div>
 

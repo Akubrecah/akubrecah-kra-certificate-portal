@@ -135,10 +135,11 @@ function initKraSession(proxyUrl: string): Promise<Record<string, string>> {
     const options = {
       hostname: 'itax.kra.go.ke',
       port: 443,
-      path: '/KRA-Portal/pinChecker.htm?actionCode=loadPage&viewType=static',
+      path: '/KRA-Portal/pinChecker.htm',
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       },
       timeout: 10000,
       rejectUnauthorized: false,
@@ -175,8 +176,9 @@ function fetchCaptchaImage(cookieString: string, randNum: number, proxyUrl: stri
       method: 'GET',
       headers: {
         'Cookie': cookieString,
-        'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm?actionCode=loadPage&viewType=static',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       },
       timeout: 10000,
       rejectUnauthorized: false,

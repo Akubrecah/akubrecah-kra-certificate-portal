@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  FileText
 } from "lucide-react";
 import Link from 'next/link';
 
@@ -111,6 +112,10 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname?.startsWith('/onboarding') || pathname?.startsWith('/admin')
 
+  const hasName = !!(user?.firstName && user?.lastName) || !!user?.fullName;
+  const hasPhone = (user?.phoneNumbers && user?.phoneNumbers.length > 0) || !!user?.publicMetadata?.phoneNumber;
+  const isProfileComplete = hasName && hasPhone;
+
   useEffect(() => {
     if (!isLoaded || !user) return;
 
@@ -121,12 +126,22 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
 
       if (!hasCompletedLocal && !hasCompletedClerk) {
         router.push('/onboarding')
+        return;
       } else if (hasCompletedClerk && !hasCompletedLocal) {
         // Sync local storage if Clerk is complete but local is not
         localStorage.setItem('hasCompletedOnboarding', 'true')
       }
     }
-  }, [pathname, router, user, isLoaded])
+
+    // Force profile completion if accessing services
+    const isServicePath = 
+      pathname?.startsWith('/dashboard/filing') || 
+      pathname?.startsWith('/dashboard/cv-builder');
+
+    if (isServicePath && !isProfileComplete) {
+      router.push('/dashboard/profile?message=incomplete_profile');
+    }
+  }, [pathname, router, user, isLoaded, isProfileComplete])
 
   if (isAuthPage) {
     return <main className="flex-grow flex w-full">{children}</main>
@@ -143,9 +158,12 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     userRole === "Admin";
 
   const navLinks = [
+    { href: "/", label: "Home", icon: LayoutDashboard },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/retrieval-portal", label: "Certificate Portal", icon: Hash },
+    { href: "/pin-checker", label: "Live PIN Checker", icon: Shield },
     { href: "/dashboard/filing", label: "File Returns", icon: Send },
-    { href: "/retrieval-portal", label: "KRA Certificate", icon: Hash },
+    { href: "/dashboard/cv-builder", label: "CV Builder", icon: FileText },
     { href: "/dashboard/profile", label: "Profile", icon: User },
     ...(isAdmin ? [{ href: "/admin/system-health", label: "Admin Central", icon: Shield }] : []),
   ];

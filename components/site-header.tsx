@@ -11,8 +11,7 @@ export function SiteHeader() {
 
   return (
     <header className="fixed top-0 w-full bg-surface-container-lowest border-b border-outline-variant dark:border-outline z-50 h-16 flex items-center px-4 md:px-8 justify-between">
-      <div className="flex items-center gap-4">
-        {/* Optional mobile menu toggle could go here */}
+      <div className="flex items-center gap-6">
         <Link href="/">
           <Logo width={160} height={48} className="h-8 md:h-10 w-auto" />
         </Link>

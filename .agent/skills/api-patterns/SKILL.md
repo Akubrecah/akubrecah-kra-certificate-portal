@@ -29,6 +29,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 | `rate-limiting.md` | Token bucket, sliding window | API protection |
 | `documentation.md` | OpenAPI/Swagger best practices | Documentation |
 | `security-testing.md` | OWASP API Top 10, auth/authz testing | Security audits |
+| `background-jobs.md` | Async task queues, worker options, idempotency | Designing async API endpoints |
 
 ---
 
