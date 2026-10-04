@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Search, 
   CheckCircle, 
@@ -77,6 +77,10 @@ export function KRAPortal() {
   const [captchaAnswer, setCaptchaAnswer] = useState("")
   const [captchaStatus, setCaptchaStatus] = useState<"idle" | "loading" | "ready" | "error">("idle")
 
+  useEffect(() => {
+    loadCaptcha()
+  }, [])
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -106,6 +110,11 @@ export function KRAPortal() {
     if (e) e.preventDefault()
     if (!formData.idNumber && !formData.pin) {
       setError("Please enter your National ID number or KRA PIN.")
+      return
+    }
+
+    if (captchaStatus === "ready" && !captchaAnswer.trim()) {
+      setError("Please enter the answer to the security verification question.")
       return
     }
 
@@ -416,7 +425,7 @@ export function KRAPortal() {
                                       placeholder="e.g. 12345678" 
                                       type="text" 
                                       value={formData.idNumber}
-                                      onChange={(e) => { handleInputChange('idNumber', e.target.value.toUpperCase()); setCaptchaStatus('idle'); }}
+                                      onChange={(e) => handleInputChange('idNumber', e.target.value.toUpperCase())}
                                     />
                                 </div>
                             </div>
@@ -430,7 +439,7 @@ export function KRAPortal() {
                                       placeholder="e.g. A123456789Z" 
                                       type="text" 
                                       value={formData.pin}
-                                      onChange={(e) => { handleInputChange('pin', e.target.value.toUpperCase()); setCaptchaStatus('idle'); }}
+                                      onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())}
                                     />
                                 </div>
                             </div>
@@ -794,7 +803,7 @@ export function KRAPortal() {
                         <input 
                           value={formData.station} 
                           onChange={(e) => handleInputChange('station', e.target.value)} 
-                          placeholder="e.g. North of Nairobi TSO" 
+                          placeholder="e.g. North of Nairobi" 
                           className={inputClass} 
                         />
                       </div>

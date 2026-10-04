@@ -704,7 +704,7 @@ export const COUNTIES = Object.keys(KENYA_ADMIN_DATA).sort();
 export const GET_SUB_COUNTIES = (county: string) => KENYA_ADMIN_DATA[county]?.subCounties || ["OTHER"];
 
 export const GET_STATIONS = (county: string): string[] => {
-  if (!county) return ["North of Nairobi TSO"];
+  if (!county) return ["North of Nairobi"];
   const norm = normalizeCountyName(county);
 
   // 1. Direct Primary Stations
@@ -733,7 +733,7 @@ export const GET_STATIONS = (county: string): string[] => {
     return Array.from(new Set(partial));
   }
 
-  return KENYA_ADMIN_DATA[county]?.stations || ["North of Nairobi TSO"];
+  return KENYA_ADMIN_DATA[county]?.stations || ["North of Nairobi"];
 };
 
 export const GET_LOCALITIES = (county: string, subCounty?: string) => {

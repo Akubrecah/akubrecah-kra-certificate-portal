@@ -10,42 +10,42 @@ export interface KraStationMapping {
 }
 
 export const KRA_STATION_MATRIX: KraStationMapping[] = [
-  { station: "North of Nairobi TSO", primaryCounty: "Nairobi", secondaryCounties: ["Kiambu"] },
-  { station: "South of Nairobi TSO", primaryCounty: "Nairobi", secondaryCounties: ["Kajiado", "Machakos"] },
-  { station: "East of Nairobi TSO", primaryCounty: "Nairobi", secondaryCounties: ["Machakos"] },
-  { station: "West of Nairobi TSO", primaryCounty: "Nairobi", secondaryCounties: ["Kiambu"] },
-  { station: "Thika TSO", primaryCounty: "Kiambu", secondaryCounties: ["Murang'a"] },
-  { station: "Nyeri TSO", primaryCounty: "Nyeri", secondaryCounties: ["Nyandarua", "Kirinyaga", "Laikipia"] },
-  { station: "Kerugoya TSO", primaryCounty: "Kirinyaga", secondaryCounties: ["Embu"] },
-  { station: "Murang'a TSO", primaryCounty: "Murang'a", secondaryCounties: ["Nyeri"] },
-  { station: "Mombasa TSO", primaryCounty: "Mombasa", secondaryCounties: ["Kwale", "Kilifi"] },
-  { station: "Malindi TSO", primaryCounty: "Kilifi", secondaryCounties: ["Tana River", "Lamu"] },
-  { station: "Voi TSO", primaryCounty: "Taita Taveta", secondaryCounties: ["Kwale", "Makueni"] },
-  { station: "Machakos TSO", primaryCounty: "Machakos", secondaryCounties: ["Makueni", "Kitui"] },
-  { station: "Kitui TSO", primaryCounty: "Kitui", secondaryCounties: ["Makueni"] },
-  { station: "Embu TSO", primaryCounty: "Embu", secondaryCounties: ["Tharaka Nithi", "Kirinyaga"] },
-  { station: "Meru TSO", primaryCounty: "Meru", secondaryCounties: ["Isiolo", "Tharaka Nithi", "Marsabit"] },
-  { station: "Isiolo TSO", primaryCounty: "Isiolo", secondaryCounties: ["Samburu", "Marsabit"] },
-  { station: "Garissa TSO", primaryCounty: "Garissa", secondaryCounties: ["Wajir", "Tana River"] },
-  { station: "Wajir TSO", primaryCounty: "Wajir", secondaryCounties: ["Mandera"] },
-  { station: "Mandera TSO", primaryCounty: "Mandera", secondaryCounties: ["Wajir"] },
-  { station: "Nakuru TSO", primaryCounty: "Nakuru", secondaryCounties: ["Baringo", "Nyandarua"] },
-  { station: "Naivasha TSO", primaryCounty: "Nakuru", secondaryCounties: ["Nyandarua", "Narok"] },
-  { station: "Nyahururu TSO", primaryCounty: "Laikipia", secondaryCounties: ["Nyandarua"] },
-  { station: "Narok TSO", primaryCounty: "Narok", secondaryCounties: ["Bomet"] },
-  { station: "Kericho TSO", primaryCounty: "Kericho", secondaryCounties: ["Bomet"] },
-  { station: "Eldoret TSO", primaryCounty: "Uasin Gishu", secondaryCounties: ["Elgeyo Marakwet", "Nandi"] },
-  { station: "Kitale TSO", primaryCounty: "Trans Nzoia", secondaryCounties: ["West Pokot", "Bungoma"] },
-  { station: "Lodwar TSO", primaryCounty: "Turkana", secondaryCounties: ["West Pokot"] },
-  { station: "Kajiado/Kitengela TSO", primaryCounty: "Kajiado", secondaryCounties: ["Nairobi", "Machakos"] },
-  { station: "Kisumu TSO", primaryCounty: "Kisumu", secondaryCounties: ["Siaya", "Vihiga"] },
-  { station: "Kakamega TSO", primaryCounty: "Kakamega", secondaryCounties: ["Vihiga"] },
-  { station: "Bungoma TSO", primaryCounty: "Bungoma", secondaryCounties: ["Busia"] },
-  { station: "Busia TSO (OSBP)", primaryCounty: "Busia", secondaryCounties: ["Bungoma"] },
-  { station: "Malaba TSO (OSBP)", primaryCounty: "Busia", secondaryCounties: ["Bungoma"] },
-  { station: "Kisii TSO", primaryCounty: "Kisii", secondaryCounties: ["Nyamira"] },
-  { station: "Homa Bay TSO", primaryCounty: "Homa Bay", secondaryCounties: ["Migori"] },
-  { station: "Migori TSO", primaryCounty: "Migori", secondaryCounties: ["Narok"] },
+  { station: "North of Nairobi", primaryCounty: "Nairobi", secondaryCounties: ["Kiambu"] },
+  { station: "South of Nairobi", primaryCounty: "Nairobi", secondaryCounties: ["Kajiado", "Machakos"] },
+  { station: "East of Nairobi", primaryCounty: "Nairobi", secondaryCounties: ["Machakos"] },
+  { station: "West of Nairobi", primaryCounty: "Nairobi", secondaryCounties: ["Kiambu"] },
+  { station: "Thika", primaryCounty: "Kiambu", secondaryCounties: ["Murang'a"] },
+  { station: "Nyeri", primaryCounty: "Nyeri", secondaryCounties: ["Nyandarua", "Kirinyaga", "Laikipia"] },
+  { station: "Kerugoya", primaryCounty: "Kirinyaga", secondaryCounties: ["Embu"] },
+  { station: "Murang'a", primaryCounty: "Murang'a", secondaryCounties: ["Nyeri"] },
+  { station: "Mombasa", primaryCounty: "Mombasa", secondaryCounties: ["Kwale", "Kilifi"] },
+  { station: "Malindi", primaryCounty: "Kilifi", secondaryCounties: ["Tana River", "Lamu"] },
+  { station: "Voi", primaryCounty: "Taita Taveta", secondaryCounties: ["Kwale", "Makueni"] },
+  { station: "Machakos", primaryCounty: "Machakos", secondaryCounties: ["Makueni", "Kitui"] },
+  { station: "Kitui", primaryCounty: "Kitui", secondaryCounties: ["Makueni"] },
+  { station: "Embu", primaryCounty: "Embu", secondaryCounties: ["Tharaka Nithi", "Kirinyaga"] },
+  { station: "Meru", primaryCounty: "Meru", secondaryCounties: ["Isiolo", "Tharaka Nithi", "Marsabit"] },
+  { station: "Isiolo", primaryCounty: "Isiolo", secondaryCounties: ["Samburu", "Marsabit"] },
+  { station: "Garissa", primaryCounty: "Garissa", secondaryCounties: ["Wajir", "Tana River"] },
+  { station: "Wajir", primaryCounty: "Wajir", secondaryCounties: ["Mandera"] },
+  { station: "Mandera", primaryCounty: "Mandera", secondaryCounties: ["Wajir"] },
+  { station: "Nakuru", primaryCounty: "Nakuru", secondaryCounties: ["Baringo", "Nyandarua"] },
+  { station: "Naivasha", primaryCounty: "Nakuru", secondaryCounties: ["Nyandarua", "Narok"] },
+  { station: "Nyahururu", primaryCounty: "Laikipia", secondaryCounties: ["Nyandarua"] },
+  { station: "Narok", primaryCounty: "Narok", secondaryCounties: ["Bomet"] },
+  { station: "Kericho", primaryCounty: "Kericho", secondaryCounties: ["Bomet"] },
+  { station: "Eldoret", primaryCounty: "Uasin Gishu", secondaryCounties: ["Elgeyo Marakwet", "Nandi"] },
+  { station: "Kitale", primaryCounty: "Trans Nzoia", secondaryCounties: ["West Pokot", "Bungoma"] },
+  { station: "Lodwar", primaryCounty: "Turkana", secondaryCounties: ["West Pokot"] },
+  { station: "Kajiado/Kitengela", primaryCounty: "Kajiado", secondaryCounties: ["Nairobi", "Machakos"] },
+  { station: "Kisumu", primaryCounty: "Kisumu", secondaryCounties: ["Siaya", "Vihiga"] },
+  { station: "Kakamega", primaryCounty: "Kakamega", secondaryCounties: ["Vihiga"] },
+  { station: "Bungoma", primaryCounty: "Bungoma", secondaryCounties: ["Busia"] },
+  { station: "Busia (OSBP)", primaryCounty: "Busia", secondaryCounties: ["Bungoma"] },
+  { station: "Malaba (OSBP)", primaryCounty: "Busia", secondaryCounties: ["Bungoma"] },
+  { station: "Kisii", primaryCounty: "Kisii", secondaryCounties: ["Nyamira"] },
+  { station: "Homa Bay", primaryCounty: "Homa Bay", secondaryCounties: ["Migori"] },
+  { station: "Migori", primaryCounty: "Migori", secondaryCounties: ["Narok"] },
 ];
 
 /**
@@ -62,11 +62,11 @@ export function normalizeCountyName(county: string): string {
 }
 
 /**
- * Resolve the matching KRA Station (TSO) given a County name
+ * Resolve the matching KRA Station given a County name
  */
 export function getKraStationForCounty(county: string): string {
   const norm = normalizeCountyName(county);
-  if (!norm) return "North of Nairobi TSO";
+  if (!norm) return "North of Nairobi";
 
   // 1. Check direct primary county match
   const primaryMatch = KRA_STATION_MATRIX.find(
@@ -100,7 +100,7 @@ export function getKraStationForCounty(county: string): string {
   }
 
   // Default fallback
-  return "North of Nairobi TSO";
+  return "North of Nairobi";
 }
 
 /**
@@ -108,7 +108,7 @@ export function getKraStationForCounty(county: string): string {
  */
 export function getCountiesForStation(station: string): { primary: string; secondary: string[] } {
   if (!station) return { primary: "Nairobi", secondary: ["Kiambu"] };
-  const normStation = station.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normStation = station.toLowerCase().replace(/\btso\b/gi, "").replace(/[^a-z0-9]/g, "");
 
   const match = KRA_STATION_MATRIX.find(
     (entry) => entry.station.toLowerCase().replace(/[^a-z0-9]/g, "") === normStation ||
@@ -127,25 +127,30 @@ export function getCountiesForStation(station: string): { primary: string; secon
 }
 
 /**
- * Format raw KRA station strings (e.g. "KITALE" -> "Kitale TSO")
+ * Format raw KRA station strings cleanly without TSO (e.g. "KITALE" -> "Kitale", "Kitale TSO" -> "Kitale")
  */
 export function formatKraStation(station: string): string {
   if (!station) return "";
-  const cleanStation = station.trim();
+  let cleanStation = station
+    .trim()
+    .replace(/\bTSO\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
   const norm = cleanStation.toLowerCase().replace(/[^a-z0-9]/g, "");
   const match = KRA_STATION_MATRIX.find(
     (entry) =>
       entry.station.toLowerCase().replace(/[^a-z0-9]/g, "") === norm ||
       entry.station.toLowerCase().includes(cleanStation.toLowerCase()) ||
-      cleanStation.toLowerCase().includes(entry.station.toLowerCase().replace(/\s*tso\b/gi, ""))
+      cleanStation.toLowerCase().includes(entry.station.toLowerCase())
   );
   if (match) return match.station;
-  if (/^[A-Z0-9\s]+$/.test(cleanStation)) {
-    const titleCased = cleanStation
+
+  if (/^[A-Z0-9\s()/-]+$/.test(cleanStation)) {
+    return cleanStation
       .split(/\s+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .map((w) => (w.startsWith("(") ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
       .join(" ");
-    return titleCased.endsWith("TSO") ? titleCased : `${titleCased} TSO`;
   }
   return cleanStation;
 }
