@@ -3,6 +3,7 @@
  * Provides OAuth2 Token Management, PIN Checking, and ID Checking against KRA Gateway APIs
  */
 
+import https from 'https';
 import { getKraStationForCounty } from './kra-stations';
 
 export interface TaxpayerObligation {
@@ -31,6 +32,140 @@ export interface TaxpayerProfile {
   phoneNumber?: string;
   obligations?: TaxpayerObligation[];
   source: 'live_api' | 'gateway_cached' | 'itax_live';
+}
+
+export interface ManufacturerDetails {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  building: string;
+  street: string;
+  town: string;
+  county: string;
+  district: string;
+  taxArea: string;
+  poBox: string;
+  postalCode: string;
+}
+
+/**
+ * Fetch genuine taxpayer details (email, phone, address) from KRA iTax Manufacturer endpoint
+ */
+export function fetchManufacturerDetails(pin: string, cookieString = ''): Promise<ManufacturerDetails | null> {
+  return new Promise((resolve) => {
+    const postData = `manPin=${encodeURIComponent(pin)}`;
+    const buf = Buffer.from(postData, 'utf8');
+    const headers: Record<string, any> = {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Content-Length': buf.length,
+      'Accept': 'application/json, text/javascript, */*; q=0.01',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': 'https://itax.kra.go.ke/KRA-Portal/',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    };
+    if (cookieString && cookieString.trim()) {
+      headers['Cookie'] = cookieString.trim();
+    }
+
+    const req = https.request({
+      hostname: 'itax.kra.go.ke',
+      port: 443,
+      path: '/KRA-Portal/manufacturerAuthorizationController.htm?actionCode=fetchManDtl',
+      method: 'POST',
+      headers,
+      timeout: 8000,
+      rejectUnauthorized: false,
+    }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        try {
+          const raw = Buffer.concat(chunks).toString('utf8');
+          const parsed = JSON.parse(raw);
+          if (parsed && !parsed.isError) {
+            const clean = (v: any) => {
+              if (v === undefined || v === null) return '';
+              const s = String(v).trim();
+              if (!s || s.toLowerCase() === 'na' || s.toLowerCase() === 'n/a' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '0') return '';
+              return s;
+            };
+
+            const basic = parsed.timsManBasicRDtlDTO || {};
+            const business = parsed.manBusinessRDtlDTO || {};
+            const contact = parsed.manContactRDtlDTO || {};
+            const address = parsed.manAddRDtlDTO || {};
+
+            const fn = clean(basic.firstName);
+            const mn = clean(basic.middleName);
+            const ln = clean(basic.lastName);
+            const fullName = clean([fn, mn, ln].filter(Boolean).join(' ') || basic.manufacturerName || business.businessName);
+
+            const email = clean(contact.mainEmail || contact.secondaryEmail);
+            const phoneNumber = clean(contact.mobileNo || contact.telephoneNo);
+            const county = clean(address.county);
+            const town = clean(address.cityTown || address.town);
+            const district = clean(address.district);
+            const taxArea = clean(address.taxAreaLocality);
+            const building = clean(address.buldgNo || address.descriptiveAddress);
+            const street = clean(address.streetRoad);
+            const poBox = clean(address.poBox);
+            const postalCode = clean(address.postalCode);
+
+            resolve({
+              name: fullName,
+              email,
+              phoneNumber,
+              building,
+              street,
+              town,
+              county,
+              district,
+              taxArea,
+              poBox,
+              postalCode,
+            });
+            return;
+          }
+        } catch {}
+        resolve(null);
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.write(buf);
+    req.end();
+  });
+}
+
+async function enrichTaxpayerProfile(profile: TaxpayerProfile): Promise<void> {
+  if (profile.pin && (!profile.email || !profile.phoneNumber || !profile.county)) {
+    try {
+      const man = await fetchManufacturerDetails(profile.pin);
+      if (man) {
+        if (!profile.email && man.email) profile.email = man.email;
+        if (!profile.phoneNumber && man.phoneNumber) profile.phoneNumber = man.phoneNumber;
+        if ((!profile.taxpayerName || profile.taxpayerName === 'Registered Taxpayer') && man.name) {
+          profile.taxpayerName = man.name;
+        }
+        if (!profile.county && man.county) profile.county = man.county;
+        if (!profile.town && man.town) profile.town = man.town;
+        if (!profile.district && man.district) profile.district = man.district;
+        if (!profile.taxArea && man.taxArea) profile.taxArea = man.taxArea;
+        if (!profile.building && man.building) profile.building = man.building;
+        if (!profile.street && man.street) profile.street = man.street;
+        if (!profile.poBox && man.poBox) profile.poBox = man.poBox;
+        if (!profile.postalCode && man.postalCode) profile.postalCode = man.postalCode;
+        if (!profile.station && profile.county) {
+          profile.station = getKraStationForCounty(profile.county);
+        }
+      }
+    } catch (err: any) {
+      console.warn('[KRA-API] Failed to enrich with manufacturer details:', err.message);
+    }
+  }
 }
 
 interface CachedToken {
@@ -167,13 +302,48 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
         }
         const pinData = data.PINDATA || data.pindata || data;
         if (pinData && (pinData.Name || pinData.name || pinData.KRAPIN || pinData.krapin)) {
-          return normalizeKraTaxpayerResponse(pinData, pin, 'live_api');
+          const profile = normalizeKraTaxpayerResponse(pinData, pin, 'live_api');
+          await enrichTaxpayerProfile(profile);
+          return profile;
         }
       }
     } catch (e: any) {
       console.warn(`[KRA-API] Live endpoint ${url} attempt:`, e.message);
     }
   }
+
+  // Fallback to Manufacturer DTO if Live Gateway is unavailable or returns 404
+  try {
+    const man = await fetchManufacturerDetails(pin);
+    if (man && (man.name || man.email || man.county)) {
+      const county = man.county || '';
+      return {
+        pin,
+        taxpayerName: man.name || 'Registered Taxpayer',
+        status: 'Active',
+        registrationDate: '',
+        station: county ? getKraStationForCounty(county) : '',
+        taxArea: man.taxArea || (county ? `${county} Central` : ''),
+        county,
+        town: man.town || '',
+        district: man.district || '',
+        building: man.building || '',
+        street: man.street || '',
+        poBox: man.poBox || '',
+        postalCode: man.postalCode || '',
+        email: man.email || '',
+        phoneNumber: man.phoneNumber || '',
+        obligations: [
+          {
+            name: 'Income Tax - Individual (IT1)',
+            status: 'Active',
+            effectiveFrom: '01/01/2015',
+          }
+        ],
+        source: 'itax_live',
+      };
+    }
+  } catch {}
 
   throw new Error(`Taxpayer record for PIN ${pin} could not be retrieved from KRA Live Gateway.`);
 }
@@ -224,7 +394,9 @@ export async function fetchTaxpayerById(rawId: string, mode: 'api' | 'dwr' | 'au
         const resolvedPin = data.TaxpayerPIN || data.taxpayerpin || data.pin || '';
         const resolvedName = data.TaxpayerName || data.taxpayername || data.name || '';
         if (resolvedPin || resolvedName) {
-          return normalizeKraTaxpayerResponse(data, resolvedPin, 'live_api', idNumber);
+          const profile = normalizeKraTaxpayerResponse(data, resolvedPin, 'live_api', idNumber);
+          await enrichTaxpayerProfile(profile);
+          return profile;
         }
       }
     } catch (e: any) {

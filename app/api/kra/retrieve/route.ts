@@ -106,15 +106,16 @@ function httpsPost(path: string, body: string, cookieString: string, contentType
     const headers: Record<string, any> = {
       'Content-Type': contentType,
       'Content-Length': buf.length,
-      'Cookie': cookieString,
       'Origin': 'https://itax.kra.go.ke',
-      'Referer': 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
+      'Referer': isAjax ? 'https://itax.kra.go.ke/KRA-Portal/' : 'https://itax.kra.go.ke/KRA-Portal/pinChecker.htm',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept': isAjax ? 'application/json, text/javascript, */*; q=0.01' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     };
+    if (cookieString && cookieString.trim()) {
+      headers['Cookie'] = cookieString.trim();
+    }
     if (isAjax) {
       headers['X-Requested-With'] = 'XMLHttpRequest';
-      headers['Accept'] = 'application/json, text/javascript, */*; q=0.01';
     }
 
     const req = https.request({
@@ -374,43 +375,53 @@ interface ManufacturerResult {
   postalCode: string;
 }
 
-async function fetchManufacturerDetails(pin: string, cookieString: string, proxyUrl?: string): Promise<ManufacturerResult | null> {
+async function fetchManufacturerDetails(pin: string, cookieString?: string, proxyUrl?: string): Promise<ManufacturerResult | null> {
   const body = `manPin=${encodeURIComponent(pin)}`;
   try {
     const raw = await httpsPost(
       '/KRA-Portal/manufacturerAuthorizationController.htm?actionCode=fetchManDtl',
       body,
-      cookieString,
+      cookieString || '',
       'application/x-www-form-urlencoded; charset=UTF-8',
-      proxyUrl
+      proxyUrl,
+      true
     );
     
     if (!raw || raw.trim().length === 0) return null;
     const parsedData = JSON.parse(raw);
     if (parsedData && !parsedData.isError) {
+      const cleanField = (val: any) => {
+        if (val === undefined || val === null) return '';
+        const s = String(val).trim();
+        if (!s || s.toLowerCase() === 'na' || s.toLowerCase() === 'n/a' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '0') return '';
+        return s;
+      };
+
       const basic = parsedData.timsManBasicRDtlDTO || {};
       const business = parsedData.manBusinessRDtlDTO || {};
       const contact = parsedData.manContactRDtlDTO || {};
       const address = parsedData.manAddRDtlDTO || {};
 
-      const firstName = basic.firstName || '';
-      const middleName = basic.middleName || '';
-      const lastName = basic.lastName || '';
-      const directFullName = [firstName, middleName, lastName].filter(Boolean).join(' ') 
+      const firstName = cleanField(basic.firstName);
+      const middleName = cleanField(basic.middleName);
+      const lastName = cleanField(basic.lastName);
+      const directFullName = cleanField(
+        [firstName, middleName, lastName].filter(Boolean).join(' ') 
         || basic.manufacturerName 
         || business.businessName 
-        || '';
+        || ''
+      );
 
-      const directEmail = contact.mainEmail || contact.secondaryEmail || '';
-      const directPhone = contact.mobileNo || contact.telephoneNo || '';
-      const directCounty = address.county || '';
-      const directTown = address.cityTown || address.town || '';
-      const directDistrict = address.district || '';
-      const directTaxArea = address.taxAreaLocality || '';
-      const directBuilding = address.buldgNo || address.descriptiveAddress || '';
-      const directStreet = address.streetRoad || '';
-      const directPoBox = address.poBox || '';
-      const directPostalCode = address.postalCode || '';
+      const directEmail = cleanField(contact.mainEmail || contact.secondaryEmail);
+      const directPhone = cleanField(contact.mobileNo || contact.telephoneNo);
+      const directCounty = cleanField(address.county);
+      const directTown = cleanField(address.cityTown || address.town);
+      const directDistrict = cleanField(address.district);
+      const directTaxArea = cleanField(address.taxAreaLocality);
+      const directBuilding = cleanField(address.buldgNo || address.descriptiveAddress);
+      const directStreet = cleanField(address.streetRoad);
+      const directPoBox = cleanField(address.poBox);
+      const directPostalCode = cleanField(address.postalCode);
 
       if (directFullName || directEmail || directCounty || directTown) {
         return {
@@ -438,20 +449,15 @@ async function fetchManufacturerDetails(pin: string, cookieString: string, proxy
       const get = (...keys: string[]) => {
         for (const k of keys) {
           const val = mergedData[k];
-          if (val !== undefined && val !== null && val !== 'null' && val !== 'undefined') {
-            const sVal = String(val).trim();
-            if (sVal.length > 0) return sVal;
-          }
+          const s = cleanField(val);
+          if (s) return s;
         }
         const objKeys = Object.keys(mergedData);
         for (const k of keys) {
           const match = objKeys.find(ok => ok.toLowerCase() === k.toLowerCase());
           if (match) {
-            const val = mergedData[match];
-            if (val !== undefined && val !== null && val !== 'null' && val !== 'undefined') {
-              const sVal = String(val).trim();
-              if (sVal.length > 0) return sVal;
-            }
+            const s = cleanField(mergedData[match]);
+            if (s) return s;
           }
         }
         return '';
@@ -460,17 +466,17 @@ async function fetchManufacturerDetails(pin: string, cookieString: string, proxy
       const fn = get('firstName', 'first_name', 'fName');
       const mn = get('middleName', 'middle_name', 'secondName', 'mName');
       const ln = get('lastName', 'last_name', 'surname', 'lName');
-      const fullName = [fn, mn, ln].filter(Boolean).join(' ')
-        || get('taxpayerName', 'fullName', 'manufacturerName', 'name');
+      const fullName = cleanField([fn, mn, ln].filter(Boolean).join(' ')
+        || get('taxpayerName', 'fullName', 'manufacturerName', 'name'));
 
-      let email = get('emailAddress', 'emailId', 'email');
+      let email = cleanField(get('mainEmail', 'secondaryEmail', 'emailAddress', 'emailId', 'email'));
       if (!email) {
         const allStrings = JSON.stringify(mergedData);
         const emailMatch = allStrings.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
         if (emailMatch) email = emailMatch[0];
       }
 
-      const phoneNumber = get('mobileNo', 'phoneNumber', 'phone', 'contactNo');
+      const phoneNumber = cleanField(get('mobileNo', 'telephoneNo', 'phoneNumber', 'phone', 'contactNo'));
 
       return {
         name: fullName || '',
@@ -558,8 +564,15 @@ function randHex(len: number) {
   return [...Array(len)].map(() => Math.floor(Math.random() * 16).toString(16).toUpperCase()).join('');
 }
 
-function first(...vals: (string | undefined | null)[]): string {
-  for (const v of vals) if (v && v.trim()) return v.trim();
+function first(...vals: any[]): string {
+  for (const v of vals) {
+    if (v !== undefined && v !== null) {
+      const s = String(v).trim();
+      if (s.length > 0 && s.toLowerCase() !== 'na' && s.toLowerCase() !== 'n/a' && s.toLowerCase() !== 'null' && s.toLowerCase() !== 'undefined') {
+        return s;
+      }
+    }
+  }
   return '';
 }
 
