@@ -221,17 +221,64 @@ model user_activities {
 }
 
 model users {
-  id              String            @id
-  clerkId         String            @unique
-  email           String            @unique
-  firstName       String?
-  lastName        String?
-  profileImage    String?
-  lastLogin       DateTime?         @default(now())
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime
-  role            String            @default("user")
-  user_activities user_activities[]
+  id                    String                 @id
+  clerkId               String                 @unique
+  email                 String                 @unique
+  firstName             String?
+  lastName              String?
+  profileImage          String?
+  lastLogin             DateTime?              @default(now())
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime
+  role                  String                 @default("user")
+  user_activities       user_activities[]
+  subscriptions         Subscription[]
+  certificate_downloads CertificateDownload[]
+}
+
+/// Monthly certificate download subscription for a user
+model Subscription {
+  id              String    @id @default(uuid())
+  userId          String
+  clerkId         String
+  status          String    @default("active") // "active" | "expired" | "cancelled"
+  planName        String    @default("monthly")
+  amountPaid      Float     @default(0)
+  currency        String    @default("KES")
+  mpesaReceipt    String?   // M-Pesa receipt for the subscription payment
+  startsAt        DateTime  @default(now())
+  expiresAt       DateTime
+  cancelledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  users           users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clerkId])
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+/// Records each certificate download — either via subscription or pay-per-download
+model CertificateDownload {
+  id              String    @id @default(uuid())
+  userId          String
+  clerkId         String
+  pin             String    // KRA PIN that was downloaded
+  downloadType    String    // "subscription" | "pay_per_download"
+  amountCharged   Float     @default(0)
+  currency        String    @default("KES")
+  mpesaReceipt    String?   // M-Pesa receipt number (null for subscription downloads)
+  checkoutId      String?   @unique // Daraja CheckoutRequestID — enforces one-download per payment
+  subscriptionId  String?
+  createdAt       DateTime  @default(now())
+  users           users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clerkId])
+  @@index([userId])
+  @@index([pin])
+  @@index([checkoutId])
+  @@map("certificate_downloads")
 }
 
 model SystemLog {

@@ -33,57 +33,85 @@ export async function POST(req: NextRequest) {
       postalCode,
       mobileNumber,
       registeredDate,
+      downloadId, // Required — server-issued after payment/subscription validation
     } = body;
 
     if (!pin || !name) {
       return NextResponse.json({ success: false, error: 'PIN and Name are required' }, { status: 400 });
     }
 
-    // 3. Resolve template PDF file path
+    // 3. Server-side authorization: require a valid downloadId
+    if (!downloadId) {
+      return NextResponse.json(
+        { success: false, error: 'Download authorization required. Please complete the payment or subscription flow.' },
+        { status: 403 }
+      );
+    }
+
+    const prismaModule = await import('@/lib/prisma');
+    const db = prismaModule.default as any;
+
+    // Resolve DB user
+    const dbUser = await db.users?.findFirst({ where: { clerkId: userId } });
+    if (!dbUser) {
+      return NextResponse.json({ success: false, error: 'User record not found.' }, { status: 404 });
+    }
+
+    // Validate the download record belongs to this user and PIN
+    const downloadRecord = await db.certificateDownload?.findFirst({
+      where: {
+        id: downloadId,
+        userId: dbUser.id,
+        pin: pin.toUpperCase(),
+      },
+    });
+
+    if (!downloadRecord) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or unauthorized download. Please retry the payment flow.' },
+        { status: 403 }
+      );
+    }
+
+    // 4. Resolve template PDF file path
     let templatePath = path.join(process.cwd(), 'public', 'receipt-template.pdf');
-    
+
     if (!fs.existsSync(templatePath)) {
-      // Fallback 1: check root directory
       const rootFallback = path.join(process.cwd(), 'receipt-template.pdf');
       if (fs.existsSync(rootFallback)) {
         templatePath = rootFallback;
       } else {
-        // Fallback 2: check relative to current dir
         const relativeFallback = path.join(__dirname, '..', '..', '..', '..', 'public', 'receipt-template.pdf');
         if (fs.existsSync(relativeFallback)) {
           templatePath = relativeFallback;
         } else {
-          console.error(`[generate-certificate] Template file not found at path: ${templatePath}`);
-          return NextResponse.json({ success: false, error: 'Certificate template file not found on server. Checked paths: ' + templatePath + ', ' + rootFallback + ', ' + relativeFallback }, { status: 500 });
+          console.error(`[generate-certificate] Template file not found: ${templatePath}`);
+          return NextResponse.json({ success: false, error: 'Certificate template not found on server.' }, { status: 500 });
         }
       }
     }
 
-    // 4. Load the PDF document
+    // 5. Load PDF and draw
     const pdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const page = pdfDoc.getPages()[0];
     const { height } = page.getSize();
 
-    // Embed standard fonts
     const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const BLACK = rgb(0, 0, 0);
-    const today = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const today = new Date().toLocaleDateString('en-GB');
 
-    // Helper function to draw text safely
     const drawText = (text: string | null | undefined, x: number, y: number, size = 11) => {
       const value = String(text || '').trim();
       if (!value) return;
       page.drawText(value, { x, y, size, font: regularFont, color: BLACK });
     };
 
-    // 5. Draw details on the PDF exactly like test-certificate.js
     // Core identity
-    drawText(pin.toUpperCase(), 495, height - 130, 10);              // PIN top-right
-    drawText(today, 510, height - 103, 10);                           // Date top-right
-    drawText(name.toUpperCase(), 245, height - 242, 12);             // Full Name
-    // ID Number is deliberately not printed on the certificate
-    drawText(email ? email.toUpperCase() : '', 245, height - 257, 12); // Email
+    drawText(pin.toUpperCase(), 495, height - 130, 10);
+    drawText(today, 510, height - 103, 10);
+    drawText(name.toUpperCase(), 245, height - 242, 12);
+    drawText(email ? email.toUpperCase() : '', 245, height - 257, 12);
 
     // Address
     drawText(building, 354, height - 310, 12);
@@ -96,13 +124,13 @@ export async function POST(req: NextRequest) {
     drawText(poBox, 112, height - 382, 12);
     drawText(postalCode, 374, height - 382, 12);
 
-    // Issue Date in address section (Taxpayer registration date / effective date)
+    // Registration / effective date
     drawText(registeredDate || today, 270, height - 455, 12);
 
-    // 6. Serialize document
+    // 6. Serialize
     const outBytes = await pdfDoc.save();
 
-    // Track certificate generation event in logs
+    // Audit log
     let userEmail = userId;
     try {
       const client = await clerkClient();
@@ -115,13 +143,12 @@ export async function POST(req: NextRequest) {
     await createSystemLog({
       level: 'info',
       service: 'Certificate-Generation',
-      message: `Compliance certificate generated successfully for PIN ${pin}`,
+      message: `Compliance certificate generated for PIN ${pin}`,
       actor: userEmail,
       ip,
-      details: { pin }
+      details: { pin, downloadId, downloadType: downloadRecord.downloadType },
     });
 
-    // 7. Return PDF as binary stream
     return new NextResponse(outBytes, {
       status: 200,
       headers: {
@@ -132,7 +159,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[generate-certificate] Error generating certificate:', error.message);
+    console.error('[generate-certificate] Error:', error.message);
     return NextResponse.json({ success: false, error: 'Internal server error during certificate generation' }, { status: 500 });
   }
 }

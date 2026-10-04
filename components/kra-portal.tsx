@@ -14,7 +14,10 @@ import {
   ArrowRight,
   RefreshCw,
   BadgeIcon,
-  MapPinIcon
+  MapPinIcon,
+  CreditCard,
+  Smartphone,
+  Lock
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,6 +79,14 @@ export function KRAPortal() {
   const [sessionToken, setSessionToken] = useState<string | null>(null)
   const [captchaAnswer, setCaptchaAnswer] = useState("")
   const [captchaStatus, setCaptchaStatus] = useState<"idle" | "loading" | "ready" | "error">("idle")
+
+  // Payment gate state
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [accessInfo, setAccessInfo] = useState<{ access: string; feeKes: number; subscription: any } | null>(null)
+  const [paymentPhone, setPaymentPhone] = useState("")
+  const [paymentStep, setPaymentStep] = useState<"confirm" | "waiting" | "done" | "error">("confirm")
+  const [paymentCheckoutId, setPaymentCheckoutId] = useState<string | null>(null)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   useEffect(() => {
     loadCaptcha()
@@ -185,19 +196,36 @@ export function KRAPortal() {
   }
 
 
-  const handleDownload = async () => {
+  // Fetches server-determined access: subscription (free) or pay_per_download (KES 30)
+  const checkAccess = async () => {
+    if (!formData.pin || !formData.fullName) {
+      toast.error("Identity details missing. Please verify your ID again.")
+      return
+    }
+    if (authLoaded && !isSignedIn) {
+      toast.error("Authentication required. Please sign in to download your certificate.")
+      return
+    }
+
+    try {
+      const res = await fetch('/api/certificate/check-access')
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Access check failed')
+      setAccessInfo(data)
+      setPaymentPhone(formData.phoneNumber || "")
+      setPaymentStep("confirm")
+      setPaymentError(null)
+      setPaymentCheckoutId(null)
+      setShowPaymentModal(true)
+    } catch (err: any) {
+      toast.error(err.message || 'Could not check access. Please try again.')
+    }
+  }
+
+  // Called when user proceeds through the modal (subscription free OR after payment confirmed)
+  const executeDownload = async (downloadId: string) => {
     const loadingToast = toast.loading("Securely generating your certificate...")
     try {
-      if (!formData.pin || !formData.fullName) {
-        toast.error("Identity details missing. Please verify your ID again.", { id: loadingToast })
-        return
-      }
-
-      if (authLoaded && !isSignedIn) {
-        toast.error("Authentication required. Please sign in to download your certificate.", { id: loadingToast })
-        return
-      }
-
       const payload = {
         pin: formData.pin,
         name: formData.fullName,
@@ -214,7 +242,8 @@ export function KRAPortal() {
         postalCode: formData.postalCode,
         mobileNumber: formData.phoneNumber,
         registeredDate: formData.registeredDate,
-      };
+        downloadId,
+      }
 
       const response = await fetch('/api/generate-certificate', {
         method: 'POST',
@@ -236,12 +265,111 @@ export function KRAPortal() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      
+
       toast.success("Certificate downloaded successfully", { id: loadingToast })
+      setShowPaymentModal(false)
     } catch (err: any) {
       toast.error(err.message || "Download failed. Please check your connection.", { id: loadingToast })
     }
   }
+
+  // Initiates M-Pesa STK push and polls for result
+  const handleMpesaPayment = async () => {
+    if (!paymentPhone.trim()) {
+      setPaymentError("Please enter your M-Pesa phone number.")
+      return
+    }
+    setPaymentStep("waiting")
+    setPaymentError(null)
+
+    try {
+      // Initiate STK Push
+      const stkRes = await fetch('/api/mpesa/stkpush', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: paymentPhone,
+          amount: accessInfo?.feeKes || 30,
+          reference: `CERT-${formData.pin}`,
+          description: `KRA Certificate - ${formData.pin}`,
+        }),
+      })
+      const stkData = await stkRes.json()
+      if (!stkData.success) throw new Error(stkData.error || 'M-Pesa request failed')
+
+      const checkoutId = stkData.CheckoutRequestID
+      setPaymentCheckoutId(checkoutId)
+
+      // Poll for payment status (max 60s)
+      let attempts = 0
+      const maxAttempts = 30
+      const pollInterval = setInterval(async () => {
+        attempts++
+        try {
+          // For mock/simulated flow, auto-confirm after a short delay
+          const simulate = stkData.isSimulated ? 'success' : undefined
+          const statusUrl = `/api/mpesa/status/${encodeURIComponent(checkoutId)}${simulate ? '?simulate=' + simulate : ''}`
+          const statusRes = await fetch(statusUrl)
+          const statusData = await statusRes.json()
+
+          if (statusData.status === 'success') {
+            clearInterval(pollInterval)
+            // Record download server-side
+            const recordRes = await fetch('/api/certificate/record-download', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pin: formData.pin,
+                downloadType: 'pay_per_download',
+                checkoutId,
+              }),
+            })
+            const recordData = await recordRes.json()
+            if (!recordData.success) throw new Error(recordData.error || 'Failed to record download')
+            setPaymentStep("done")
+            await executeDownload(recordData.downloadId)
+          } else if (statusData.status === 'failed') {
+            clearInterval(pollInterval)
+            setPaymentError(`Payment failed: ${statusData.resultDesc || 'Transaction declined'}`)
+            setPaymentStep("error")
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval)
+            setPaymentError("Payment timed out. Please try again.")
+            setPaymentStep("error")
+          }
+        } catch (pollErr: any) {
+          clearInterval(pollInterval)
+          setPaymentError(pollErr.message || 'Error checking payment status')
+          setPaymentStep("error")
+        }
+      }, 2000)
+    } catch (err: any) {
+      setPaymentError(err.message || 'Failed to initiate payment')
+      setPaymentStep("error")
+    }
+  }
+
+  // Subscription download — no payment, just record and download
+  const handleSubscriptionDownload = async () => {
+    try {
+      const recordRes = await fetch('/api/certificate/record-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: formData.pin,
+          downloadType: 'subscription',
+          subscriptionId: accessInfo?.subscription?.id,
+        }),
+      })
+      const recordData = await recordRes.json()
+      if (!recordData.success) throw new Error(recordData.error || 'Failed to authorize download')
+      await executeDownload(recordData.downloadId)
+    } catch (err: any) {
+      toast.error(err.message || 'Download failed. Please try again.')
+    }
+  }
+
+  const handleDownload = checkAccess
 
   const stepVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -860,6 +988,108 @@ export function KRAPortal() {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* ── Payment Gate Modal ── */}
+      {showPaymentModal && accessInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                {accessInfo.access === 'subscription' ? (
+                  <Lock className="w-5 h-5 text-primary" />
+                ) : (
+                  <CreditCard className="w-5 h-5 text-primary" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-on-surface text-lg">
+                  {accessInfo.access === 'subscription' ? 'Subscription Download' : 'Certificate Download — KES 30'}
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  {accessInfo.access === 'subscription'
+                    ? `Active until ${new Date(accessInfo.subscription.expiresAt).toLocaleDateString('en-GB')}`
+                    : 'Pay KES 30 via M-Pesa to download'}
+                </p>
+              </div>
+            </div>
+
+            {/* Subscription: direct download */}
+            {accessInfo.access === 'subscription' && paymentStep === 'confirm' && (
+              <div className="space-y-4">
+                <div className="bg-success-bg/40 border border-success-green/30 rounded-lg p-4 text-sm text-on-surface">
+                  <p className="font-semibold text-success-green mb-1">✓ Active Subscription</p>
+                  <p className="text-on-surface-variant">Your monthly plan covers this download at no extra charge.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                  <button className={primaryButtonClass + " flex-1"} onClick={handleSubscriptionDownload}>
+                    <Download className="w-4 h-4" /> Download Free
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Pay Per Download: phone input */}
+            {accessInfo.access === 'pay_per_download' && paymentStep === 'confirm' && (
+              <div className="space-y-4">
+                <div className="bg-surface-variant/40 rounded-lg p-4 text-sm space-y-2">
+                  <p className="font-semibold text-on-surface">PIN: <span className="text-primary">{formData.pin}</span></p>
+                  <p className="text-on-surface-variant">A one-time fee of <span className="font-bold text-on-surface">KES {accessInfo.feeKes}</span> applies per download.</p>
+                </div>
+                <div>
+                  <label className={labelClass}>M-Pesa Phone Number</label>
+                  <div className="relative">
+                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                    <input
+                      className={cn(inputClass, "pl-10")}
+                      placeholder="07XXXXXXXX or 01XXXXXXXX"
+                      value={paymentPhone}
+                      onChange={(e) => setPaymentPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {paymentError && (
+                  <p className="text-xs text-red-500">{paymentError}</p>
+                )}
+                <div className="flex gap-3">
+                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                  <button className={primaryButtonClass + " flex-1"} onClick={handleMpesaPayment}>
+                    <Smartphone className="w-4 h-4" /> Pay KES {accessInfo.feeKes}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Waiting for payment */}
+            {paymentStep === 'waiting' && (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="font-semibold text-on-surface">Waiting for M-Pesa payment...</p>
+                <p className="text-sm text-on-surface-variant text-center">Check your phone for the STK push prompt and enter your M-Pesa PIN.</p>
+                <p className="text-xs text-on-surface-variant">This may take up to 60 seconds.</p>
+              </div>
+            )}
+
+            {/* Payment error */}
+            {paymentStep === 'error' && (
+              <div className="space-y-4">
+                <div className="bg-error-container border-error rounded-lg p-4 text-sm">
+                  <p className="font-semibold text-error mb-1">Payment Failed</p>
+                  <p className="text-on-surface-variant">{paymentError}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                  <button className={primaryButtonClass + " flex-1"} onClick={() => setPaymentStep('confirm')}>
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
