@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { createSystemLog } from '@/lib/prisma';
+import { getOrCreateDbUser } from '@/lib/subscription';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -36,10 +37,6 @@ export async function POST(req: NextRequest) {
       downloadId, // Required — server-issued after payment/subscription validation
     } = body;
 
-    if (!pin || !name) {
-      return NextResponse.json({ success: false, error: 'PIN and Name are required' }, { status: 400 });
-    }
-
     // 3. Server-side authorization: require a valid downloadId
     if (!downloadId) {
       return NextResponse.json(
@@ -51,18 +48,17 @@ export async function POST(req: NextRequest) {
     const prismaModule = await import('@/lib/prisma');
     const db = prismaModule.default as any;
 
-    // Resolve DB user
-    const dbUser = await db.users?.findFirst({ where: { clerkId: userId } });
+    // Resolve or auto-provision DB user
+    const dbUser = await getOrCreateDbUser(userId);
     if (!dbUser) {
       return NextResponse.json({ success: false, error: 'User record not found.' }, { status: 404 });
     }
 
-    // Validate the download record belongs to this user and PIN
+    // Validate the download record belongs to this user
     const downloadRecord = await db.certificateDownload?.findFirst({
       where: {
         id: downloadId,
         userId: dbUser.id,
-        pin: pin.toUpperCase(),
       },
     });
 
@@ -72,6 +68,49 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Prioritize clean unmasked PIN from download record, fallback to payload
+    let cleanPin = '';
+    if (downloadRecord.pin && !downloadRecord.pin.includes('*') && downloadRecord.pin !== 'KRA_CERT') {
+      cleanPin = downloadRecord.pin.toUpperCase().trim();
+    } else if (pin && !pin.includes('*')) {
+      cleanPin = pin.toUpperCase().trim();
+    }
+
+    // Retrieve cached full details from kra_pin_cache
+    let cachedRecord: any = null;
+    try {
+      if (db.kra_pin_cache) {
+        if (cleanPin) {
+          cachedRecord = await db.kra_pin_cache.findFirst({
+            where: { pin: cleanPin },
+          });
+        }
+        if (!cachedRecord && idNumber) {
+          cachedRecord = await db.kra_pin_cache.findFirst({
+            where: { id_number: String(idNumber).trim() },
+          });
+        }
+      }
+    } catch (e: any) {
+      console.warn('[generate-certificate] Cache lookup warning:', e.message);
+    }
+
+    const resolvedPin = cleanPin || cachedRecord?.pin || (pin ? pin.toUpperCase() : 'KRA_CERT');
+    const resolvedName = (name && !name.includes('***')) 
+      ? name 
+      : (cachedRecord?.name || [dbUser?.firstName, dbUser?.lastName].filter(Boolean).join(' ') || 'Registered Taxpayer');
+    const resolvedEmail = email && !email.includes('***') ? email : (cachedRecord?.email || dbUser?.email || '');
+    const resolvedBuilding = building || cachedRecord?.building || '';
+    const resolvedStreet = street || cachedRecord?.street || '';
+    const resolvedCity = city || cachedRecord?.city || '';
+    const resolvedCounty = county || cachedRecord?.county || '';
+    const resolvedDistrict = district || cachedRecord?.district || '';
+    const resolvedTaxArea = taxArea || cachedRecord?.tax_area || '';
+    const resolvedStation = station || cachedRecord?.station || '';
+    const resolvedPoBox = poBox || cachedRecord?.po_box || '';
+    const resolvedPostalCode = postalCode || cachedRecord?.postal_code || '';
+    const resolvedRegDate = registeredDate && !registeredDate.includes('**') ? registeredDate : (cachedRecord?.registered_date || '');
 
     // 4. Resolve template PDF file path
     let templatePath = path.join(process.cwd(), 'public', 'receipt-template.pdf');
@@ -108,24 +147,24 @@ export async function POST(req: NextRequest) {
     };
 
     // Core identity
-    drawText(pin.toUpperCase(), 495, height - 130, 10);
+    drawText(resolvedPin.toUpperCase(), 495, height - 130, 10);
     drawText(today, 510, height - 103, 10);
-    drawText(name.toUpperCase(), 245, height - 242, 12);
-    drawText(email ? email.toUpperCase() : '', 245, height - 257, 12);
+    drawText(resolvedName.toUpperCase(), 245, height - 242, 12);
+    drawText(resolvedEmail ? resolvedEmail.toUpperCase() : '', 245, height - 257, 12);
 
     // Address
-    drawText(building, 354, height - 310, 12);
-    drawText(street, 121, height - 327, 12);
-    drawText(city, 364, height - 327, 12);
-    drawText(county, 100, height - 346, 12);
-    drawText(district, 348, height - 346, 12);
-    drawText(taxArea, 108, height - 365, 12);
-    drawText(station, 348, height - 365, 12);
-    drawText(poBox, 112, height - 382, 12);
-    drawText(postalCode, 374, height - 382, 12);
+    drawText(resolvedBuilding, 354, height - 310, 12);
+    drawText(resolvedStreet, 121, height - 327, 12);
+    drawText(resolvedCity, 364, height - 327, 12);
+    drawText(resolvedCounty, 100, height - 346, 12);
+    drawText(resolvedDistrict, 348, height - 346, 12);
+    drawText(resolvedTaxArea, 108, height - 365, 12);
+    drawText(resolvedStation, 348, height - 365, 12);
+    drawText(resolvedPoBox, 112, height - 382, 12);
+    drawText(resolvedPostalCode, 374, height - 382, 12);
 
     // Registration / effective date
-    drawText(registeredDate || today, 270, height - 455, 12);
+    drawText(resolvedRegDate || today, 270, height - 455, 12);
 
     // 6. Serialize
     const outBytes = await pdfDoc.save();
@@ -143,17 +182,17 @@ export async function POST(req: NextRequest) {
     await createSystemLog({
       level: 'info',
       service: 'Certificate-Generation',
-      message: `Compliance certificate generated for PIN ${pin}`,
+      message: `Compliance certificate generated for PIN ${resolvedPin}`,
       actor: userEmail,
       ip,
-      details: { pin, downloadId, downloadType: downloadRecord.downloadType },
+      details: { pin: resolvedPin, downloadId, downloadType: downloadRecord.downloadType },
     });
 
-    return new NextResponse(outBytes, {
+    return new NextResponse(Buffer.from(outBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="KRA_Certificate_${pin}.pdf"`,
+        'Content-Disposition': `attachment; filename="KRA_Certificate_${resolvedPin}.pdf"`,
         'Cache-Control': 'no-store, max-age=0',
       },
     });

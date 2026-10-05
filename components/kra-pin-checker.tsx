@@ -19,7 +19,8 @@ import {
   Fingerprint,
   Mail,
   Phone,
-  Sparkles
+  Sparkles,
+  Lock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,6 +55,7 @@ interface TaxpayerProfile {
   phoneNumber?: string
   obligations?: TaxpayerObligation[]
   source?: string
+  isSubscribed?: boolean
 }
 
 export function KraPinChecker() {
@@ -99,7 +101,10 @@ export function KraPinChecker() {
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Failed to verify KRA PIN.")
         }
-        setResult(data.data)
+        setResult({
+          ...data.data,
+          isSubscribed: Boolean(data.isSubscribed ?? data.data?.isSubscribed),
+        })
       } catch (err: any) {
         setError(err.message || "An unexpected error occurred during verification.")
       } finally {
@@ -127,7 +132,10 @@ export function KraPinChecker() {
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Failed to verify National ID.")
         }
-        setResult(data.data)
+        setResult({
+          ...data.data,
+          isSubscribed: Boolean(data.isSubscribed ?? data.data?.isSubscribed),
+        })
       } catch (err: any) {
         setError(err.message || "An unexpected error occurred during verification.")
       } finally {
@@ -371,6 +379,28 @@ export function KraPinChecker() {
               </div>
 
               <CardContent className="p-6 space-y-6">
+                {/* Privacy & Subscription Notice Banner */}
+                {!result.isSubscribed && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-on-surface text-sm">Preview Mode (Unsubscribed)</p>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          Phone numbers, stations, and physical address details are hidden to protect privacy until you subscribe. Legal name is verified.
+                        </p>
+                      </div>
+                    </div>
+                    <Link href={`/?pin=${result.pin}&action=unlock`} className="shrink-0 w-full sm:w-auto">
+                      <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-xs h-9 px-4 flex items-center gap-1.5 shadow-sm">
+                        <Sparkles className="w-3.5 h-3.5" /> Unlock Full Profile (KES 499)
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+
                 {/* Highlights Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
@@ -413,10 +443,16 @@ export function KraPinChecker() {
 
                   <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
                     <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tax Station</span>
-                    <p className="text-base font-bold mt-1 flex items-center gap-1.5 truncate" title={result.station}>
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
-                      {result.station || "Central Station"}
-                    </p>
+                    {result.isSubscribed && result.station ? (
+                      <p className="text-base font-bold mt-1 flex items-center gap-1.5 truncate" title={result.station}>
+                        <Building2 className="w-4 h-4 text-muted-foreground" />
+                        {result.station}
+                      </p>
+                    ) : (
+                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                        <Lock className="w-3.5 h-3.5" /> Hidden (Subscribers Only)
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -428,28 +464,45 @@ export function KraPinChecker() {
                       <MapPin className="w-4 h-4 text-primary" />
                       Location & Address Details
                     </h3>
-                    <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-4 space-y-2.5 bg-zinc-50/50 dark:bg-zinc-800/30 text-sm">
-                      <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-muted-foreground">County</span>
-                        <span className="font-medium">{result.county || "NAIROBI"}</span>
+                    {result.isSubscribed ? (
+                      <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-4 space-y-2.5 bg-zinc-50/50 dark:bg-zinc-800/30 text-sm">
+                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                          <span className="text-muted-foreground">County</span>
+                          <span className="font-medium">{result.county || "Not specified"}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                          <span className="text-muted-foreground">City / Town</span>
+                          <span className="font-medium">{result.town || "Not specified"}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                          <span className="text-muted-foreground">Building / Plot</span>
+                          <span className="font-medium">{result.building || "Not specified"}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                          <span className="text-muted-foreground">Street / Road</span>
+                          <span className="font-medium">{result.street || "Not specified"}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Postal Box</span>
+                          <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || ''}` : "Not specified"}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-muted-foreground">City / Town</span>
-                        <span className="font-medium">{result.town || "Nairobi"}</span>
+                    ) : (
+                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 text-center space-y-2.5">
+                        <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs font-bold text-on-surface">Physical Address Details Protected</p>
+                        <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                          County, town, building, street, and postal address details are hidden until you unlock full access with a monthly subscription.
+                        </p>
+                        <Link href={`/?pin=${result.pin}&action=unlock`} className="inline-block pt-1">
+                          <Button size="sm" variant="outline" className="text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-7 px-3 font-semibold">
+                            <Sparkles className="w-3 h-3 mr-1" /> Unlock Location Details
+                          </Button>
+                        </Link>
                       </div>
-                      <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-muted-foreground">Building / Plot</span>
-                        <span className="font-medium">{result.building || "Commercial House"}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-muted-foreground">Street / Road</span>
-                        <span className="font-medium">{result.street || "Harambee Avenue"}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Postal Box</span>
-                        <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || '00100'}` : "P.O. Box Available"}</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Contact & Obligations */}
@@ -467,14 +520,19 @@ export function KraPinChecker() {
                           <span className="font-mono text-xs">{result.email}</span>
                         </div>
                       )}
-                      {result.phoneNumber && (
-                        <div className="flex items-center justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
-                            <Phone className="w-3.5 h-3.5" /> Mobile
+
+                      <div className="flex items-center justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5" /> Mobile
+                        </span>
+                        {result.isSubscribed && result.phoneNumber ? (
+                          <span className="font-mono text-xs font-semibold">{result.phoneNumber}</span>
+                        ) : (
+                          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 font-sans">
+                            <Lock className="w-3.5 h-3.5" /> Hidden until subscribed
                           </span>
-                          <span className="font-mono text-xs">{result.phoneNumber}</span>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
                       <div>
                         <span className="text-xs font-semibold text-muted-foreground block mb-2">Registered Obligations:</span>
@@ -511,12 +569,19 @@ export function KraPinChecker() {
                 <div className="text-xs text-muted-foreground">
                   Gateway verification status: <span className="font-semibold text-emerald-600 dark:text-emerald-400">Authenticated & Active</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Link href="/retrieval-portal">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Link href={`/?pin=${result.pin}`}>
                     <Button variant="outline" size="sm" className="text-xs font-semibold">
-                      Retrieve Official PDF Certificate
+                      Retrieve Certificate (KES 30)
                     </Button>
                   </Link>
+                  {!result.isSubscribed && (
+                    <Link href={`/?pin=${result.pin}&action=unlock`}>
+                      <Button size="sm" variant="outline" className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Unlock Full Profile (KES 499)
+                      </Button>
+                    </Link>
+                  )}
                   <Link href={`/retrieval-portal?pin=${result.pin}`}>
                     <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5">
                       Proceed to File Nil Return
