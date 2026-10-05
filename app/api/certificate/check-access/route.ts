@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
+import { getOrCreateDbUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
@@ -13,13 +14,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    // 1. Look up the user's DB record by clerkId
+    // 1. Look up or auto-provision the user's DB record by clerkId
     const db = prisma as any;
-
-    const dbUser = await db.users?.findFirst({ where: { clerkId: userId } });
+    const dbUser = await getOrCreateDbUser(userId);
 
     if (!dbUser) {
-      // User exists in Clerk but not synced to DB yet — treat as no subscription
+      // Fallback: treat as no subscription
       return NextResponse.json({
         success: true,
         access: 'pay_per_download',
@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
 
     // 2. Check for an active subscription
     const now = new Date();
-    const activeSub = await db.subscriptions?.findFirst({
+    const subDelegate = db.subscription || db.subscriptions;
+    const activeSub = await subDelegate?.findFirst({
       where: {
         userId: dbUser.id,
         status: 'active',

@@ -7,6 +7,8 @@ import url from 'url';
 import { createSystemLog } from '@/lib/prisma';
 import { fetchTaxpayerByPin, fetchTaxpayerById } from '@/lib/kra-api';
 import { getKraStationForCounty, formatKraStation, sanitizeTaxArea } from '@/lib/kra-stations';
+import { getUserSubscriptionStatus } from '@/lib/subscription';
+import { maskTaxpayerData } from '@/lib/masking';
 
 export const maxDuration = 60;
 
@@ -755,36 +757,94 @@ export async function POST(req: NextRequest) {
     const email          = first(man?.email, pc?.email, api?.email, '');
     const phoneNumber    = first(man?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, '');
 
-    const result = {
-      success: true,
-      data: {
-        pin:           fullPin,
-        name:          name || '',
-        email:         email || '',
-        status:        'Active',
-        certificate_url: `https://itax.kra.go.ke/KRA-Portal/dotDownloadCertificate.htm?pin=${fullPin}`,
-        building:      building || '',
-        street:        street || '',
-        town:          town || '',
-        county:        county || '',
-        district:      district || '',
-        taxArea:       taxArea || '',
-        station:       station || '',
-        poBox:         poBox || '',
-        postalCode:    postalCode || '',
-        phoneNumber:   phoneNumber || '',
-        registeredDate: registeredDate || '',
+    // Cache unmasked record in database for legitimate certificate generation
+    try {
+      const prismaModule = await import('@/lib/prisma');
+      const db = prismaModule.default as any;
+      if (db.kra_pin_cache) {
+        await db.kra_pin_cache.upsert({
+          where: { pin: fullPin },
+          update: {
+            id_number: idNumber ? String(idNumber).trim() : undefined,
+            name: name || '',
+            email: email || null,
+            building: building || null,
+            street: street || null,
+            city: town || null,
+            county: county || null,
+            district: district || null,
+            tax_area: taxArea || null,
+            po_box: poBox || null,
+            postal_code: postalCode || null,
+            station: station || null,
+            phone_number: phoneNumber || null,
+            registered_date: registeredDate || null,
+            updated_at: new Date(),
+          },
+          create: {
+            id: `CACHE_${fullPin}_${Date.now()}`,
+            pin: fullPin,
+            id_number: idNumber ? String(idNumber).trim() : null,
+            name: name || '',
+            email: email || null,
+            building: building || null,
+            street: street || null,
+            city: town || null,
+            county: county || null,
+            district: district || null,
+            tax_area: taxArea || null,
+            po_box: poBox || null,
+            postal_code: postalCode || null,
+            station: station || null,
+            phone_number: phoneNumber || null,
+            registered_date: registeredDate || null,
+            updated_at: new Date(),
+          },
+        });
       }
+    } catch (cacheErr: any) {
+      console.warn('[retrieve] Cache upsert notice:', cacheErr?.message);
+    }
+
+    // Verify user subscription status
+    const { isSubscribed } = await getUserSubscriptionStatus(clerkId);
+
+    const fullTaxpayerRecord = {
+      pin:           fullPin,
+      name:          name || '',
+      email:         email || '',
+      status:        'Active',
+      certificate_url: `https://itax.kra.go.ke/KRA-Portal/dotDownloadCertificate.htm?pin=${fullPin}`,
+      building:      building || '',
+      street:        street || '',
+      town:          town || '',
+      county:        county || '',
+      district:      district || '',
+      taxArea:       taxArea || '',
+      station:       station || '',
+      poBox:         poBox || '',
+      postalCode:    postalCode || '',
+      phoneNumber:   phoneNumber || '',
+      registeredDate: registeredDate || '',
     };
 
-    console.log('[retrieve] Final result:', JSON.stringify(result.data));
+    // Apply strict server-side masking if user is not subscribed
+    const clientTaxpayerData = maskTaxpayerData(fullTaxpayerRecord, isSubscribed);
+
+    const result = {
+      success: true,
+      data: clientTaxpayerData,
+      isSubscribed,
+    };
+
+    console.log('[retrieve] Final masked result:', JSON.stringify(result.data));
     await createSystemLog({
       level: 'info',
       service: 'KRA-Retrieve',
-      message: `Taxpayer details retrieved successfully for PIN ${fullPin}`,
+      message: `Taxpayer details retrieved (${isSubscribed ? 'Full' : 'Masked'}) for PIN ${fullPin}`,
       actor: userEmail,
       ip,
-      details: { pin: fullPin, name, email, county, station }
+      details: { pin: fullPin, isSubscribed, county, station }
     });
     return NextResponse.json(result);
 

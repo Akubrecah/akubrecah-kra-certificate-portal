@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
+import { getOrCreateDbUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
@@ -32,17 +33,18 @@ export async function POST(req: NextRequest) {
 
     const db = prisma as any;
 
-    // 1. Resolve DB user
-    const dbUser = await db.users?.findFirst({ where: { clerkId: userId } });
+    // 1. Resolve or auto-provision DB user
+    const dbUser = await getOrCreateDbUser(userId);
     if (!dbUser) {
-      return NextResponse.json({ success: false, error: 'User record not found. Please complete your profile.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Unable to initialize user account.' }, { status: 500 });
     }
 
     const now = new Date();
 
     // 2. Validate access type server-side — never trust client
     if (downloadType === 'subscription') {
-      const activeSub = await db.subscriptions?.findFirst({
+      const subDelegate = db.subscription || db.subscriptions;
+      const activeSub = await subDelegate?.findFirst({
         where: {
           userId: dbUser.id,
           status: 'active',

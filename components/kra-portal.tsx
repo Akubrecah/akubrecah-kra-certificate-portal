@@ -17,7 +17,13 @@ import {
   MapPinIcon,
   CreditCard,
   Smartphone,
-  Lock
+  Lock,
+  Sparkles,
+  Check,
+  CheckCircle2,
+  X,
+  FileText,
+  ExternalLink
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -87,13 +93,57 @@ export function KRAPortal() {
   const [paymentStep, setPaymentStep] = useState<"confirm" | "waiting" | "done" | "error">("confirm")
   const [paymentCheckoutId, setPaymentCheckoutId] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [verifiedDownloadId, setVerifiedDownloadId] = useState<string | null>(null)
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
+  const [verifiedReceipt, setVerifiedReceipt] = useState<string | null>(null)
+
+  // Subscription & Paystack state
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "mpesa">("paystack")
+  const [selectedTier, setSelectedTier] = useState<"download" | "subscription">("download")
+  const [paystackAuthUrl, setPaystackAuthUrl] = useState<string | null>(null)
+  const [isInitializingPaystack, setIsInitializingPaystack] = useState(false)
 
   useEffect(() => {
     loadCaptcha()
+
+    // Restore formData and active state from sessionStorage if returning from Paystack or refresh
+    if (typeof window !== "undefined") {
+      try {
+        const savedForm = sessionStorage.getItem("kra_active_form_data")
+        if (savedForm) {
+          const parsed = JSON.parse(savedForm)
+          if (parsed && (parsed.pin || parsed.fullName || parsed.idNumber)) {
+            setFormData(prev => ({ ...prev, ...parsed }))
+            setIsVerified(true)
+            setIdSearchStatus("found")
+            setCurrentStep(4)
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to restore saved form state:", e)
+      }
+
+      const urlParams = new URLSearchParams(window.location.search)
+      const paystackRef = urlParams.get("paystack_ref") || urlParams.get("reference")
+      const payType = urlParams.get("type")
+
+      if (paystackRef) {
+        handleVerifyPaystackReference(paystackRef, payType)
+      }
+    }
   }, [])
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value }
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("kra_active_form_data", JSON.stringify(updated))
+        } catch {}
+      }
+      return updated
+    })
   }
 
   const loadCaptcha = async () => {
@@ -160,41 +210,173 @@ export function KRAPortal() {
       }
 
       if (result.success && (result.data?.name || result.data?.pin)) {
-        setFormData(prev => ({
+        setIsSubscribed(Boolean(result.isSubscribed))
+        setFormData(prev => {
+          const updatedData = {
           ...prev,
           fullName: result.data?.name || prev.fullName || '',
           pin: result.data?.pin || prev.pin,
           email: result.data?.email || prev.email || '',
-          building: result.data?.building || prev.building || '',
-          street: result.data?.street || prev.street || '',
-          town: result.data?.town || prev.town || '',
-          county: result.data?.county || prev.county || '',
-          district: result.data?.district || prev.district || '',
-          taxArea: result.data?.taxArea || prev.taxArea || '',
-          station: result.data?.station || prev.station || '',
-          poBox: result.data?.poBox || prev.poBox || '',
-          postalCode: result.data?.postalCode || prev.postalCode || '',
-          phoneNumber: result.data?.phoneNumber || prev.phoneNumber || '',
+          building: result.data?.building || '',
+          street: result.data?.street || '',
+          town: result.data?.town || '',
+          county: result.data?.county || '',
+          district: result.data?.district || '',
+          taxArea: result.data?.taxArea || '',
+          station: result.data?.station || '',
+          poBox: result.data?.poBox || '',
+          postalCode: result.data?.postalCode || '',
+          phoneNumber: result.data?.phoneNumber || '',
           registeredDate: result.data?.registeredDate || prev.registeredDate || '',
-        }))
-        setIdSearchStatus("found")
-        setIsVerified(true)
-        setCaptchaStatus("idle")
-        setCaptchaImage(null)
-        setCaptchaAnswer("")
-        setCurrentStep(4)
-        toast.success("KRA Taxpayer Details Found!")
-      } else {
-        setIdSearchStatus("idle")
-        setError(result.error || "Details not found. Please check your credentials.")
-        toast.error(result.error || "Retrieval Failed")
-      }
-    } catch {
+        }
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("kra_active_form_data", JSON.stringify(updatedData))
+          } catch {}
+        }
+        return updatedData
+      })
+      setIdSearchStatus("found")
+      setIsVerified(true)
+      setCaptchaStatus("idle")
+      setCaptchaImage(null)
+      setCaptchaAnswer("")
+      setCurrentStep(4)
+      toast.success("KRA Taxpayer Details Found!")
+    } else {
       setIdSearchStatus("idle")
-      setError("Connection failed. Please try again.")
+      setError(result.error || "Details not found. Please check your credentials.")
+      toast.error(result.error || "Retrieval Failed")
+    }
+  } catch {
+    setIdSearchStatus("idle")
+    setError("Connection failed. Please try again.")
+  }
+}
+
+  // Verifies a Paystack transaction upon redirect or completion
+  const handleVerifyPaystackReference = async (reference: string, type?: string | null) => {
+    const loadingToast = toast.loading("Verifying your payment with Paystack...")
+    try {
+      const res = await fetch('/api/paystack/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference }),
+      })
+      const data = await res.json()
+      if (data.success && data.verified) {
+        toast.dismiss(loadingToast)
+        setVerifiedReceipt(reference)
+        window.history.replaceState({}, document.title, window.location.pathname)
+
+        if (data.type === 'subscription') {
+          setIsSubscribed(true)
+          toast.success("🎉 Monthly Subscription Activated! Full taxpayer details unlocked.", { duration: 6000 })
+          // Re-retrieve to reveal full unmasked profile
+          if (formData.idNumber || formData.pin) {
+            handleIdSearch()
+          }
+          setShowPaymentModal(false)
+        } else {
+          toast.success("Payment verified! Certificate ready for download.", { duration: 4000 })
+          if (data.downloadId) {
+            setVerifiedDownloadId(data.downloadId)
+            setPaymentStep("done")
+            setShowPaymentModal(true)
+            await executeDownload(data.downloadId)
+          }
+        }
+      } else {
+        toast.error(data.error || "Payment verification incomplete. Please contact support if debited.", { id: loadingToast })
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error verifying Paystack payment", { id: loadingToast })
     }
   }
 
+  // Initiates Paystack checkout for either monthly subscription or single download
+  const handlePaystackPayment = async (type: 'subscription' | 'pay_per_download') => {
+    if (type === 'subscription' && authLoaded && !isSignedIn) {
+      toast.error("Please sign in to start a monthly subscription.", { icon: "🔒" })
+      return
+    }
+
+    // Persist current active form data to survive redirects
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("kra_active_form_data", JSON.stringify(formData))
+      } catch {}
+    }
+
+    setIsInitializingPaystack(true)
+    setPaymentError(null)
+    setPaymentStep("waiting")
+
+    try {
+      const res = await fetch('/api/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          pin: formData.pin,
+          callbackUrl: window.location.origin + window.location.pathname,
+        }),
+      })
+
+      const data = await res.json()
+      if (!data.success || !data.authorizationUrl) {
+        throw new Error(data.error || "Failed to initialize Paystack checkout")
+      }
+
+      setPaystackAuthUrl(data.authorizationUrl)
+
+      // Poll verification in background while user interacts with checkout
+      const pollRef = data.reference
+      let pollAttempts = 0
+      const pollInterval = setInterval(async () => {
+        pollAttempts++
+        try {
+          const vRes = await fetch('/api/paystack/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference: pollRef }),
+          })
+          const vData = await vRes.json()
+          if (vData.success && vData.verified) {
+            clearInterval(pollInterval)
+            setIsInitializingPaystack(false)
+            setVerifiedReceipt(pollRef)
+            if (vData.type === 'subscription') {
+              setIsSubscribed(true)
+              toast.success("Monthly Subscription Activated! Full details unlocked.")
+              setShowPaymentModal(false)
+              if (formData.idNumber || formData.pin) {
+                handleIdSearch()
+              }
+            } else if (vData.downloadId) {
+              setVerifiedDownloadId(vData.downloadId)
+              setPaymentStep("done")
+              await executeDownload(vData.downloadId)
+            }
+          } else if (pollAttempts >= 40) {
+            clearInterval(pollInterval)
+          }
+        } catch {
+          // keep polling
+        }
+      }, 3000)
+
+      // Open Paystack in popup or tab
+      const popup = window.open(data.authorizationUrl, '_blank', 'width=520,height=720')
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = data.authorizationUrl
+      }
+    } catch (err: any) {
+      setIsInitializingPaystack(false)
+      setPaymentError(err.message || "Failed to launch Paystack payment.")
+      setPaymentStep("error")
+    }
+  }
 
   // Fetches server-determined access: subscription (free) or pay_per_download (KES 30)
   const checkAccess = async () => {
@@ -212,6 +394,7 @@ export function KRAPortal() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Access check failed')
       setAccessInfo(data)
+      setIsSubscribed(data.access === 'subscription')
       setPaymentPhone(formData.phoneNumber || "")
       setPaymentStep("confirm")
       setPaymentError(null)
@@ -223,26 +406,41 @@ export function KRAPortal() {
   }
 
   // Called when user proceeds through the modal (subscription free OR after payment confirmed)
-  const executeDownload = async (downloadId: string) => {
-    const loadingToast = toast.loading("Securely generating your certificate...")
+  const executeDownload = async (downloadId?: string) => {
+    const targetDownloadId = downloadId || verifiedDownloadId
+    if (!targetDownloadId) {
+      toast.error("Download token missing. Please complete the payment flow.")
+      return
+    }
+
+    setIsDownloadingPdf(true)
+    const loadingToast = toast.loading("Securely generating your official certificate...")
     try {
+      let activeForm = { ...formData }
+      if ((!activeForm.pin || !activeForm.fullName) && typeof window !== "undefined") {
+        try {
+          const saved = sessionStorage.getItem("kra_active_form_data")
+          if (saved) activeForm = { ...activeForm, ...JSON.parse(saved) }
+        } catch {}
+      }
+
       const payload = {
-        pin: formData.pin,
-        name: formData.fullName,
-        idNumber: formData.idNumber,
-        email: formData.email,
-        building: formData.building,
-        street: formData.street,
-        city: formData.town,
-        county: formData.county,
-        district: formData.district,
-        taxArea: formData.taxArea,
-        station: formData.station,
-        poBox: formData.poBox,
-        postalCode: formData.postalCode,
-        mobileNumber: formData.phoneNumber,
-        registeredDate: formData.registeredDate,
-        downloadId,
+        pin: activeForm.pin,
+        name: activeForm.fullName,
+        idNumber: activeForm.idNumber,
+        email: activeForm.email,
+        building: activeForm.building,
+        street: activeForm.street,
+        city: activeForm.town,
+        county: activeForm.county,
+        district: activeForm.district,
+        taxArea: activeForm.taxArea,
+        station: activeForm.station,
+        poBox: activeForm.poBox,
+        postalCode: activeForm.postalCode,
+        mobileNumber: activeForm.phoneNumber,
+        registeredDate: activeForm.registeredDate,
+        downloadId: targetDownloadId,
       }
 
       const response = await fetch('/api/generate-certificate', {
@@ -253,23 +451,31 @@ export function KRAPortal() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || "Generation failed")
+        throw new Error(errorData.error || "Certificate generation failed")
       }
 
       const blob = await response.blob()
+      if (blob.size < 100) {
+        throw new Error("Received an invalid or empty certificate file.")
+      }
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `KRA_Certificate_${formData.pin || 'RETRIEVED'}.pdf`
+      a.download = `KRA_Certificate_${activeForm.pin || 'RETRIEVED'}.pdf`
       document.body.appendChild(a)
       a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
+      setTimeout(() => {
+        a.remove()
+        window.URL.revokeObjectURL(url)
+      }, 1500)
 
-      toast.success("Certificate downloaded successfully", { id: loadingToast })
-      setShowPaymentModal(false)
+      toast.success("Certificate downloaded successfully!", { id: loadingToast })
+      setPaymentStep("done")
     } catch (err: any) {
       toast.error(err.message || "Download failed. Please check your connection.", { id: loadingToast })
+    } finally {
+      setIsDownloadingPdf(false)
     }
   }
 
@@ -326,6 +532,8 @@ export function KRAPortal() {
             })
             const recordData = await recordRes.json()
             if (!recordData.success) throw new Error(recordData.error || 'Failed to record download')
+            setVerifiedDownloadId(recordData.downloadId)
+            setVerifiedReceipt(checkoutId)
             setPaymentStep("done")
             await executeDownload(recordData.downloadId)
           } else if (statusData.status === 'failed') {
@@ -349,6 +557,42 @@ export function KRAPortal() {
     }
   }
 
+  // Retries recording download if payment checkoutId already exists
+  const retryConfirmDownload = async () => {
+    if (paymentCheckoutId) {
+      setPaymentStep("waiting")
+      setPaymentError(null)
+      try {
+        const recordRes = await fetch('/api/certificate/record-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pin: formData.pin,
+            downloadType: 'pay_per_download',
+            checkoutId: paymentCheckoutId,
+          }),
+        })
+        const recordData = await recordRes.json()
+        if (recordData.success && recordData.downloadId) {
+          setVerifiedDownloadId(recordData.downloadId)
+          setVerifiedReceipt(paymentCheckoutId)
+          setPaymentStep("done")
+          await executeDownload(recordData.downloadId)
+          return
+        } else {
+          setPaymentError(recordData.error || 'Failed to confirm download')
+          setPaymentStep("error")
+          return
+        }
+      } catch (e: any) {
+        setPaymentError(e.message || 'Error confirming download')
+        setPaymentStep("error")
+        return
+      }
+    }
+    setPaymentStep('confirm')
+  }
+
   // Subscription download — no payment, just record and download
   const handleSubscriptionDownload = async () => {
     try {
@@ -363,6 +607,8 @@ export function KRAPortal() {
       })
       const recordData = await recordRes.json()
       if (!recordData.success) throw new Error(recordData.error || 'Failed to authorize download')
+      setVerifiedDownloadId(recordData.downloadId)
+      setPaymentStep("done")
       await executeDownload(recordData.downloadId)
     } catch (err: any) {
       toast.error(err.message || 'Download failed. Please try again.')
@@ -844,133 +1090,260 @@ export function KRAPortal() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <ShieldCheck className="text-primary w-6 h-6" />
                     </div>
-                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review & Edit Certificate</h2>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Confirm or edit all details that will appear on your generated KRA PDF certificate.</p>
+                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review & Download Certificate</h2>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Confirm or view details that will appear on your generated KRA PDF certificate.</p>
                   </div>
+
+                  {/* Unsubscribed Preview Warning Banner */}
+                  {!isSubscribed && (
+                    <div className="w-full max-w-2xl mx-auto bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                            Protected Preview Mode
+                            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold">Unsubscribed</span>
+                          </p>
+                          <p className="text-[11px] text-on-surface-variant">
+                            Phone number & location are hidden. PIN & email are partially masked. Only full legal name is revealed.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod("paystack")
+                          setSelectedTier("subscription")
+                          checkAccess()
+                        }}
+                        className="text-xs font-semibold px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> Unlock All (KES 499)
+                      </button>
+                    </div>
+                  )}
 
                   {/* Summary / Direct Edit Grid */}
                   <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-xl p-6 border border-outline-variant space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>KRA PIN</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelClass}>KRA PIN</label>
+                          {!isSubscribed && (
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> Masked
+                            </span>
+                          )}
+                        </div>
                         <input 
                           value={formData.pin} 
                           onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
+                          readOnly={!isSubscribed}
                           placeholder="A012345678Z" 
-                          className={cn(inputClass, "font-bold text-primary")} 
+                          className={cn(inputClass, "font-bold text-primary", !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Taxpayer Full Name</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelClass}>Taxpayer Full Name</label>
+                          <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Check className="w-2.5 h-2.5" /> Full Name
+                          </span>
+                        </div>
                         <input 
                           value={formData.fullName} 
                           onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
+                          readOnly={!isSubscribed}
                           placeholder="JOHN DOE" 
                           className={cn(inputClass, "font-semibold")} 
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Email Address</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelClass}>Email Address</label>
+                          {!isSubscribed && (
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> Partial
+                            </span>
+                          )}
+                        </div>
                         <input 
                           value={formData.email} 
                           onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
+                          readOnly={!isSubscribed}
                           placeholder="email@example.com" 
                           type="email"
-                          className={inputClass} 
+                          className={cn(inputClass, !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Mobile Phone Number</label>
-                        <input 
-                          value={formData.phoneNumber} 
-                          onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
-                          placeholder="07XXXXXXXX" 
-                          className={inputClass} 
-                        />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelClass}>Mobile Phone Number</label>
+                          {!isSubscribed && (
+                            <span className="text-[10px] font-semibold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> Hidden
+                            </span>
+                          )}
+                        </div>
+                        {isSubscribed ? (
+                          <input 
+                            value={formData.phoneNumber} 
+                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
+                            placeholder="07XXXXXXXX" 
+                            className={inputClass} 
+                          />
+                        ) : (
+                          <div className="relative">
+                            <input 
+                              disabled 
+                              value="•••••••••• (Hidden — Subscribers Only)" 
+                              className={cn(inputClass, "opacity-75 cursor-not-allowed bg-muted/40 font-mono text-xs pr-16")} 
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setPaymentMethod("paystack")
+                                setSelectedTier("subscription")
+                                checkAccess()
+                              }} 
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                            >
+                              Unlock
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className={labelClass}>Exact Registration Date</label>
+                      <div className="md:col-span-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelClass}>Exact Registration Date</label>
+                          {!isSubscribed && (
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> Partial
+                            </span>
+                          )}
+                        </div>
                         <input 
                           value={formData.registeredDate} 
                           onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
+                          readOnly={!isSubscribed}
                           placeholder="DD/MM/YYYY" 
-                          className={inputClass} 
+                          className={cn(inputClass, !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
-                      <div>
-                        <label className={labelClass}>County</label>
-                        <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
-                          <SelectTrigger className={cn(inputClass, "h-12")}>
-                            <SelectValue placeholder="Select County" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
-                            {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className={labelClass}>City / Town</label>
-                        <input 
-                          value={formData.town} 
-                          onChange={(e) => handleInputChange('town', e.target.value)} 
-                          placeholder="e.g. Nairobi" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>District / Sub County</label>
-                        <input 
-                          value={formData.district} 
-                          onChange={(e) => handleInputChange('district', e.target.value)} 
-                          placeholder="e.g. Central District" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Tax Station</label>
-                        <input 
-                          value={formData.station} 
-                          onChange={(e) => handleInputChange('station', e.target.value)} 
-                          placeholder="e.g. North of Nairobi" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Building Name</label>
-                        <input 
-                          value={formData.building} 
-                          onChange={(e) => handleInputChange('building', e.target.value)} 
-                          placeholder="e.g. Commercial Plaza" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Street / Road</label>
-                        <input 
-                          value={formData.street} 
-                          onChange={(e) => handleInputChange('street', e.target.value)} 
-                          placeholder="e.g. Harambee Avenue" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>P.O. Box</label>
-                        <input 
-                          value={formData.poBox} 
-                          onChange={(e) => handleInputChange('poBox', e.target.value)} 
-                          placeholder="e.g. P.O. Box 40001" 
-                          className={inputClass} 
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className={labelClass}>Postal Code</label>
-                        <input 
-                          value={formData.postalCode} 
-                          onChange={(e) => handleInputChange('postalCode', e.target.value)} 
-                          placeholder="e.g. 00100" 
-                          className={inputClass} 
-                        />
-                      </div>
+
+                      {/* Location Details: Visible only when subscribed */}
+                      {isSubscribed ? (
+                        <>
+                          <div>
+                            <label className={labelClass}>County</label>
+                            <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
+                              <SelectTrigger className={cn(inputClass, "h-12")}>
+                                <SelectValue placeholder="Select County" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
+                                {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className={labelClass}>City / Town</label>
+                            <input 
+                              value={formData.town} 
+                              onChange={(e) => handleInputChange('town', e.target.value)} 
+                              placeholder="e.g. Nairobi" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>District / Sub County</label>
+                            <input 
+                              value={formData.district} 
+                              onChange={(e) => handleInputChange('district', e.target.value)} 
+                              placeholder="e.g. Central District" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Tax Station</label>
+                            <input 
+                              value={formData.station} 
+                              onChange={(e) => handleInputChange('station', e.target.value)} 
+                              placeholder="e.g. North of Nairobi" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Building Name</label>
+                            <input 
+                              value={formData.building} 
+                              onChange={(e) => handleInputChange('building', e.target.value)} 
+                              placeholder="e.g. Commercial Plaza" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Street / Road</label>
+                            <input 
+                              value={formData.street} 
+                              onChange={(e) => handleInputChange('street', e.target.value)} 
+                              placeholder="e.g. Harambee Avenue" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>P.O. Box</label>
+                            <input 
+                              value={formData.poBox} 
+                              onChange={(e) => handleInputChange('poBox', e.target.value)} 
+                              placeholder="e.g. P.O. Box 40001" 
+                              className={inputClass} 
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className={labelClass}>Postal Code</label>
+                            <input 
+                              value={formData.postalCode} 
+                              onChange={(e) => handleInputChange('postalCode', e.target.value)} 
+                              placeholder="e.g. 00100" 
+                              className={inputClass} 
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="md:col-span-2 bg-surface-container-lowest/80 border border-dashed border-outline-variant rounded-xl p-6 text-center space-y-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                            <MapPin className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm text-on-surface">Location & Address Details Hidden</h4>
+                            <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1">
+                              County, KRA Station, City/Town, Building, and P.O. Box details are only visible to active subscribers.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPaymentMethod('paystack')
+                                setSelectedTier('subscription')
+                                checkAccess()
+                              }}
+                              className="text-xs font-semibold px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-sm flex items-center gap-1.5"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" /> Subscribe to Reveal All (KES 499)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDownload}
+                              className="text-xs font-semibold px-4 py-2 rounded-lg border border-outline-variant bg-surface hover:bg-surface-variant/40 text-on-surface transition-all flex items-center gap-1.5"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Download Certificate (KES 30)
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -978,8 +1351,21 @@ export function KRAPortal() {
                     <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
+                    {!isSubscribed && (
+                      <button 
+                        type="button"
+                        className={secondaryButtonClass} 
+                        onClick={() => {
+                          setPaymentMethod('paystack')
+                          setSelectedTier('subscription')
+                          checkAccess()
+                        }}
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" /> Unlock Full Record
+                      </button>
+                    )}
                     <button className={primaryButtonClass} onClick={handleDownload}>
-                      <Download className="w-4 h-4" /> Download PDF Certificate
+                      <Download className="w-4 h-4" /> {isSubscribed ? "Download Free with Plan" : "Download PDF Certificate (KES 30)"}
                     </button>
                   </div>
                 </motion.div>
@@ -989,104 +1375,370 @@ export function KRAPortal() {
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Payment Gate Modal ── */}
+      {/* ── Official KRA Payment & Checkout Gate Modal ── */}
       {showPaymentModal && accessInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md px-4 py-6 overflow-y-auto">
+          <div className="bg-surface border border-outline-variant/80 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative my-auto">
+            {/* Top KRA Red decorative brand strip */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary-container via-primary to-primary-container" />
 
-            {/* Header */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                {accessInfo.access === 'subscription' ? (
-                  <Lock className="w-5 h-5 text-primary" />
-                ) : (
-                  <CreditCard className="w-5 h-5 text-primary" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-on-surface text-lg">
-                  {accessInfo.access === 'subscription' ? 'Subscription Download' : 'Certificate Download — KES 30'}
-                </h3>
-                <p className="text-xs text-on-surface-variant">
-                  {accessInfo.access === 'subscription'
-                    ? `Active until ${new Date(accessInfo.subscription.expiresAt).toLocaleDateString('en-GB')}`
-                    : 'Pay KES 30 via M-Pesa to download'}
-                </p>
-              </div>
-            </div>
-
-            {/* Subscription: direct download */}
-            {accessInfo.access === 'subscription' && paymentStep === 'confirm' && (
-              <div className="space-y-4">
-                <div className="bg-success-bg/40 border border-success-green/30 rounded-lg p-4 text-sm text-on-surface">
-                  <p className="font-semibold text-success-green mb-1">✓ Active Subscription</p>
-                  <p className="text-on-surface-variant">Your monthly plan covers this download at no extra charge.</p>
-                </div>
-                <div className="flex gap-3">
-                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                  <button className={primaryButtonClass + " flex-1"} onClick={handleSubscriptionDownload}>
-                    <Download className="w-4 h-4" /> Download Free
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Pay Per Download: phone input */}
-            {accessInfo.access === 'pay_per_download' && paymentStep === 'confirm' && (
-              <div className="space-y-4">
-                <div className="bg-surface-variant/40 rounded-lg p-4 text-sm space-y-2">
-                  <p className="font-semibold text-on-surface">PIN: <span className="text-primary">{formData.pin}</span></p>
-                  <p className="text-on-surface-variant">A one-time fee of <span className="font-bold text-on-surface">KES {accessInfo.feeKes}</span> applies per download.</p>
-                </div>
-                <div>
-                  <label className={labelClass}>M-Pesa Phone Number</label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
-                    <input
-                      className={cn(inputClass, "pl-10")}
-                      placeholder="07XXXXXXXX or 01XXXXXXXX"
-                      value={paymentPhone}
-                      onChange={(e) => setPaymentPhone(e.target.value)}
-                    />
+            <div className="p-6 sm:p-7 space-y-5">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-sm">
+                    {accessInfo.access === 'subscription' ? (
+                      <Sparkles className="w-6 h-6 text-primary" />
+                    ) : (
+                      <ShieldCheck className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-on-surface text-lg sm:text-xl tracking-tight">
+                      {paymentStep === 'done' 
+                        ? 'Certificate Ready' 
+                        : (accessInfo.access === 'subscription' ? 'Active Subscription' : 'KRA Certificate Checkout')}
+                    </h3>
+                    <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5">
+                      Republic of Kenya • Official Tax Compliance Portal
+                    </p>
                   </div>
                 </div>
-                {paymentError && (
-                  <p className="text-xs text-red-500">{paymentError}</p>
-                )}
-                <div className="flex gap-3">
-                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                  <button className={primaryButtonClass + " flex-1"} onClick={handleMpesaPayment}>
-                    <Smartphone className="w-4 h-4" /> Pay KES {accessInfo.feeKes}
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40 transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Taxpayer Identity Summary Badge */}
+              <div className="bg-surface-container/70 border border-outline-variant/60 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block">Taxpayer Record</span>
+                  <p className="font-semibold text-on-surface truncate text-sm">{formData.fullName || "Registered Taxpayer"}</p>
+                  <p className="text-[11px] font-mono text-primary font-bold mt-0.5">PIN: {formData.pin || "A01*****8Z"}</p>
+                </div>
+                <div className="shrink-0 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium px-2.5 py-1 rounded-full text-[11px] flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                </div>
+              </div>
+
+              {/* Active Subscription: Instant Free Download */}
+              {accessInfo.access === 'subscription' && paymentStep === 'confirm' && (
+                <div className="space-y-4">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-sm text-on-surface space-y-1">
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" /> Active Monthly Subscription
+                    </p>
+                    <p className="text-on-surface-variant text-xs leading-relaxed">
+                      Your monthly subscription is active until {accessInfo.subscription?.expiresAt ? new Date(accessInfo.subscription.expiresAt).toLocaleDateString('en-GB') : 'end of billing period'}. Enjoy unlimited certificate downloads at KES 0.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Close</button>
+                    <button className={primaryButtonClass + " flex-1"} onClick={handleSubscriptionDownload}>
+                      <Download className="w-4 h-4" /> Download Certificate (KES 0)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pay Per Download / Tier Selection */}
+              {accessInfo.access === 'pay_per_download' && paymentStep === 'confirm' && (
+                <div className="space-y-4">
+                  {/* Segmented Gateway Toggle */}
+                  <div className="grid grid-cols-2 gap-1.5 bg-surface-container p-1 rounded-2xl border border-outline-variant/60">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paystack')}
+                      className={cn(
+                        "py-2.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2",
+                        paymentMethod === 'paystack'
+                          ? "bg-surface text-primary shadow-sm font-bold ring-1 ring-primary/20"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      )}
+                    >
+                      <CreditCard className="w-4 h-4" /> Paystack (Cards / M-Pesa)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('mpesa')}
+                      className={cn(
+                        "py-2.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2",
+                        paymentMethod === 'mpesa'
+                          ? "bg-surface text-primary shadow-sm font-bold ring-1 ring-primary/20"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      )}
+                    >
+                      <Smartphone className="w-4 h-4" /> Direct M-Pesa STK
+                    </button>
+                  </div>
+
+                  {/* Paystack Plans */}
+                  {paymentMethod === 'paystack' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Single Certificate */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedTier('download')}
+                          onKeyDown={(e) => e.key === 'Enter' && setSelectedTier('download')}
+                          className={cn(
+                            "p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
+                            selectedTier === 'download'
+                              ? "border-primary bg-primary/5 ring-2 ring-primary shadow-sm"
+                              : "border-outline-variant/70 bg-surface-container/30 hover:bg-surface-container/70"
+                          )}
+                        >
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant block">Single Download</span>
+                            <p className="text-xl font-extrabold text-primary mt-1">KES 30</p>
+                            <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
+                              One-time official certificate generation for this PIN.
+                            </p>
+                          </div>
+                          <div className="mt-3.5 pt-2.5 border-t border-outline-variant/40 flex items-center gap-1.5 text-[11px] font-medium text-on-surface">
+                            <Check className="w-3.5 h-3.5 text-primary" /> Instant PDF Download
+                          </div>
+                        </div>
+
+                        {/* Monthly Unlimited Plan */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedTier('subscription')}
+                          onKeyDown={(e) => e.key === 'Enter' && setSelectedTier('subscription')}
+                          className={cn(
+                            "p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden",
+                            selectedTier === 'subscription'
+                              ? "border-primary bg-primary/5 ring-2 ring-primary shadow-sm"
+                              : "border-outline-variant/70 bg-surface-container/30 hover:bg-surface-container/70"
+                          )}
+                        >
+                          <div className="absolute top-0 right-0 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider">
+                            BEST VALUE
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant block">Monthly Pass</span>
+                            <p className="text-xl font-extrabold text-primary mt-1">KES 499 <span className="text-[10px] font-normal text-on-surface-variant">/ mo</span></p>
+                            <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
+                              Unlimited downloads & unlocks all masked taxpayer numbers.
+                            </p>
+                          </div>
+                          <div className="mt-3.5 pt-2.5 border-t border-outline-variant/40 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <Sparkles className="w-3.5 h-3.5" /> Full Profiles Unmasked
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Provider Trust Badges */}
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-on-surface-variant">
+                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Visa</span>
+                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Mastercard</span>
+                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Apple Pay</span>
+                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">M-Pesa</span>
+                        <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/80 ml-1">
+                          <Lock className="w-3 h-3" /> 256-Bit SSL Encrypted
+                        </span>
+                      </div>
+
+                      {paymentError && (
+                        <p className="text-xs text-red-500 text-center font-medium bg-red-500/10 py-1.5 px-3 rounded-lg">{paymentError}</p>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                        <button
+                          type="button"
+                          className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20")}
+                          onClick={() => handlePaystackPayment(selectedTier === 'subscription' ? 'subscription' : 'pay_per_download')}
+                          disabled={isInitializingPaystack}
+                        >
+                          {isInitializingPaystack ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4" />
+                              {selectedTier === 'subscription' ? 'Subscribe KES 499' : 'Pay KES 30 & Download'}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Direct M-Pesa STK Flow */}
+                  {paymentMethod === 'mpesa' && (
+                    <div className="space-y-4">
+                      <div className="bg-surface-container/60 rounded-2xl p-4 text-xs space-y-1.5 border border-outline-variant/60">
+                        <div className="flex justify-between items-center">
+                          <span className="text-on-surface-variant">Selected Certificate PIN:</span>
+                          <span className="font-mono font-bold text-primary">{formData.pin}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-outline-variant/40">
+                          <span className="text-on-surface-variant">Single Download Fee:</span>
+                          <span className="font-bold text-on-surface text-sm">KES {accessInfo.feeKes}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>M-Pesa Phone Number</label>
+                        <div className="relative mt-1">
+                          <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant w-4 h-4" />
+                          <input
+                            className={cn(inputClass, "pl-10 text-sm")}
+                            placeholder="07XXXXXXXX or 01XXXXXXXX"
+                            value={paymentPhone}
+                            onChange={(e) => setPaymentPhone(e.target.value)}
+                          />
+                        </div>
+                        <p className="text-[11px] text-on-surface-variant mt-1.5">
+                          An STK push payment prompt will be sent directly to this phone number.
+                        </p>
+                      </div>
+
+                      {paymentError && (
+                        <p className="text-xs text-red-500 font-medium bg-red-500/10 py-1.5 px-3 rounded-lg">{paymentError}</p>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                        <button className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20")} onClick={handleMpesaPayment}>
+                          <Smartphone className="w-4 h-4" /> Send STK Prompt (KES {accessInfo.feeKes})
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Waiting for Payment Confirmation */}
+              {paymentStep === 'waiting' && (
+                <div className="flex flex-col items-center gap-4 py-6 text-center">
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary animate-pulse">
+                      <Loader2 className="w-7 h-7 animate-spin" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-bold text-on-surface text-base">
+                      {paymentMethod === 'paystack' ? 'Awaiting Paystack Payment...' : 'Waiting for M-Pesa PIN...'}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-1.5 max-w-sm leading-relaxed">
+                      {paymentMethod === 'paystack'
+                        ? 'Please complete the transaction in the checkout window. This portal will automatically verify and download your certificate once confirmed.'
+                        : 'Please check your phone for the M-Pesa STK prompt and enter your M-Pesa PIN.'}
+                    </p>
+                  </div>
+                  {paystackAuthUrl && paymentMethod === 'paystack' && (
+                    <a
+                      href={paystackAuthUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 mt-1"
+                    >
+                      Re-open checkout window <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    className="text-xs text-on-surface-variant hover:text-on-surface underline mt-2"
+                    onClick={() => setPaymentStep('confirm')}
+                  >
+                    Change payment method / cancel
                   </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Waiting for payment */}
-            {paymentStep === 'waiting' && (
-              <div className="flex flex-col items-center gap-4 py-4">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="font-semibold text-on-surface">Waiting for M-Pesa payment...</p>
-                <p className="text-sm text-on-surface-variant text-center">Check your phone for the STK push prompt and enter your M-Pesa PIN.</p>
-                <p className="text-xs text-on-surface-variant">This may take up to 60 seconds.</p>
-              </div>
-            )}
+              {/* Payment Successful & Certificate Ready State */}
+              {paymentStep === 'done' && (
+                <div className="space-y-5 text-center py-2">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto shadow-sm">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
 
-            {/* Payment error */}
-            {paymentStep === 'error' && (
-              <div className="space-y-4">
-                <div className="bg-error-container border-error rounded-lg p-4 text-sm">
-                  <p className="font-semibold text-error mb-1">Payment Failed</p>
-                  <p className="text-on-surface-variant">{paymentError}</p>
+                  <div>
+                    <h4 className="font-bold text-on-surface text-lg">Payment Confirmed & Verified!</h4>
+                    <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
+                      Your official KRA compliance certificate has been compiled and is ready for download.
+                    </p>
+                  </div>
+
+                  {/* Certificate Document Card */}
+                  <div className="bg-surface-container/70 border border-outline-variant/70 rounded-2xl p-4 text-left flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-xs text-on-surface truncate">
+                        KRA_Certificate_{formData.pin || 'OFFICIAL'}.pdf
+                      </p>
+                      <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">
+                        Taxpayer: {formData.fullName || 'Registered Taxpayer'}
+                      </p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Official Digital Signature & QR Stamp Included
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Download Action Buttons */}
+                  <div className="space-y-2.5 pt-2">
+                    <button
+                      type="button"
+                      disabled={isDownloadingPdf}
+                      onClick={() => executeDownload()}
+                      className={cn(
+                        primaryButtonClass,
+                        "w-full py-4 text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                      )}
+                    >
+                      {isDownloadingPdf ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Generating Official PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Download Certificate (PDF)</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(false)}
+                      className={cn(secondaryButtonClass, "w-full text-xs py-2.5")}
+                    >
+                      Done / Close
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                  <button className={primaryButtonClass + " flex-1"} onClick={() => setPaymentStep('confirm')}>
-                    Try Again
-                  </button>
+              )}
+
+              {/* Payment Error State */}
+              {paymentStep === 'error' && (
+                <div className="space-y-4">
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-sm">
+                    <p className="font-bold text-red-600 dark:text-red-400 mb-1 flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4" /> Payment Incomplete
+                    </p>
+                    <p className="text-on-surface-variant text-xs leading-relaxed">{paymentError || "Transaction was declined or cancelled. Please try again."}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                    <button className={primaryButtonClass + " flex-1"} onClick={retryConfirmDownload}>
+                      {paymentCheckoutId ? "Confirm & Download" : "Try Again"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
