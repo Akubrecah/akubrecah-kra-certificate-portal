@@ -23,10 +23,10 @@ export default function PinCheckerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pt-20 pb-16 px-4 md:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full flex-1 flex flex-col justify-center py-2">
+      <div className="max-w-5xl mx-auto w-full">
         <KraPinChecker />
       </div>
-    </main>
+    </div>
   )
 }

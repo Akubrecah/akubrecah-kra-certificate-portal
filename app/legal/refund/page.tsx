@@ -35,7 +35,7 @@ export default function RefundPolicyPage() {
           <strong>Kenyan Shillings (KES)</strong>.
         </p>
         <p>
-          Note: KRA services themselves are available <strong>free of charge</strong> directly from the KRA portal
+          Note: KRA services themselves are available directly from the KRA portal
           at{" "}
           <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
             itax.kra.go.ke

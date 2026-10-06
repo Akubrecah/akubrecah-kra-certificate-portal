@@ -49,7 +49,18 @@ import { toast } from "react-hot-toast"
 import { useUser } from "@clerk/nextjs"
 
 export function KRAPortal() {
-  const { isLoaded: authLoaded, isSignedIn } = useUser()
+  const { isLoaded: authLoaded, isSignedIn, user } = useUser()
+
+  // Derive admin status client-side from Clerk metadata
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() || ''
+  const userRole = user?.publicMetadata?.role as string | undefined
+  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com').toLowerCase()
+  const isAdmin = (
+    userEmail === 'poweldayck@gmail.com' ||
+    userEmail === configPublicAdminEmail ||
+    userRole === 'Super Admin' ||
+    userRole === 'Admin'
+  )
   const [currentStep, setCurrentStep] = useState(1)
   const [idSearchStatus, setIdSearchStatus] = useState<"idle" | "searching" | "found" | "error">("idle")
   
@@ -348,7 +359,7 @@ export function KRAPortal() {
             setVerifiedReceipt(pollRef)
             if (vData.type === 'subscription') {
               setIsSubscribed(true)
-              toast.success("Monthly Subscription Activated! Full details unlocked.")
+              toast.success("Monthly Subscription Activated! Full details unlocked.", { duration: 6000 })
               setShowPaymentModal(false)
               if (formData.idNumber || formData.pin) {
                 handleIdSearch()
@@ -366,11 +377,9 @@ export function KRAPortal() {
         }
       }, 3000)
 
-      // Open Paystack in popup or tab
-      const popup = window.open(data.authorizationUrl, '_blank', 'width=520,height=720')
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        window.location.href = data.authorizationUrl
-      }
+      // Set auth URL for modal display - no window redirect by default, modal handles the flow
+      // But users can optionally open Paystack in a new tab
+      setPaystackAuthUrl(data.authorizationUrl)
     } catch (err: any) {
       setIsInitializingPaystack(false)
       setPaymentError(err.message || "Failed to launch Paystack payment.")
@@ -378,7 +387,16 @@ export function KRAPortal() {
     }
   }
 
-  // Fetches server-determined access: subscription (free) or pay_per_download (KES 30)
+  // Opens Paystack checkout in a new window/tab
+  const openPaystackCheckout = () => {
+    if (!paystackAuthUrl) return
+    const popup = window.open(paystackAuthUrl, '_blank', 'width=520,height=720')
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      window.location.href = paystackAuthUrl
+    }
+  }
+
+  // Fetches server-determined access: subscription or pay_per_download (KES 20)
   const checkAccess = async () => {
     if (!formData.pin || !formData.fullName) {
       toast.error("Identity details missing. Please verify your ID again.")
@@ -405,7 +423,7 @@ export function KRAPortal() {
     }
   }
 
-  // Called when user proceeds through the modal (subscription free OR after payment confirmed)
+  // Called when user proceeds through the modal (active subscription OR after payment confirmed)
   const executeDownload = async (downloadId?: string) => {
     const targetDownloadId = downloadId || verifiedDownloadId
     if (!targetDownloadId) {
@@ -615,7 +633,35 @@ export function KRAPortal() {
     }
   }
 
-  const handleDownload = checkAccess
+  // Admin: bypass payment modal entirely — record download directly as subscription-type
+  const handleAdminDownload = async () => {
+    if (!formData.pin || !formData.fullName) {
+      toast.error('Identity details missing. Please verify your ID again.')
+      return
+    }
+    setIsDownloadingPdf(true)
+    const loadingToast = toast.loading('Generating certificate...')
+    try {
+      const recordRes = await fetch('/api/certificate/record-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: formData.pin, downloadType: 'subscription', subscriptionId: 'admin' }),
+      })
+      const recordData = await recordRes.json()
+      if (!recordData.success) throw new Error(recordData.error || 'Failed to authorize download')
+      toast.dismiss(loadingToast)
+      await executeDownload(recordData.downloadId)
+    } catch (err: any) {
+      toast.error(err.message || 'Download failed.', { id: loadingToast })
+    } finally {
+      setIsDownloadingPdf(false)
+    }
+  }
+
+  // Effective full-access flag: admins always have full access
+  const hasFullAccess = isAdmin || isSubscribed
+
+  const handleDownload = isAdmin ? handleAdminDownload : checkAccess
 
   const stepVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -623,39 +669,39 @@ export function KRAPortal() {
     exit: { opacity: 0, x: -20 }
   }
 
-  // Common input classes based on Stitch design
-  const inputClass = "w-full bg-surface-container-lowest border border-outline-muted rounded text-body-md text-on-surface placeholder-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary px-4 py-3 h-auto"
-  const labelClass = "block font-label-md text-label-md text-on-surface mb-unit"
-  const primaryButtonClass = "w-full md:w-auto bg-primary-container text-on-primary font-label-md text-label-md py-3 px-8 rounded hover:bg-primary transition-colors flex justify-center items-center gap-2"
-  const secondaryButtonClass = "w-full md:w-auto bg-surface-container border border-outline-muted text-on-surface font-label-md text-label-md py-3 px-6 rounded hover:bg-surface-variant transition-colors flex justify-center items-center gap-2"
+  // Ergonomic, auto-fitting input & button classes
+  const inputClass = "w-full bg-surface-container-lowest border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder-on-surface-variant/50 focus:ring-2 focus:ring-primary/20 focus:border-primary px-4 py-2.5 h-11 transition-all"
+  const labelClass = "block text-xs font-semibold text-on-surface mb-1.5"
+  const primaryButtonClass = "inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-xl bg-primary text-on-primary font-semibold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm cursor-pointer whitespace-nowrap"
+  const secondaryButtonClass = "inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-xl bg-surface-container border border-outline-variant text-on-surface font-semibold text-sm hover:bg-surface-variant/70 active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
 
   return (
     <div className="w-full">
-      <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
-        <h1 className="font-display-lg text-display-lg text-on-surface mb-stack-sm text-center">Retrieve Your KRA Certificate</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-lg">Enter your details to quickly retrieve and verify your tax compliance certificate.</p>
+      <div className="mb-2.5 flex flex-col items-center justify-center text-center">
+        <h1 className="text-xl md:text-2xl font-bold text-on-surface tracking-tight text-center">Retrieve Your KRA Certificate</h1>
+        <p className="text-xs text-on-surface-variant max-w-md">Verify your identity to retrieve and download your official tax compliance certificate.</p>
       </div>
 
       {isVerified && (
-        <div className="w-full max-w-3xl mx-auto mb-8">
-          <Alert className="bg-success-bg border-success-green/30 text-success-green rounded-lg flex items-center gap-3 py-3 px-4">
-            <CheckCircle className="h-5 w-5 flex-shrink-0" />
-            <AlertDescription className="text-sm font-medium">
-              Certificate details successfully retrieved. Please review the information before downloading.
+        <div className="w-full max-w-2xl mx-auto mb-3">
+          <Alert className="bg-success-bg border-success-green/30 text-success-green rounded-xl flex items-center gap-2.5 py-2 px-3.5">
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+            <AlertDescription className="text-xs font-medium">
+              Certificate details retrieved. Review before downloading.
             </AlertDescription>
           </Alert>
         </div>
       )}
 
       {/* Step Progress Bar */}
-      <div className="w-full max-w-md mx-auto mb-8 px-4">
-        <div className="flex justify-between items-center font-label-sm text-label-sm uppercase mb-2">
-          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant")}>01. Identity</span>
-          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant")}>02. Personal</span>
-          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant")}>03. Address</span>
-          <span className={cn(currentStep >= 4 ? "text-primary" : "text-on-surface-variant")}>04. Review</span>
+      <div className="w-full max-w-md mx-auto mb-4 px-2">
+        <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider mb-1.5">
+          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant/70")}>01. Identity</span>
+          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant/70")}>02. Personal</span>
+          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant/70")}>03. Address</span>
+          <span className={cn(currentStep >= 4 ? "text-primary" : "text-on-surface-variant/70")}>04. Review</span>
         </div>
-        <div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden relative">
+        <div className="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden relative">
           <motion.div 
             className="h-full bg-primary rounded-full"
             initial={{ width: "25%" }}
@@ -672,7 +718,7 @@ export function KRAPortal() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
         >
-          <div className="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-muted p-6 md:p-8 relative overflow-hidden z-10">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/60 p-4 sm:p-6 relative overflow-hidden z-10 max-w-3xl mx-auto">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
                 <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
@@ -874,9 +920,9 @@ export function KRAPortal() {
                             </label>
                           </div>
                           
-                          <div className="pt-stack-sm flex flex-col gap-3 justify-center">
+                          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                               <button 
-                                className={cn(primaryButtonClass, "w-full disabled:opacity-50")}
+                                className={cn(primaryButtonClass, "w-full sm:w-auto min-w-[170px] disabled:opacity-50")}
                                 type="button"
                                 onClick={handleIdSearch}
                                 disabled={!hasConsented || captchaStatus === "loading"}
@@ -885,11 +931,11 @@ export function KRAPortal() {
                                   {captchaStatus === "ready" ? "Submit" : "Retrieve Certificate"}
                               </button>
                               <button 
-                                className="w-full bg-transparent text-primary hover:bg-primary/5 font-label-md text-label-md py-3 px-8 rounded transition-colors flex justify-center items-center gap-2"
+                                className="w-full sm:w-auto h-11 px-4 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40 font-medium text-xs rounded-xl transition-all inline-flex justify-center items-center gap-1.5 cursor-pointer"
                                 type="button"
                                 onClick={() => setCurrentStep(2)}
                               >
-                                I'll Enter Details Manually
+                                Enter Details Manually
                               </button>
                           </div>
                       </form>
@@ -958,11 +1004,11 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto pt-4">
-                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(1)}>
+                  <div className="flex items-center justify-center gap-3 pt-6">
+                    <button className={cn(secondaryButtonClass, "min-w-[100px]")} onClick={() => setCurrentStep(1)}>
                       Back
                     </button>
-                    <button className={primaryButtonClass} onClick={() => setCurrentStep(3)}>
+                    <button className={cn(primaryButtonClass, "min-w-[140px]")} onClick={() => setCurrentStep(3)}>
                       Continue <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -1073,11 +1119,11 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto pt-4">
-                    <button className={secondaryButtonClass} onClick={() => setCurrentStep(2)}>
+                  <div className="flex items-center justify-center gap-3 pt-6">
+                    <button className={cn(secondaryButtonClass, "min-w-[100px]")} onClick={() => setCurrentStep(2)}>
                       Back
                     </button>
-                    <button className={primaryButtonClass} onClick={() => setCurrentStep(4)}>
+                    <button className={cn(primaryButtonClass, "min-w-[170px]")} onClick={() => setCurrentStep(4)}>
                       Review Certificate <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -1085,29 +1131,27 @@ export function KRAPortal() {
               )}
 
               {currentStep === 4 && (
-                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                  <div className="mb-stack-lg flex flex-col items-center justify-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <ShieldCheck className="text-primary w-6 h-6" />
+                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-3">
+                  <div className="flex flex-col items-center justify-center text-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="text-primary w-5 h-5" />
+                      <h2 className="text-base font-bold text-on-surface">Review & Download Certificate</h2>
                     </div>
-                    <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Review & Download Certificate</h2>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Confirm or view details that will appear on your generated KRA PDF certificate.</p>
+                    <p className="text-[11px] text-on-surface-variant">Confirm details that will appear on your official KRA PDF certificate.</p>
                   </div>
 
                   {/* Unsubscribed Preview Warning Banner */}
-                  {!isSubscribed && (
-                    <div className="w-full max-w-2xl mx-auto bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                          <Lock className="w-5 h-5" />
-                        </div>
+                  {!hasFullAccess && (
+                    <div className="w-full max-w-2xl mx-auto bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-left">
+                      <div className="flex items-center gap-2.5">
+                        <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                         <div>
                           <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
                             Protected Preview Mode
-                            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold">Unsubscribed</span>
+                            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded font-semibold">Unsubscribed</span>
                           </p>
                           <p className="text-[11px] text-on-surface-variant">
-                            Phone number & location are hidden. PIN & email are partially masked. Only full legal name is revealed.
+                            Phone number & location hidden. PIN & email partially masked. Legal name is verified.
                           </p>
                         </div>
                       </div>
@@ -1118,7 +1162,7 @@ export function KRAPortal() {
                           setSelectedTier("subscription")
                           checkAccess()
                         }}
-                        className="text-xs font-semibold px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" /> Unlock All (KES 499)
                       </button>
@@ -1126,13 +1170,13 @@ export function KRAPortal() {
                   )}
 
                   {/* Summary / Direct Edit Grid */}
-                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-xl p-6 border border-outline-variant space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-xl p-3.5 sm:p-4 border border-outline-variant space-y-2.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className={labelClass}>KRA PIN</label>
-                          {!isSubscribed && (
-                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="block text-[11px] font-semibold text-on-surface">KRA PIN</label>
+                          {!hasFullAccess && (
+                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
                               <Lock className="w-2.5 h-2.5" /> Masked
                             </span>
                           )}
@@ -1140,31 +1184,31 @@ export function KRAPortal() {
                         <input 
                           value={formData.pin} 
                           onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
-                          readOnly={!isSubscribed}
+                          readOnly={!hasFullAccess}
                           placeholder="A012345678Z" 
-                          className={cn(inputClass, "font-bold text-primary", !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
+                          className={cn(inputClass, "h-9 text-xs font-bold text-primary px-3", !hasFullAccess && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className={labelClass}>Taxpayer Full Name</label>
-                          <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="block text-[11px] font-semibold text-on-surface">Taxpayer Full Name</label>
+                          <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
                             <Check className="w-2.5 h-2.5" /> Full Name
                           </span>
                         </div>
                         <input 
                           value={formData.fullName} 
                           onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
-                          readOnly={!isSubscribed}
+                          readOnly={!hasFullAccess}
                           placeholder="JOHN DOE" 
-                          className={cn(inputClass, "font-semibold")} 
+                          className={cn(inputClass, "h-9 text-xs font-semibold px-3")} 
                         />
                       </div>
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className={labelClass}>Email Address</label>
-                          {!isSubscribed && (
-                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="block text-[11px] font-semibold text-on-surface">Email Address</label>
+                          {!hasFullAccess && (
+                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
                               <Lock className="w-2.5 h-2.5" /> Partial
                             </span>
                           )}
@@ -1175,31 +1219,31 @@ export function KRAPortal() {
                           readOnly={!isSubscribed}
                           placeholder="email@example.com" 
                           type="email"
-                          className={cn(inputClass, !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
+                          className={cn(inputClass, "h-9 text-xs px-3", !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className={labelClass}>Mobile Phone Number</label>
-                          {!isSubscribed && (
-                            <span className="text-[10px] font-semibold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="block text-[11px] font-semibold text-on-surface">Mobile Phone Number</label>
+                          {!hasFullAccess && (
+                            <span className="text-[9px] font-semibold text-rose-500 bg-rose-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
                               <Lock className="w-2.5 h-2.5" /> Hidden
                             </span>
                           )}
                         </div>
-                        {isSubscribed ? (
+                        {hasFullAccess ? (
                           <input 
                             value={formData.phoneNumber} 
                             onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
                             placeholder="07XXXXXXXX" 
-                            className={inputClass} 
+                            className={cn(inputClass, "h-9 text-xs px-3")} 
                           />
                         ) : (
                           <div className="relative">
                             <input 
                               disabled 
                               value="•••••••••• (Hidden — Subscribers Only)" 
-                              className={cn(inputClass, "opacity-75 cursor-not-allowed bg-muted/40 font-mono text-xs pr-16")} 
+                              className={cn(inputClass, "h-9 opacity-75 cursor-not-allowed bg-muted/40 font-mono text-[11px] px-3 pr-16")} 
                             />
                             <button 
                               type="button"
@@ -1208,7 +1252,7 @@ export function KRAPortal() {
                                 setSelectedTier("subscription")
                                 checkAccess()
                               }} 
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
                             >
                               Unlock
                             </button>
@@ -1216,10 +1260,10 @@ export function KRAPortal() {
                         )}
                       </div>
                       <div className="md:col-span-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <label className={labelClass}>Exact Registration Date</label>
-                          {!isSubscribed && (
-                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="block text-[11px] font-semibold text-on-surface">Exact Registration Date</label>
+                          {!hasFullAccess && (
+                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
                               <Lock className="w-2.5 h-2.5" /> Partial
                             </span>
                           )}
@@ -1227,19 +1271,19 @@ export function KRAPortal() {
                         <input 
                           value={formData.registeredDate} 
                           onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
-                          readOnly={!isSubscribed}
+                          readOnly={!hasFullAccess}
                           placeholder="DD/MM/YYYY" 
-                          className={cn(inputClass, !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
+                          className={cn(inputClass, "h-9 text-xs px-3", !hasFullAccess && "bg-muted/30 cursor-not-allowed")} 
                         />
                       </div>
 
                       {/* Location Details: Visible only when subscribed */}
-                      {isSubscribed ? (
+                      {hasFullAccess ? (
                         <>
                           <div>
-                            <label className={labelClass}>County</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">County</label>
                             <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
-                              <SelectTrigger className={cn(inputClass, "h-12")}>
+                              <SelectTrigger className={cn(inputClass, "h-9 text-xs px-3")}>
                                 <SelectValue placeholder="Select County" />
                               </SelectTrigger>
                               <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
@@ -1248,98 +1292,96 @@ export function KRAPortal() {
                             </Select>
                           </div>
                           <div>
-                            <label className={labelClass}>City / Town</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">City / Town</label>
                             <input 
                               value={formData.town} 
                               onChange={(e) => handleInputChange('town', e.target.value)} 
                               placeholder="e.g. Nairobi" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div>
-                            <label className={labelClass}>District / Sub County</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">District / Sub County</label>
                             <input 
                               value={formData.district} 
                               onChange={(e) => handleInputChange('district', e.target.value)} 
                               placeholder="e.g. Central District" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div>
-                            <label className={labelClass}>Tax Station</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Tax Station</label>
                             <input 
                               value={formData.station} 
                               onChange={(e) => handleInputChange('station', e.target.value)} 
                               placeholder="e.g. North of Nairobi" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div>
-                            <label className={labelClass}>Building Name</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Building Name</label>
                             <input 
                               value={formData.building} 
                               onChange={(e) => handleInputChange('building', e.target.value)} 
                               placeholder="e.g. Commercial Plaza" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div>
-                            <label className={labelClass}>Street / Road</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Street / Road</label>
                             <input 
                               value={formData.street} 
                               onChange={(e) => handleInputChange('street', e.target.value)} 
                               placeholder="e.g. Harambee Avenue" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div>
-                            <label className={labelClass}>P.O. Box</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">P.O. Box</label>
                             <input 
                               value={formData.poBox} 
                               onChange={(e) => handleInputChange('poBox', e.target.value)} 
                               placeholder="e.g. P.O. Box 40001" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                           <div className="md:col-span-2">
-                            <label className={labelClass}>Postal Code</label>
+                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Postal Code</label>
                             <input 
                               value={formData.postalCode} 
                               onChange={(e) => handleInputChange('postalCode', e.target.value)} 
                               placeholder="e.g. 00100" 
-                              className={inputClass} 
+                              className={cn(inputClass, "h-9 text-xs px-3")} 
                             />
                           </div>
                         </>
                       ) : (
-                        <div className="md:col-span-2 bg-surface-container-lowest/80 border border-dashed border-outline-variant rounded-xl p-6 text-center space-y-3">
-                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
-                            <MapPin className="w-6 h-6" />
+                        <div className="md:col-span-2 bg-surface-container-lowest/80 border border-dashed border-outline-variant rounded-xl p-3 text-center space-y-1.5">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <h4 className="font-semibold text-xs text-on-surface">Location & Address Details Hidden</h4>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-sm text-on-surface">Location & Address Details Hidden</h4>
-                            <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1">
-                              County, KRA Station, City/Town, Building, and P.O. Box details are only visible to active subscribers.
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                          <p className="text-[11px] text-on-surface-variant max-w-sm mx-auto">
+                            County, KRA Station, City/Town, Building, and P.O. Box details are only visible to subscribers.
+                          </p>
+                          <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
                             <button
                               type="button"
                               onClick={() => {
                                 setPaymentMethod('paystack')
-                                setSelectedTier('subscription')
+                                if (!isAdmin) setSelectedTier('subscription')
                                 checkAccess()
                               }}
-                              className="text-xs font-semibold px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-sm flex items-center gap-1.5"
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
                             >
-                              <Sparkles className="w-3.5 h-3.5" /> Subscribe to Reveal All (KES 499)
+                              <Sparkles className="w-3 h-3" /> Subscribe to Reveal All (KES 499)
                             </button>
                             <button
                               type="button"
                               onClick={handleDownload}
-                              className="text-xs font-semibold px-4 py-2 rounded-lg border border-outline-variant bg-surface hover:bg-surface-variant/40 text-on-surface transition-all flex items-center gap-1.5"
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-outline-variant bg-surface hover:bg-surface-variant/40 text-on-surface transition-all flex items-center gap-1 cursor-pointer"
                             >
-                              <Download className="w-3.5 h-3.5" /> Download Certificate (KES 30)
+                              <Download className="w-3 h-3" /> Download Certificate (KES 20)
                             </button>
                           </div>
                         </div>
@@ -1347,11 +1389,11 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-lg mx-auto pt-4">
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-2xl mx-auto pt-2.5">
                     <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
-                    {!isSubscribed && (
+                    {!hasFullAccess && (
                       <button 
                         type="button"
                         className={secondaryButtonClass} 
@@ -1365,7 +1407,7 @@ export function KRAPortal() {
                       </button>
                     )}
                     <button className={primaryButtonClass} onClick={handleDownload}>
-                      <Download className="w-4 h-4" /> {isSubscribed ? "Download Free with Plan" : "Download PDF Certificate (KES 30)"}
+                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin)" : hasFullAccess ? "Download with Plan" : "Download PDF Certificate (KES 20)"}
                     </button>
                   </div>
                 </motion.div>
@@ -1426,7 +1468,7 @@ export function KRAPortal() {
                 </div>
               </div>
 
-              {/* Active Subscription: Instant Free Download */}
+              {/* Active Subscription: Instant Download */}
               {accessInfo.access === 'subscription' && paymentStep === 'confirm' && (
                 <div className="space-y-4">
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-sm text-on-surface space-y-1">
@@ -1496,7 +1538,7 @@ export function KRAPortal() {
                         >
                           <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant block">Single Download</span>
-                            <p className="text-xl font-extrabold text-primary mt-1">KES 30</p>
+                            <p className="text-xl font-extrabold text-primary mt-1">KES 20</p>
                             <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
                               One-time official certificate generation for this PIN.
                             </p>
@@ -1563,7 +1605,7 @@ export function KRAPortal() {
                           ) : (
                             <>
                               <CreditCard className="w-4 h-4" />
-                              {selectedTier === 'subscription' ? 'Subscribe KES 499' : 'Pay KES 30 & Download'}
+                              {selectedTier === 'subscription' ? 'Subscribe KES 499' : 'Pay KES 20 & Download'}
                             </>
                           )}
                         </button>
@@ -1626,23 +1668,20 @@ export function KRAPortal() {
                   </div>
                   <div>
                     <p className="font-bold text-on-surface text-base">
-                      {paymentMethod === 'paystack' ? 'Awaiting Paystack Payment...' : 'Waiting for M-Pesa PIN...'}
+                      Awaiting payment confirmation...
                     </p>
                     <p className="text-xs text-on-surface-variant mt-1.5 max-w-sm leading-relaxed">
-                      {paymentMethod === 'paystack'
-                        ? 'Please complete the transaction in the checkout window. This portal will automatically verify and download your certificate once confirmed.'
-                        : 'Please check your phone for the M-Pesa STK prompt and enter your M-Pesa PIN.'}
+                      Please complete the transaction. This portal will automatically verify and download your certificate once confirmed.
                     </p>
                   </div>
-                  {paystackAuthUrl && paymentMethod === 'paystack' && (
-                    <a
-                      href={paystackAuthUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 mt-1"
+                  {paystackAuthUrl && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 mt-2"
+                      onClick={openPaystackCheckout}
                     >
-                      Re-open checkout window <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                      <ExternalLink className="w-3.5 h-3.5" /> Open Paystack in new tab
+                    </button>
                   )}
                   <button
                     type="button"

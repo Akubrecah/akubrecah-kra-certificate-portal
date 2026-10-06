@@ -8,9 +8,9 @@ export default function PortalPage() {
   const { isLoaded, isSignedIn } = useUser()
 
   return (
-    <div className="min-h-screen bg-background pt-8 pb-12">
+    <div className="w-full flex-1 flex flex-col justify-center py-2">
       {isSignedIn ? (
-        <div className="max-w-7xl mx-auto w-full px-4">
+        <div className="max-w-6xl mx-auto w-full">
           <KRAPortal />
         </div>
       ) : (

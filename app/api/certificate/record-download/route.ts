@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
-import { getOrCreateDbUser } from '@/lib/subscription';
+import { getOrCreateDbUser, isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
@@ -40,31 +40,37 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
+    const isAdmin = await isAdminUser(userId);
 
     // 2. Validate access type server-side — never trust client
-    if (downloadType === 'subscription') {
-      const subDelegate = db.subscription || db.subscriptions;
-      const activeSub = await subDelegate?.findFirst({
-        where: {
-          userId: dbUser.id,
-          status: 'active',
-          expiresAt: { gt: now },
-        },
-      });
-      if (!activeSub) {
-        return NextResponse.json({ success: false, error: 'No active subscription found.' }, { status: 403 });
+    if (isAdmin || downloadType === 'subscription') {
+      let activeSubId: string | null = null;
+
+      if (!isAdmin) {
+        const subDelegate = db.subscription || db.subscriptions;
+        const activeSub = await subDelegate?.findFirst({
+          where: {
+            userId: dbUser.id,
+            status: 'active',
+            expiresAt: { gt: now },
+          },
+        });
+        if (!activeSub) {
+          return NextResponse.json({ success: false, error: 'No active subscription found.' }, { status: 403 });
+        }
+        activeSubId = activeSub.id;
       }
 
-      // Record the subscription download
+      // Record the subscription / admin download
       const record = await db.certificateDownload?.create({
         data: {
           userId: dbUser.id,
           clerkId: userId,
           pin: pin.toUpperCase(),
-          downloadType: 'subscription',
+          downloadType: isAdmin ? 'admin' : 'subscription',
           amountCharged: 0,
           currency: 'KES',
-          subscriptionId: activeSub.id,
+          subscriptionId: activeSubId,
         },
       });
 

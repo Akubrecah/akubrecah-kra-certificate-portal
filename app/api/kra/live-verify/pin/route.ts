@@ -23,6 +23,19 @@ export async function POST(req: NextRequest) {
       userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
     } catch {}
 
+    // Check if user is super admin
+    let isAdmin = false;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(clerkId);
+      const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
+      const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+      const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+      if (email === "poweldayck@gmail.com" || email === configAdminEmail || email === configPublicAdminEmail || user.publicMetadata?.role === "Super Admin" || user.publicMetadata?.role === "Admin") {
+        isAdmin = true;
+      }
+    } catch {}
+
     const body = await req.json();
     const { pin, engineMode = 'auto' } = body;
 
@@ -83,6 +96,7 @@ export async function POST(req: NextRequest) {
             station: taxpayerData.station || null,
             phone_number: taxpayerData.phoneNumber || null,
             registered_date: taxpayerData.registrationDate || null,
+            updated_at: new Date(),
           },
         });
       }
@@ -94,7 +108,7 @@ export async function POST(req: NextRequest) {
     const { isSubscribed } = await getUserSubscriptionStatus(clerkId);
 
     // Apply strict privacy masking: unsubscribed users cannot see phone or location
-    const maskedData = maskTaxpayerData(taxpayerData as any, isSubscribed);
+    const maskedData = maskTaxpayerData(taxpayerData as any, isSubscribed, isAdmin);
 
     await createSystemLog({
       level: 'info',

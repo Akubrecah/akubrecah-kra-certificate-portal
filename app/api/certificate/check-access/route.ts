@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
-import { getOrCreateDbUser } from '@/lib/subscription';
+import { getOrCreateDbUser, isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
@@ -12,6 +12,17 @@ export async function GET(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
+
+    // 0. Admin users always have subscription-level access.
+    const adminAccess = await isAdminUser(userId);
+    if (adminAccess) {
+      return NextResponse.json({
+        success: true,
+        access: 'subscription',
+        feeKes: 0,
+        subscription: { id: 'admin', planName: 'Admin Access', expiresAt: null },
+      });
     }
 
     // 1. Look up or auto-provision the user's DB record by clerkId

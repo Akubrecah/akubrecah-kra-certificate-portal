@@ -221,7 +221,11 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
               {mobileOpen && (
                 <ul className="flex flex-col gap-1 mt-2.5 pb-1 animate-in fade-in duration-200">
                   {navLinks.map((link) => {
-                    const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname?.startsWith(link.href));
+                    const isActive = link.href === "/" 
+                      ? pathname === "/" 
+                      : link.href === "/dashboard"
+                        ? pathname === "/dashboard"
+                        : pathname === link.href || pathname?.startsWith(`${link.href}/`);
                     const Icon = link.icon;
                     return (
                       <li key={link.href}>
@@ -279,7 +283,11 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
 
             <div className="flex flex-col gap-2 w-full">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname?.startsWith(link.href));
+                const isActive = link.href === "/" 
+                  ? pathname === "/" 
+                  : link.href === "/dashboard"
+                    ? pathname === "/dashboard"
+                    : pathname === link.href || pathname?.startsWith(`${link.href}/`);
                 const Icon = link.icon;
                 
                 return (
@@ -315,7 +323,7 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
           </aside>
         )}
         <main 
-          className={`flex-grow flex flex-col justify-start px-4 md:px-8 py-8 w-full min-h-[calc(100vh-4rem)] ${
+          className={`flex-grow flex-1 flex flex-col justify-start px-3 sm:px-6 py-4 md:py-5 w-full ${
             isResizing ? "" : "transition-all duration-300 ease-in-out"
           } ${showSidebar ? 'md:ml-[var(--main-sidebar-width)]' : ''}`}
         >

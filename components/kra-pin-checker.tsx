@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useUser } from "@clerk/nextjs"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   ShieldCheck, 
@@ -59,6 +60,19 @@ interface TaxpayerProfile {
 }
 
 export function KraPinChecker() {
+  const { user } = useUser()
+
+  // Derive admin status client-side from Clerk metadata
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() || ''
+  const userRole = user?.publicMetadata?.role as string | undefined
+  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com').toLowerCase()
+  const isAdmin = (
+    userEmail === 'poweldayck@gmail.com' ||
+    userEmail === configPublicAdminEmail ||
+    userRole === 'Super Admin' ||
+    userRole === 'Admin'
+  )
+
   const [activeTab, setActiveTab] = useState<"pin" | "id">("pin")
   const [engineMode, setEngineMode] = useState<"auto" | "api" | "dwr">("auto")
   const [pinInput, setPinInput] = useState("")
@@ -67,6 +81,9 @@ export function KraPinChecker() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<TaxpayerProfile | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  // Effective full access: admin always has full access regardless of subscription
+  const hasFullAccess = isAdmin || Boolean(result?.isSubscribed)
 
   const handleCopy = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text)
@@ -149,23 +166,54 @@ export function KraPinChecker() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600/90 via-red-700 to-zinc-900 p-6 md:p-8 text-white shadow-xl">
-        <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold uppercase tracking-wider text-red-100">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+    <div className="w-full max-w-5xl mx-auto space-y-3">
+      {result ? (
+        <div className="flex items-center justify-between gap-3 p-2.5 px-4 rounded-xl bg-surface dark:bg-zinc-900 border border-outline-variant shadow-xs">
+          <div className="flex items-center gap-2 text-xs min-w-0">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider shrink-0">
+              Verified
+            </Badge>
+            <span className="font-mono font-bold text-foreground text-xs">{result.pin}</span>
+            {result.taxpayerName && (
+              <span className="hidden sm:inline text-muted-foreground truncate max-w-[280px]">· {result.taxpayerName}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="text-[10px] uppercase font-bold py-0.5 px-2">
+              {engineMode.toUpperCase()}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setResult(null)
+                setError(null)
+              }}
+              className="h-7 px-2.5 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              New Search
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-red-600/90 via-red-700 to-zinc-900 p-4 sm:p-5 text-white shadow-md">
+        <div className="relative z-10 space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-semibold uppercase tracking-wider text-red-100">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             Official KRA Live Verification Gateway & DWR Engine
           </div>
-          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-white">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
             KRA PIN & Taxpayer Status Checker
           </h1>
-          <p className="text-sm md:text-base text-zinc-200 max-w-2xl">
+          <p className="text-xs text-zinc-200 max-w-2xl">
             Real-time tax obligation validation, identity verification, and taxpayer registration check directly connected to the Kenya Revenue Authority portal.
           </p>
         </div>
-        <div className="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
-          <ShieldCheck className="w-72 h-72 text-white" />
+        <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+          <ShieldCheck className="w-48 h-48 text-white" />
         </div>
       </div>
 
@@ -338,6 +386,8 @@ export function KraPinChecker() {
           </AnimatePresence>
         </CardContent>
       </Card>
+    </>
+  )}
 
       {/* Result Presentation */}
       <AnimatePresence>
@@ -346,159 +396,154 @@ export function KraPinChecker() {
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            className="space-y-6"
+            className="space-y-3"
           >
             <Card className="border border-emerald-500/30 bg-surface dark:bg-zinc-900 shadow-xl overflow-hidden print:border-none print:shadow-none">
               {/* Card Top Strip */}
-              <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg">
-                    <UserCheck className="w-6 h-6 text-white" />
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-2.5 text-white flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-sm shrink-0">
+                    <UserCheck className="w-4 h-4 text-white" />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold tracking-tight">{result.taxpayerName}</h2>
-                    <p className="text-xs text-emerald-100 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5" /> Verified Taxpayer Record
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold tracking-tight truncate">{result.taxpayerName}</h2>
+                    <p className="text-[11px] text-emerald-100 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Verified Taxpayer Record
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-white text-emerald-800 font-bold px-3 py-1 text-xs uppercase tracking-wider">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className="bg-white text-emerald-800 font-bold px-2 py-0.5 text-[10px] uppercase tracking-wider">
                     {result.status || "ACTIVE"}
                   </Badge>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handlePrint}
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 print:hidden text-xs"
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 print:hidden text-xs h-7 px-2.5 cursor-pointer"
                   >
-                    <Printer className="w-3.5 h-3.5 mr-1" />
+                    <Printer className="w-3 h-3 mr-1" />
                     Print
                   </Button>
                 </div>
               </div>
 
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-3.5 sm:p-4 space-y-3">
                 {/* Privacy & Subscription Notice Banner */}
-                {!result.isSubscribed && (
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
-                        <Lock className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-on-surface text-sm">Preview Mode (Unsubscribed)</p>
-                        <p className="text-muted-foreground text-[11px] leading-relaxed">
-                          Phone numbers, stations, and physical address details are hidden to protect privacy until you subscribe. Legal name is verified.
-                        </p>
-                      </div>
+                {!hasFullAccess && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        <strong className="text-on-surface">Preview Mode:</strong> Phone, station & address details hidden until subscribed. Legal name verified.
+                      </p>
                     </div>
                     <Link href={`/?pin=${result.pin}&action=unlock`} className="shrink-0 w-full sm:w-auto">
-                      <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-xs h-9 px-4 flex items-center gap-1.5 shadow-sm">
-                        <Sparkles className="w-3.5 h-3.5" /> Unlock Full Profile (KES 499)
+                      <Button size="sm" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-bold text-xs h-7 px-3 flex items-center gap-1 shadow-sm cursor-pointer whitespace-nowrap">
+                        <Sparkles className="w-3 h-3" /> Unlock Full Profile (KES 499)
                       </Button>
                     </Link>
                   </div>
                 )}
 
                 {/* Highlights Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">KRA PIN</span>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-base font-bold font-mono text-primary">{result.pin}</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">KRA PIN</span>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-sm font-bold font-mono text-primary">{result.pin}</span>
                       <button
                         onClick={() => handleCopy(result.pin, "pin")}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         title="Copy PIN"
                       >
-                        {copiedField === "pin" ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                        {copiedField === "pin" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
                       </button>
                     </div>
                   </div>
 
                   {result.idNumber && (
-                    <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
-                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">National ID</span>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-base font-bold font-mono">{result.idNumber}</span>
+                    <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">National ID</span>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-sm font-bold font-mono">{result.idNumber}</span>
                         <button
                           onClick={() => handleCopy(result.idNumber!, "id")}
-                          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                           title="Copy ID"
                         >
-                          {copiedField === "id" ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                          {copiedField === "id" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Registration Date</span>
-                    <p className="text-base font-bold mt-1 flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      {result.registrationDate || "Available on File"}
+                  <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Registration Date</span>
+                    <p className="text-xs sm:text-sm font-bold mt-0.5 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                      {result.registrationDate || "On File"}
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tax Station</span>
-                    {result.isSubscribed && result.station ? (
-                      <p className="text-base font-bold mt-1 flex items-center gap-1.5 truncate" title={result.station}>
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
+                  <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Tax Station</span>
+                    {hasFullAccess && result.station ? (
+                      <p className="text-xs sm:text-sm font-bold mt-0.5 flex items-center gap-1 truncate" title={result.station}>
+                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                         {result.station}
                       </p>
                     ) : (
-                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" /> Hidden (Subscribers Only)
+                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Hidden (Subscribers)
                       </p>
                     )}
                   </div>
                 </div>
 
                 {/* Detailed Information Rows */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-0.5">
                   {/* Location & Address */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary" />
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-primary" />
                       Location & Address Details
                     </h3>
-                    {result.isSubscribed ? (
-                      <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-4 space-y-2.5 bg-zinc-50/50 dark:bg-zinc-800/30 text-sm">
-                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                    {hasFullAccess ? (
+                      <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-2.5 px-3 space-y-1 bg-zinc-50/50 dark:bg-zinc-800/30 text-xs">
+                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                           <span className="text-muted-foreground">County</span>
                           <span className="font-medium">{result.county || "Not specified"}</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                           <span className="text-muted-foreground">City / Town</span>
                           <span className="font-medium">{result.town || "Not specified"}</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                           <span className="text-muted-foreground">Building / Plot</span>
                           <span className="font-medium">{result.building || "Not specified"}</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                           <span className="text-muted-foreground">Street / Road</span>
                           <span className="font-medium">{result.street || "Not specified"}</span>
                         </div>
-                        <div className="flex justify-between py-1">
+                        <div className="flex justify-between py-0.5">
                           <span className="text-muted-foreground">Postal Box</span>
                           <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || ''}` : "Not specified"}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 text-center space-y-2.5">
-                        <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-                          <Lock className="w-4 h-4" />
-                        </div>
-                        <p className="text-xs font-bold text-on-surface">Physical Address Details Protected</p>
-                        <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                          County, town, building, street, and postal address details are hidden until you unlock full access with a monthly subscription.
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 px-3 text-center space-y-1">
+                        <p className="text-xs font-bold text-on-surface flex items-center justify-center gap-1.5">
+                          <Lock className="w-3 h-3 text-amber-600" />
+                          Physical Address Protected
                         </p>
-                        <Link href={`/?pin=${result.pin}&action=unlock`} className="inline-block pt-1">
-                          <Button size="sm" variant="outline" className="text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-7 px-3 font-semibold">
-                            <Sparkles className="w-3 h-3 mr-1" /> Unlock Location Details
+                        <p className="text-[10px] text-muted-foreground leading-tight">
+                          County, town, building, and postal address details require a monthly subscription.
+                        </p>
+                        <Link href={`/?pin=${result.pin}&action=unlock`} className="inline-block pt-0.5">
+                          <Button size="sm" variant="outline" className="text-[11px] border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-6 px-2 font-semibold cursor-pointer">
+                            <Sparkles className="w-2.5 h-2.5 mr-1" /> Unlock Location
                           </Button>
                         </Link>
                       </div>
@@ -506,37 +551,37 @@ export function KraPinChecker() {
                   </div>
 
                   {/* Contact & Obligations */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" />
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-primary" />
                       Tax Obligations & Contacts
                     </h3>
-                    <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-4 space-y-3 bg-zinc-50/50 dark:bg-zinc-800/30 text-sm">
+                    <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-2.5 px-3 space-y-1.5 bg-zinc-50/50 dark:bg-zinc-800/30 text-xs">
                       {result.email && (
-                        <div className="flex items-center justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5" /> Email
+                        <div className="flex items-center justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Mail className="w-3 h-3" /> Email
                           </span>
-                          <span className="font-mono text-xs">{result.email}</span>
+                          <span className="font-mono text-xs truncate max-w-[200px]">{result.email}</span>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5" /> Mobile
+                      <div className="flex items-center justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> Mobile
                         </span>
-                        {result.isSubscribed && result.phoneNumber ? (
+                        {hasFullAccess && result.phoneNumber ? (
                           <span className="font-mono text-xs font-semibold">{result.phoneNumber}</span>
                         ) : (
-                          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 font-sans">
-                            <Lock className="w-3.5 h-3.5" /> Hidden until subscribed
+                          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Hidden
                           </span>
                         )}
                       </div>
 
                       <div>
-                        <span className="text-xs font-semibold text-muted-foreground block mb-2">Registered Obligations:</span>
-                        <div className="space-y-1.5">
+                        <span className="text-[10px] font-semibold text-muted-foreground block mb-1">Registered Obligations:</span>
+                        <div className="space-y-1">
                           {(result.obligations && result.obligations.length > 0
                             ? result.obligations
                             : [
@@ -549,10 +594,10 @@ export function KraPinChecker() {
                           ).map((obl, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-zinc-900 border border-outline-variant dark:border-zinc-700/60 text-xs"
+                              className="flex items-center justify-between p-1 px-2 rounded-md bg-white dark:bg-zinc-900 border border-outline-variant dark:border-zinc-700/60 text-xs"
                             >
-                              <span className="font-medium">{obl.name}</span>
-                              <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 text-[10px]">
+                              <span className="font-medium text-[11px] truncate">{obl.name}</span>
+                              <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 text-[9px] px-1.5 py-0">
                                 {obl.status}
                               </Badge>
                             </div>
@@ -565,27 +610,39 @@ export function KraPinChecker() {
               </CardContent>
 
               {/* Action Footer */}
-              <CardFooter className="bg-zinc-50 dark:bg-zinc-800/40 border-t border-outline-variant dark:border-zinc-800 p-4 md:p-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
-                <div className="text-xs text-muted-foreground">
-                  Gateway verification status: <span className="font-semibold text-emerald-600 dark:text-emerald-400">Authenticated & Active</span>
+              <CardFooter className="bg-zinc-50 dark:bg-zinc-800/40 border-t border-outline-variant dark:border-zinc-800 p-2.5 px-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+                <div className="text-[11px] text-muted-foreground">
+                  Status: <span className="font-semibold text-emerald-600 dark:text-emerald-400">Authenticated & Active</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setResult(null)
+                      setError(null)
+                    }}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    New Search
+                  </Button>
                   <Link href={`/?pin=${result.pin}`}>
-                    <Button variant="outline" size="sm" className="text-xs font-semibold">
-                      Retrieve Certificate (KES 30)
+                    <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer">
+                      {isAdmin ? "Retrieve Certificate" : "Retrieve Certificate (KES 20)"}
                     </Button>
                   </Link>
-                  {!result.isSubscribed && (
+                  {!hasFullAccess && (
                     <Link href={`/?pin=${result.pin}&action=unlock`}>
-                      <Button size="sm" variant="outline" className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" /> Unlock Full Profile (KES 499)
+                      <Button size="sm" variant="outline" className="h-8 px-3 rounded-lg text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                        <Sparkles className="w-3 h-3" /> Unlock Full Profile (KES 499)
                       </Button>
                     </Link>
                   )}
                   <Link href={`/retrieval-portal?pin=${result.pin}`}>
-                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5">
-                      Proceed to File Nil Return
-                      <ArrowRight className="w-3.5 h-3.5" />
+                    <Button size="sm" className="h-8 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                      File Nil Return
+                      <ArrowRight className="w-3 h-3" />
                     </Button>
                   </Link>
                 </div>

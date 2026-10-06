@@ -155,7 +155,7 @@ export function CustomSignUp() {
             {[
               { text: "Instant PIN & Compliance Certificate Downloads", icon: Zap },
               { text: "Compliant with Kenya Data Protection Act 2019", icon: ShieldCheck },
-              { text: "Free ATS Professional CV Builder Suite", icon: CheckCircle2 },
+              { text: "ATS Professional CV Builder Suite", icon: CheckCircle2 },
             ].map((feature, idx) => (
               <div key={idx} className="flex items-center gap-3 text-sm text-zinc-300">
                 <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 shrink-0">

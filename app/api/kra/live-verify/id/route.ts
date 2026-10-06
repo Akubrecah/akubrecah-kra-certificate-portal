@@ -5,6 +5,7 @@ import { createSystemLog } from '@/lib/prisma';
 import { getUserSubscriptionStatus } from '@/lib/subscription';
 import { maskTaxpayerData } from '@/lib/masking';
 
+
 export const maxDuration = 45;
 
 export async function POST(req: NextRequest) {
@@ -21,6 +22,19 @@ export async function POST(req: NextRequest) {
       const client = await clerkClient();
       const user = await client.users.getUser(clerkId);
       userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
+    } catch {}
+
+    // Check if user is super admin
+    let isAdmin = false;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(clerkId);
+      const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
+      const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+      const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+      if (email === "poweldayck@gmail.com" || email === configAdminEmail || email === configPublicAdminEmail || user.publicMetadata?.role === "Super Admin" || user.publicMetadata?.role === "Admin") {
+        isAdmin = true;
+      }
     } catch {}
 
     const body = await req.json();
@@ -82,35 +96,35 @@ export async function POST(req: NextRequest) {
             station: taxpayerData.station || null,
             phone_number: taxpayerData.phoneNumber || null,
             registered_date: taxpayerData.registrationDate || null,
+            updated_at: new Date(),
           },
         });
       }
     } catch (cacheErr: any) {
       console.warn('[live-verify/id] kra_pin_cache upsert warning:', cacheErr.message);
     }
+    
+    //Check user subscription status
+    const { isSubscribed} = await getUserSubscriptionStatus(clerkId);
 
-    // Check user subscription status
-    const { isSubscribed } = await getUserSubscriptionStatus(clerkId);
-
-    // Apply strict privacy masking: unsubscribed users cannot see phone or location
-    const maskedData = maskTaxpayerData(taxpayerData as any, isSubscribed);
-
+    // Apply strict privacy masking: unsubscribes users cannot see phone or location
+    const maskedData = maskTaxpayerData(taxpayerData as any, isSubscribed, isAdmin);
     await createSystemLog({
       level: 'info',
       service: 'KRA-Live-ID-Checker',
-      message: `Verified ID ${cleanId}, resolved PIN ${taxpayerData.pin} for ${taxpayerData.taxpayerName} (Subscribed: ${isSubscribed})`,
+      message: 'Verified ID ${cleadID}, resolve PIN ${taxpayerData.pin} for ${taxpayerData.taxpayerName} (Subscribed: ${isSubscribed})',
       actor: userEmail,
       ip,
-      details: {
+      details:{
         idNumber: cleanId,
         pin: taxpayerData.pin,
         name: taxpayerData.taxpayerName,
-        station: isSubscribed ? taxpayerData.station : 'MASKED',
+        station: isSubscribed ? taxpayerData.station: 'MASKED',
         source: taxpayerData.source,
         isSubscribed,
       },
+      
     });
-
     return NextResponse.json({
       success: true,
       data: maskedData,

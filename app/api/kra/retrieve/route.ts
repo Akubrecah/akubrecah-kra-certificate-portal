@@ -581,6 +581,24 @@ export async function POST(req: NextRequest) {
       // In development or decoupled requests, allow authenticated or proxy bypass
     }
 
+    // Check if user is super admin
+    let isAdmin = false;
+    if (clerkId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(clerkId);
+        const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
+        const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+        const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+        if (email === "poweldayck@gmail.com" || email === configAdminEmail || email === configPublicAdminEmail || user.publicMetadata?.role === "Super Admin" || user.publicMetadata?.role === "Admin") {
+          isAdmin = true;
+        }
+      } catch {}
+    } else if (process.env.NODE_ENV === "development") {
+      // In development, allow admin bypass without Clerk auth
+      isAdmin = true;
+    }
+
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
 
     const body = await req.json();
@@ -829,7 +847,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Apply strict server-side masking if user is not subscribed
-    const clientTaxpayerData = maskTaxpayerData(fullTaxpayerRecord, isSubscribed);
+    const clientTaxpayerData = maskTaxpayerData(fullTaxpayerRecord, isSubscribed, isAdmin);
 
     const result = {
       success: true,

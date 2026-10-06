@@ -1,5 +1,30 @@
 import prisma from '@/lib/prisma';
 
+/**
+ * Determines if a Clerk user is a super admin / admin.
+ * Checks email against env-configured admin emails and Clerk publicMetadata role.
+ */
+export async function isAdminUser(clerkId?: string | null): Promise<boolean> {
+  if (!clerkId) return false;
+  try {
+    const { clerkClient } = await import('@clerk/nextjs/server');
+    const client = await clerkClient();
+    const user = await client.users.getUser(clerkId);
+    const email = user.primaryEmailAddress?.emailAddress?.toLowerCase() || '';
+    const configAdmin = (process.env.SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com').toLowerCase();
+    const publicAdmin = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'poweldayck@gmail.com').toLowerCase();
+    return (
+      email === 'poweldayck@gmail.com' ||
+      email === configAdmin ||
+      email === publicAdmin ||
+      user.publicMetadata?.role === 'Super Admin' ||
+      user.publicMetadata?.role === 'Admin'
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface UserSubscriptionStatus {
   isSubscribed: boolean;
   subscription: {
@@ -15,10 +40,17 @@ export interface UserSubscriptionStatus {
 
 /**
  * Checks whether a given Clerk user has an active, valid subscription.
+ * Admin users are always considered subscribed and bypass the DB lookup.
  */
 export async function getUserSubscriptionStatus(clerkId?: string | null): Promise<UserSubscriptionStatus> {
   if (!clerkId) {
     return { isSubscribed: false, subscription: null, userId: null };
+  }
+
+  // Admins are always treated as subscribed — no payment required.
+  const adminCheck = await isAdminUser(clerkId);
+  if (adminCheck) {
+    return { isSubscribed: true, subscription: null, userId: clerkId };
   }
 
   try {

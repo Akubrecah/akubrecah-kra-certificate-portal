@@ -56,65 +56,65 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"retrieval" | "pinchecker" | "filing" | "cv">("retrieval")
 
   return (
-    <div ref={containerRef} className="relative z-10 min-h-screen pb-16 w-full bg-background text-on-background font-body-md pt-6 overflow-x-hidden">
+    <div ref={containerRef} className="relative z-10 w-full bg-background text-on-background font-body-md pt-2 pb-8 overflow-x-hidden">
       
       {/* Background Decorative Gradients & Blobs */}
-      <div className="absolute top-0 inset-x-0 h-[600px] bg-[radial-gradient(circle_at_top,rgba(125,0,14,0.06)_0%,transparent_70%)] pointer-events-none z-0" />
-      <div className="absolute top-20 right-[15%] w-96 h-96 bg-primary/5 rounded-full filter blur-[120px] animate-blob z-0" />
-      <div className="absolute top-[40%] left-[10%] w-80 h-80 bg-[#E9A23B]/5 rounded-full filter blur-[100px] animate-blob animation-delay-2000 z-0" />
+      <div className="absolute top-0 inset-x-0 h-[400px] bg-[radial-gradient(circle_at_top,rgba(125,0,14,0.06)_0%,transparent_70%)] pointer-events-none z-0" />
+      <div className="absolute top-10 right-[15%] w-72 h-72 bg-primary/5 rounded-full filter blur-[100px] animate-blob z-0" />
+      <div className="absolute top-[30%] left-[10%] w-64 h-64 bg-[#E9A23B]/5 rounded-full filter blur-[90px] animate-blob animation-delay-2000 z-0" />
 
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="w-full flex flex-col space-y-24 py-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10"
+        className="w-full flex flex-col space-y-10 md:space-y-12 py-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10"
       >
         {/* 01. Hero Section */}
-        <section id="hero" className="relative flex flex-col items-center text-center gap-10 pt-2 max-w-4xl mx-auto w-full">
-          <div className="space-y-6 max-w-3xl flex flex-col items-center">
+        <section id="hero" className="relative flex flex-col items-center text-center gap-4 pt-1 max-w-3xl mx-auto w-full">
+          <div className="space-y-3.5 max-w-2xl flex flex-col items-center">
             
-            <h1 className="font-display-lg text-[42px] md:text-[60px] text-on-surface leading-tight font-black tracking-tight">
+            <h1 className="text-3xl md:text-[44px] text-on-surface leading-tight font-black tracking-tight">
               Manage Your KRA Obligations <br />
               <span className="text-primary bg-gradient-to-r from-primary to-[#BA1A1A] bg-clip-text text-transparent">
                 Instantly & Securely.
               </span>
             </h1>
             
-            <p className="font-body-lg text-lg text-on-surface-variant max-w-xl text-center">
-              An independent, automated helper for fast KRA PIN retrieval, Compliance Certificate downloads, simplified Nil returns filing, and professional resume building.
+            <p className="text-sm md:text-base text-on-surface-variant max-w-lg text-center leading-relaxed">
+              Fast KRA PIN retrieval, Compliance Certificate downloads, simplified Nil returns filing, and professional resume building.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 w-full max-w-xl">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full max-w-lg">
               <Link href="/retrieval-portal" className="w-full sm:flex-1">
-                <button className="w-full bg-primary text-white font-bold py-3.5 px-6 rounded-xl hover:bg-primary/95 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-lg shadow-primary/20">
-                  <Fingerprint className="h-5 w-5" />
+                <button className="w-full bg-primary text-white font-bold h-11 px-5 rounded-xl hover:bg-primary/95 hover:scale-[1.01] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-md shadow-primary/20 text-sm">
+                  <Fingerprint className="h-4 w-4" />
                   Certificate Portal (ID / PIN)
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </Link>
               <Link href="/pin-checker" className="w-full sm:flex-1">
-                <button className="w-full bg-surface-container-lowest border-2 border-red-500/30 hover:border-red-500 text-red-600 dark:text-red-400 font-bold py-3.5 px-6 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-all flex justify-center items-center gap-2 shadow-sm">
-                  <ShieldCheck className="h-5 w-5" />
+                <button className="w-full bg-surface-container-lowest border border-red-500/30 hover:border-red-500 text-red-600 dark:text-red-400 font-bold h-11 px-5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-all flex justify-center items-center gap-2 shadow-sm text-sm">
+                  <ShieldCheck className="h-4 w-4" />
                   Live PIN & ID Checker
                 </button>
               </Link>
             </div>
             
-            <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-on-surface-variant font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-5 pt-1.5 text-xs text-on-surface-variant font-medium">
               <div className="flex items-center gap-1.5">
-                <Lock className="w-4 h-4 text-primary" /> 100% Secure SSL
+                <Lock className="w-3.5 h-3.5 text-primary" /> 100% Secure SSL
               </div>
               <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-primary" /> Direct iTax Integration
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Direct iTax Integration
               </div>
               <div className="flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-primary" /> Instant PDF download
+                <Zap className="w-3.5 h-3.5 text-primary" /> Instant PDF download
               </div>
             </div>
           </div>
         </section>
 
         {/* 02. Detailed Services Showcase (Tabs layout) */}
-        <section id="services" className="space-y-12">
+        <section id="services" className="space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <h2 className="font-headline-lg text-3xl font-black text-on-surface tracking-tight">
               One Consolidated Obligation Portal
@@ -151,7 +151,7 @@ export default function Home() {
           </div>
 
           {/* Dynamic Details Content for Selected Service */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-8 md:p-12 shadow-soft hover:shadow-medium transition-shadow duration-300">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 md:p-8 shadow-soft transition-shadow duration-300">
             {activeTab === "retrieval" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-6">
@@ -404,10 +404,10 @@ export default function Home() {
         </section>
 
         {/* 03. Call to Action Banner */}
-        <section id="cta" className="relative bg-gradient-to-r from-primary to-primary-container text-white p-8 md:p-16 rounded-3xl overflow-hidden shadow-xl max-w-5xl mx-auto w-full text-center">
+        <section id="cta" className="relative bg-gradient-to-r from-primary to-primary-container text-white p-6 md:p-10 rounded-2xl overflow-hidden shadow-lg max-w-4xl mx-auto w-full text-center">
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] pointer-events-none" />
-          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl md:text-4xl font-black leading-tight tracking-tight">
+          <div className="relative z-10 max-w-xl mx-auto space-y-4">
+            <h2 className="text-2xl md:text-3xl font-black leading-tight tracking-tight">
               Ready to Secure Your Tax Documents?
             </h2>
             <p className="text-white/80 max-w-lg mx-auto text-base">
@@ -423,7 +423,7 @@ export default function Home() {
               ) : isLoaded && (
                 <Link href="/sign-up">
                   <button className="bg-white text-primary font-bold py-3.5 px-8 rounded-xl hover:bg-neutral-50 hover:scale-[1.02] active:scale-[0.98] transition-all inline-flex items-center gap-2 shadow-lg shadow-black/10">
-                    Create a Free Account <ArrowRight className="w-4.5 h-4.5" />
+                    Create an Account <ArrowRight className="w-4.5 h-4.5" />
                   </button>
                 </Link>
               )}

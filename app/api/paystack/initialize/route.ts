@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { initializePaystackTransaction } from '@/lib/paystack';
-import { getOrCreateDbUser } from '@/lib/subscription';
+import { getOrCreateDbUser, isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 15;
 
 const DEFAULT_SUBSCRIPTION_AMOUNT = 499;
-const DEFAULT_DOWNLOAD_FEE = 30;
+const DEFAULT_DOWNLOAD_FEE = 20;
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Authentication required. Please sign in to continue.' },
         { status: 401 }
+      );
+    }
+
+    // Admin users never need to pay — reject payment attempts.
+    const adminCheck = await isAdminUser(userId);
+    if (adminCheck) {
+      return NextResponse.json(
+        { success: false, error: 'Admin accounts have full access and do not require payment.' },
+        { status: 403 }
       );
     }
 

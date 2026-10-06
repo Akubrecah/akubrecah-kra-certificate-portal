@@ -74,8 +74,16 @@ export function maskDate(dateStr?: string | null): string {
 /**
  * Applies privacy masking to taxpayer records.
  * Unsubscribed users only see the full legal name and partial PIN/email, with phone & location completely hidden.
+ * Admin users bypass all masking and see full data.
  */
-export function maskTaxpayerData<T extends TaxpayerData>(data: T, isSubscribed: boolean): T & { isSubscribed: boolean } {
+export function maskTaxpayerData<T extends TaxpayerData>(data: T, isSubscribed: boolean, isAdmin: boolean = false): T & { isSubscribed: boolean } {
+  if (isAdmin) {
+    return {
+      ...data,
+      isSubscribed: true,
+    };
+  }
+
   if (isSubscribed) {
     return {
       ...data,

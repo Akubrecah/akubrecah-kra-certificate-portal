@@ -62,7 +62,7 @@ export async function initializePaystackTransaction(
       currency: 'KES',
       reference,
       callback_url: opts.callbackUrl,
-      channels: opts.channels || ['card', 'mobile_money', 'apple_pay'],
+      channels: opts.channels || ['card', 'mobile_money'],
       metadata: {
         ...opts.metadata,
         amountKes: opts.amountKes,
@@ -177,3 +177,109 @@ export function verifyPaystackWebhookSignature(rawBody: string, signature: strin
 
   return expectedSignature === signature;
 }
+
+/**
+ * Normalizes Kenyan mobile numbers to Paystack international format: +2547XXXXXXXX or +2541XXXXXXXX
+ */
+export function formatPaystackKenyaPhone(phone: string): string {
+  let cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
+  if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
+    return '+254' + cleaned;
+  }
+  if ((cleaned.startsWith('07') || cleaned.startsWith('01')) && cleaned.length === 10) {
+    return '+254' + cleaned.substring(1);
+  }
+  if (cleaned.startsWith('254') && cleaned.length === 12) {
+    return '+' + cleaned;
+  }
+  if (phone.startsWith('+')) {
+    return phone.replace(/[\s\-]/g, '');
+  }
+  return '+' + cleaned;
+}
+
+/**
+ * Triggers a real-time Safaricom M-Pesa STK Push directly via Paystack's Charge API.
+ * The customer receives an immediate prompt on their phone to enter their M-Pesa PIN.
+ */
+export async function chargePaystackMpesa(opts: {
+  phone: string;
+  email: string;
+  amountKes: number;
+  reference?: string;
+  metadata?: Record<string, any>;
+}): Promise<{
+  success: boolean;
+  status?: string;
+  reference: string;
+  displayText?: string;
+  error?: string;
+}> {
+  const secretKey = getPaystackSecretKey();
+  const reference = opts.reference || `PSTK-MPESA-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+  if (!secretKey) {
+    return {
+      success: false,
+      reference,
+      error: 'Paystack is not configured. Missing PAYSTACK_SECRET_KEY.',
+    };
+  }
+
+  const formattedPhone = formatPaystackKenyaPhone(opts.phone);
+  const amountSubunits = Math.round(opts.amountKes * 100);
+
+  try {
+    const payload = {
+      email: opts.email,
+      amount: amountSubunits,
+      currency: 'KES',
+      reference,
+      mobile_money: {
+        phone: formattedPhone,
+        provider: 'mpesa',
+      },
+      metadata: {
+        ...opts.metadata,
+        amountKes: opts.amountKes,
+        phone: formattedPhone,
+        channel: 'mpesa_stk_charge',
+      },
+    };
+
+    const res = await fetch('https://api.paystack.co/charge', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.status) {
+      return {
+        success: false,
+        reference,
+        error: data.message || `Paystack M-Pesa charge failed with status ${res.status}`,
+      };
+    }
+
+    const txData = data.data || {};
+    return {
+      success: true,
+      status: txData.status || 'pay_offline',
+      reference: txData.reference || reference,
+      displayText: txData.display_text || 'Please complete authorization on your mobile phone',
+    };
+  } catch (error: any) {
+    console.error('[Paystack Charge M-Pesa Error]:', error.message);
+    return {
+      success: false,
+      reference,
+      error: error.message || 'Network error triggering M-Pesa STK Push.',
+    };
+  }
+}
+

@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { chargePaystackMpesa, formatPaystackKenyaPhone } from '@/lib/paystack';
 
 export const maxDuration = 30;
 
 // Helper to normalize phone numbers to Safaricom Daraja format: 2547XXXXXXXX or 2541XXXXXXXX
 function normalizePhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\+]/g, ''); // remove spaces, dashes, plus signs
-  
-  if (cleaned.startsWith('07') && cleaned.length === 10) {
+  let cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
+  if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
+    return '254' + cleaned;
+  }
+  if ((cleaned.startsWith('07') || cleaned.startsWith('01')) && cleaned.length === 10) {
     return '254' + cleaned.substring(1);
   }
-  if (cleaned.startsWith('01') && cleaned.length === 10) {
-    return '254' + cleaned.substring(1);
-  }
-  if (cleaned.startsWith('254') && (cleaned.length === 12)) {
+  if (cleaned.startsWith('254') && cleaned.length === 12) {
     return cleaned;
   }
-  
-  return cleaned; // Fallback
+  return cleaned;
 }
 
 export async function POST(req: NextRequest) {
@@ -31,6 +31,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { userId } = await auth();
+    if (userId) {
+      const { isAdminUser } = await import('@/lib/subscription');
+      if (await isAdminUser(userId)) {
+        return NextResponse.json(
+          { success: false, error: 'Admin accounts have full access and do not require payment.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const normalizedPhone = normalizePhoneNumber(phone);
     if (!/^254(7|1)\d{8}$/.test(normalizedPhone)) {
       return NextResponse.json(
@@ -43,104 +54,156 @@ export async function POST(req: NextRequest) {
     const consumerSecret = process.env.MPESA_CONSUMER_SECRET || '';
     const shortCode = process.env.MPESA_SHORTCODE || '';
     const passKey = process.env.MPESA_PASSKEY || '';
-    const callbackUrl = process.env.MPESA_CALLBACK_URL || 'https://yourcafe.domain/api/mpesa/callback';
-    const env = process.env.MPESA_ENV || 'sandbox';
+    const env = process.env.MPESA_ENV || 'production';
 
-    // Detect placeholders or missing credentials to trigger simulation
-    const isPlaceholder = 
-      !consumerKey || 
-      !consumerSecret || 
-      consumerKey.includes('your-') || 
-      consumerSecret.includes('your-');
+    const hasDaraja = Boolean(
+      consumerKey &&
+      consumerSecret &&
+      shortCode &&
+      passKey &&
+      !consumerKey.includes('your-') &&
+      !consumerSecret.includes('your-')
+    );
 
-    if (isPlaceholder) {
-      console.log('[M-Pesa STK] Using mock payment flow (placeholder credentials detected)');
-      const mockCheckoutId = `ws_CO_MOCK_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+    // 1. If Safaricom Daraja credentials are fully configured, use Daraja
+    if (hasDaraja) {
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+      const proto = req.headers.get('x-forwarded-proto') || 'https';
+      const derivedCallbackUrl = host ? `${proto}://${host}/api/mpesa/callback` : '';
+      const callbackUrl = process.env.MPESA_CALLBACK_URL || derivedCallbackUrl || 'https://akubrecah.co.ke/api/mpesa/callback';
+
+      const baseUrl = env === 'production' 
+        ? 'https://api.safaricom.co.ke' 
+        : 'https://sandbox.safaricom.co.ke';
+
+      const authString = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+      const oauthRes = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+        method: 'GET',
+        headers: { 'Authorization': `Basic ${authString}` },
+      });
+
+      if (!oauthRes.ok) {
+        const errText = await oauthRes.text();
+        console.error('[M-Pesa OAuth Error]:', errText);
+        throw new Error(`Failed to generate M-Pesa OAuth token: ${oauthRes.statusText}`);
+      }
+
+      const oauthData = await oauthRes.json();
+      const accessToken = oauthData.access_token;
+
+      const now = new Date();
+      const timestamp = now.getFullYear().toString() +
+        (now.getMonth() + 1).toString().padStart(2, '0') +
+        now.getDate().toString().padStart(2, '0') +
+        now.getHours().toString().padStart(2, '0') +
+        now.getMinutes().toString().padStart(2, '0') +
+        now.getSeconds().toString().padStart(2, '0');
+
+      const rawPassword = shortCode + passKey + timestamp;
+      const password = Buffer.from(rawPassword).toString('base64');
+
+      const stkPayload = {
+        BusinessShortCode: parseInt(shortCode),
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: process.env.MPESA_TRANSACTION_TYPE || 'CustomerPayBillOnline',
+        Amount: Math.round(Number(amount)),
+        PartyA: parseInt(normalizedPhone),
+        PartyB: parseInt(shortCode),
+        PhoneNumber: parseInt(normalizedPhone),
+        CallBackURL: callbackUrl,
+        AccountReference: reference.substring(0, 12),
+        TransactionDesc: description || 'KRA Certificate Payment',
+      };
+
+      console.log('[M-Pesa STK] Dispatching payload to Daraja:', { ...stkPayload, Password: '***' });
+
+      const stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(stkPayload),
+      });
+
+      const stkData = await stkRes.json();
+
+      if (!stkRes.ok) {
+        console.error('[M-Pesa STK Error Payload]:', stkData);
+        // Fallback to Paystack M-Pesa if Daraja failed and Paystack is configured
+        if (!process.env.PAYSTACK_SECRET_KEY) {
+          return NextResponse.json({
+            success: false,
+            error: stkData.errorMessage || stkData.ResponseDescription || 'M-Pesa STK Push request failed',
+          }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({
+          success: true,
+          ...stkData
+        });
+      }
+    }
+
+    // 2. Paystack M-Pesa STK Push (Real-time Safaricom integration via Paystack)
+    if (process.env.PAYSTACK_SECRET_KEY) {
+      console.log('[M-Pesa STK] Dispatching real STK Push via Paystack Charge API for phone:', normalizedPhone);
+
+      let userEmail = 'customer@akubrecah.co.ke';
+      let clerkId = 'anonymous';
+      try {
+        const { userId } = await auth();
+        if (userId) {
+          clerkId = userId;
+          const client = await clerkClient();
+          const clerkUser = await client.users.getUser(userId);
+          userEmail = clerkUser.primaryEmailAddress?.emailAddress || userEmail;
+        }
+      } catch (authErr: any) {
+        console.warn('[M-Pesa STK] Clerk user check notice:', authErr.message);
+      }
+
+      const cleanPin = reference.replace(/^CERT-/, '').trim().toUpperCase();
+
+      const paystackRes = await chargePaystackMpesa({
+        phone: formatPaystackKenyaPhone(normalizedPhone),
+        email: userEmail,
+        amountKes: Math.round(Number(amount)) || 20,
+        reference: `PSTK-MPESA-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        metadata: {
+          clerkId,
+          type: 'pay_per_download',
+          pin: cleanPin,
+          phone: normalizedPhone,
+          description: description || `KRA Certificate - ${cleanPin}`,
+        },
+      });
+
+      if (!paystackRes.success) {
+        console.error('[Paystack M-Pesa Charge Failed]:', paystackRes.error);
+        return NextResponse.json({
+          success: false,
+          error: paystackRes.error || 'Failed to trigger M-Pesa STK Push on your phone.',
+        }, { status: 400 });
+      }
+
       return NextResponse.json({
         success: true,
-        isSimulated: true,
-        MerchantRequestID: `mock-merchant-req-${Math.floor(Math.random() * 100000)}`,
-        CheckoutRequestID: mockCheckoutId,
+        MerchantRequestID: paystackRes.reference,
+        CheckoutRequestID: paystackRes.reference,
         ResponseCode: '0',
-        ResponseDescription: 'Success. Mock Request accepted for processing',
-        CustomerMessage: 'Success. Mock Request accepted for processing'
+        ResponseDescription: paystackRes.displayText || 'STK Push sent. Please check your phone and enter M-Pesa PIN.',
+        CustomerMessage: paystackRes.displayText || 'STK Push sent. Please check your phone and enter M-Pesa PIN.',
+        gateway: 'paystack_mpesa',
       });
     }
 
-    const baseUrl = env === 'production' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
-
-    // 1. Get OAuth Token
-    const authString = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-    const oauthRes = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${authString}`,
-      },
-    });
-
-    if (!oauthRes.ok) {
-      const errText = await oauthRes.text();
-      console.error('[M-Pesa OAuth Error]:', errText);
-      throw new Error(`Failed to generate M-Pesa OAuth token: ${oauthRes.statusText}`);
-    }
-
-    const oauthData = await oauthRes.json();
-    const accessToken = oauthData.access_token;
-
-    // 2. Generate Password and Timestamp
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-      (now.getMonth() + 1).toString().padStart(2, '0') +
-      now.getDate().toString().padStart(2, '0') +
-      now.getHours().toString().padStart(2, '0') +
-      now.getMinutes().toString().padStart(2, '0') +
-      now.getSeconds().toString().padStart(2, '0');
-
-    const rawPassword = shortCode + passKey + timestamp;
-    const password = Buffer.from(rawPassword).toString('base64');
-
-    // 3. Trigger STK Push
-    const stkPayload = {
-      BusinessShortCode: parseInt(shortCode),
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline', // Paybill defaults to CustomerPayBillOnline
-      Amount: Math.round(amount),
-      PartyA: parseInt(normalizedPhone),
-      PartyB: parseInt(shortCode),
-      PhoneNumber: parseInt(normalizedPhone),
-      CallBackURL: callbackUrl,
-      AccountReference: reference.substring(0, 12),
-      TransactionDesc: description || 'Cyber Cafe Service Payment',
-    };
-
-    console.log('[M-Pesa STK] Dispatching payload to Daraja:', { ...stkPayload, Password: '***' });
-
-    const stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(stkPayload),
-    });
-
-    const stkData = await stkRes.json();
-
-    if (!stkRes.ok) {
-      console.error('[M-Pesa STK Error Payload]:', stkData);
-      return NextResponse.json({
-        success: false,
-        error: stkData.errorMessage || stkData.ResponseDescription || 'M-Pesa STK Push request failed',
-      }, { status: 400 });
-    }
-
+    // 3. Fallback: if neither gateway configured
     return NextResponse.json({
-      success: true,
-      ...stkData
-    });
+      success: false,
+      error: 'Payment gateway not configured. Please configure PAYSTACK_SECRET_KEY or MPESA credentials.',
+    }, { status: 500 });
 
   } catch (error: any) {
     console.error('[M-Pesa STK Catch Error]:', error.message);

@@ -44,7 +44,7 @@ export default function DisclaimerPage() {
           and the official KRA iTax portal is{" "}
           <a href="https://itax.kra.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
             itax.kra.go.ke
-          </a>. These services are free of charge directly from KRA.
+          </a>. These services are available directly from KRA.
         </p>
         <p>
           Our Service simply automates the process of accessing the publicly available KRA portal on behalf of users
