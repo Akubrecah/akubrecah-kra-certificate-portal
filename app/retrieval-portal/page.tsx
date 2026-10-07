@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { useUser, SignInButton } from "@clerk/nextjs"
 import { KRAPortal } from "@/components/kra-portal"
 import { 
   FileCheck2, ShieldCheck, Zap, Lock, ArrowRight, 
@@ -46,8 +45,6 @@ const steps = [
 ]
 
 export default function RetrievalPortalPage() {
-  const { isLoaded, isSignedIn } = useUser()
-
   return (
     <div className="min-h-screen bg-background text-on-background">
 
@@ -113,43 +110,7 @@ export default function RetrievalPortalPage() {
           <div className="relative rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-xl overflow-hidden p-4 sm:p-8 md:p-10">
             <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary via-red-600 to-primary" />
 
-            {isLoaded && !isSignedIn ? (
-              <div className="max-w-lg mx-auto py-12 text-center space-y-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-sm">
-                  <FileCheck2 className="w-8 h-8" />
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight">
-                    Sign In to Retrieve Certificate
-                  </h2>
-                  <p className="text-sm text-on-surface-variant leading-relaxed">
-                    Sign in with your account to access the official KRA automated retrieval gateway, 
-                    view your verified tax records, and download your certificate for just <strong>KES 20</strong>.
-                  </p>
-                </div>
-                <div className="pt-2">
-                  <SignInButton mode="modal">
-                    <Button size="lg" className="h-12 px-8 rounded-xl bg-primary text-white font-bold text-sm shadow-md shadow-primary/25 hover:bg-primary/90 flex items-center gap-2 mx-auto cursor-pointer">
-                      <span>Sign In to Continue</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </SignInButton>
-                </div>
-                <div className="pt-4 flex items-center justify-center gap-6 text-xs text-on-surface-variant font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Free Taxpayer Search
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> KES 20 per PDF
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> No Subscription Trap
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <KRAPortal />
-            )}
+            <KRAPortal />
           </div>
         </section>
 

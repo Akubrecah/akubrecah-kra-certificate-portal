@@ -47,6 +47,7 @@ import {
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 import { useUser } from "@clerk/nextjs"
+import { maskPin, maskEmail, maskPhone } from "@/lib/masking"
 
 export function KRAPortal() {
   const { isLoaded: authLoaded, isSignedIn, user } = useUser()
@@ -72,6 +73,7 @@ export function KRAPortal() {
   const [formData, setFormData] = useState({
     idNumber: "",
     pin: "",
+    rawPin: "",
     fullName: "",
     email: "",
     phoneNumber: "",
@@ -223,30 +225,33 @@ export function KRAPortal() {
       if (result.success && (result.data?.name || result.data?.pin)) {
         setIsSubscribed(Boolean(result.isSubscribed))
         setFormData(prev => {
+          const effectiveRawPin = result.rawPin || result.data?.rawPin || prev.rawPin || prev.pin || ''
           const updatedData = {
-          ...prev,
-          fullName: result.data?.name || prev.fullName || '',
-          pin: result.data?.pin || prev.pin,
-          email: result.data?.email || prev.email || '',
-          building: result.data?.building || '',
-          street: result.data?.street || '',
-          town: result.data?.town || '',
-          county: result.data?.county || '',
-          district: result.data?.district || '',
-          taxArea: result.data?.taxArea || '',
-          station: result.data?.station || '',
-          poBox: result.data?.poBox || '',
-          postalCode: result.data?.postalCode || '',
-          phoneNumber: result.data?.phoneNumber || '',
-          registeredDate: result.data?.registeredDate || prev.registeredDate || '',
-        }
-        if (typeof window !== "undefined") {
-          try {
-            sessionStorage.setItem("kra_active_form_data", JSON.stringify(updatedData))
-          } catch {}
-        }
-        return updatedData
-      })
+            ...prev,
+            fullName: result.data?.name || result.data?.fullName || prev.fullName || '',
+            pin: result.data?.pin || prev.pin,
+            rawPin: effectiveRawPin || result.data?.pin || prev.pin,
+            idNumber: result.data?.idNumber || prev.idNumber || '',
+            email: result.data?.email || prev.email || '',
+            building: result.data?.building || '',
+            street: result.data?.street || '',
+            town: result.data?.town || '',
+            county: result.data?.county || '',
+            district: result.data?.district || '',
+            taxArea: result.data?.taxArea || '',
+            station: result.data?.station || prev.station || '',
+            poBox: result.data?.poBox || '',
+            postalCode: result.data?.postalCode || '',
+            phoneNumber: result.data?.phoneNumber || '',
+            registeredDate: result.data?.registeredDate || prev.registeredDate || '',
+          }
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("kra_active_form_data", JSON.stringify(updatedData))
+            } catch {}
+          }
+          return updatedData
+        })
       setIdSearchStatus("found")
       setIsVerified(true)
       setCaptchaStatus("idle")
@@ -324,7 +329,7 @@ export function KRAPortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
-          pin: formData.pin,
+          pin: formData.rawPin || formData.pin,
           callbackUrl: window.location.origin + window.location.pathname,
         }),
       })
@@ -391,14 +396,10 @@ export function KRAPortal() {
     }
   }
 
-  // Fetches server-determined access: subscription or pay_per_download (KES 20)
+  // Fetches server-determined access: pay_per_download (strictly KES 20) or admin
   const checkAccess = async () => {
-    if (!formData.pin || !formData.fullName) {
+    if (!formData.pin && !formData.rawPin) {
       toast.error("Identity details missing. Please verify your ID again.")
-      return
-    }
-    if (authLoaded && !isSignedIn) {
-      toast.error("Authentication required. Please sign in to download your certificate.")
       return
     }
 
@@ -407,8 +408,8 @@ export function KRAPortal() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Access check failed')
       setAccessInfo(data)
-      setIsSubscribed(data.access === 'subscription')
-      setPaymentPhone(formData.phoneNumber || "")
+      setIsSubscribed(data.access === 'subscription' || data.access === 'admin')
+      setPaymentPhone(formData.phoneNumber && !formData.phoneNumber.includes('•') ? formData.phoneNumber : "")
       setPaymentStep("confirm")
       setPaymentError(null)
       setPaymentCheckoutId(null)
@@ -437,8 +438,9 @@ export function KRAPortal() {
         } catch {}
       }
 
+      const certPin = activeForm.rawPin || activeForm.pin
       const payload = {
-        pin: activeForm.pin,
+        pin: certPin,
         name: activeForm.fullName,
         idNumber: activeForm.idNumber,
         email: activeForm.email,
@@ -475,7 +477,7 @@ export function KRAPortal() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `KRA_Certificate_${activeForm.pin || 'RETRIEVED'}.pdf`
+      a.download = `KRA_Certificate_${certPin || 'OFFICIAL'}.pdf`
       document.body.appendChild(a)
       a.click()
       setTimeout(() => {
@@ -502,15 +504,16 @@ export function KRAPortal() {
     setPaymentError(null)
 
     try {
-      // Initiate STK Push
+      const certPin = formData.rawPin || formData.pin
+      // Initiate STK Push with strict 20 bob fee
       const stkRes = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: paymentPhone,
-          amount: accessInfo?.feeKes || 30,
-          reference: `CERT-${formData.pin}`,
-          description: `KRA Certificate - ${formData.pin}`,
+          amount: accessInfo?.feeKes || 20,
+          reference: `CERT-${certPin}`,
+          description: `KRA Certificate - ${certPin}`,
         }),
       })
       const stkData = await stkRes.json()
@@ -538,7 +541,7 @@ export function KRAPortal() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                pin: formData.pin,
+                pin: certPin,
                 downloadType: 'pay_per_download',
                 checkoutId,
               }),
@@ -1134,17 +1137,19 @@ export function KRAPortal() {
               )}
 
               {currentStep === 4 && (
-                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-3">
+                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
                   <div className="flex flex-col items-center justify-center text-center mb-1">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="text-primary w-5 h-5" />
-                      <h2 className="text-base font-bold text-on-surface">Review & Download Certificate</h2>
+                      <h2 className="text-base sm:text-lg font-bold text-on-surface">Verified Taxpayer Record</h2>
                     </div>
-                    <p className="text-[11px] text-on-surface-variant">Confirm details that will appear on your official KRA PDF certificate.</p>
+                    <p className="text-[11px] sm:text-xs text-on-surface-variant">
+                      Official Kenya Data Protection Act (KDPA) Privacy Protected Preview.
+                    </p>
                   </div>
 
                   {/* Official Verification Success Badge & KES 20 Notice */}
-                  <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                  <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-xs">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
                         <CheckCircle2 className="w-5 h-5" />
@@ -1154,155 +1159,142 @@ export function KRAPortal() {
                           Official Compliance Record Ready
                           <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">100% Verified</span>
                         </p>
-                        <p className="text-[11px] text-on-surface-variant mt-0.5">
-                          All taxpayer details retrieved directly from government registries. Ready for instant PDF generation.
+                        <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
+                          Taxpayer record matched directly with government registries. Pay strictly <strong>KES 20 (20 bob)</strong> to download your official tamper-proof PDF.
                         </p>
                       </div>
                     </div>
-                    <div className="shrink-0 bg-primary/10 border border-primary/20 rounded-xl px-3 py-1.5 text-center">
+                    <div className="shrink-0 bg-primary/10 border border-primary/25 rounded-xl px-3.5 py-2 text-center w-full sm:w-auto">
                       <span className="block text-[10px] uppercase font-black text-primary tracking-wider">Download Fee</span>
-                      <span className="text-sm font-black text-primary">KES 20 only</span>
+                      <span className="text-sm sm:text-base font-black text-primary">KES 20 only</span>
                     </div>
                   </div>
 
-                  {/* Complete Verified Taxpayer Record Grid */}
-                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-2xl p-4 sm:p-5 border border-outline-variant space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">KRA PIN</label>
-                        <input 
-                          value={formData.pin} 
-                          onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
-                          placeholder="A012345678Z" 
-                          className={cn(inputClass, "h-10 text-xs font-mono font-bold text-primary px-3")} 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Taxpayer Legal Name</label>
-                        <input 
-                          value={formData.fullName} 
-                          onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
-                          placeholder="JOHN DOE" 
-                          className={cn(inputClass, "h-10 text-xs font-semibold px-3")} 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Email Address</label>
-                        <input 
-                          value={formData.email} 
-                          onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
-                          placeholder="email@example.com" 
-                          type="email"
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Mobile Phone Number</label>
-                        <input 
-                          value={formData.phoneNumber} 
-                          onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
-                          placeholder="07XXXXXXXX" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Registration Date</label>
-                        <input 
-                          value={formData.registeredDate} 
-                          onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
-                          placeholder="DD/MM/YYYY" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+                  {/* KDPA Masked Taxpayer Preview Grid */}
+                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-2xl p-4 sm:p-6 border border-outline-variant space-y-4 shadow-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      
+                      {/* 1. Taxpayer Legal Name (Unmasked) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Taxpayer Legal Name</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Verified Citizen</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-bold text-on-surface uppercase truncate">
+                          {formData.fullName || "REGISTERED TAXPAYER"}
+                        </p>
                       </div>
 
-                      {/* Location & Tax Station Information */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">County</label>
-                        <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
-                          <SelectTrigger className={cn(inputClass, "h-10 text-xs px-3")}>
-                            <SelectValue placeholder="Select County" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-xl">
-                            {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
+                      {/* 2. National ID (Unmasked - Fully Visible) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>National ID Number</span>
+                          <span className="text-primary font-semibold text-[9px] bg-primary/10 px-1.5 py-0.5 rounded">Official ID</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-mono font-bold text-on-surface">
+                          {formData.idNumber || "On File"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">City / Town</label>
-                        <input 
-                          value={formData.town} 
-                          onChange={(e) => handleInputChange('town', e.target.value)} 
-                          placeholder="e.g. Nairobi" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 3. KRA PIN (Partially Masked) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>KRA PIN</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded">Partial Mask</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-mono font-black text-primary tracking-wider">
+                          {maskPin(formData.pin || formData.rawPin) || "A01*****78Z"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">District / Sub County</label>
-                        <input 
-                          value={formData.district} 
-                          onChange={(e) => handleInputChange('district', e.target.value)} 
-                          placeholder="e.g. Central District" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 4. Tax Station (Unmasked - Fully Visible) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Tax Station</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Station Match</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-bold text-on-surface truncate">
+                          {formData.station || "Kitale TSO"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Tax Station</label>
-                        <input 
-                          value={formData.station} 
-                          onChange={(e) => handleInputChange('station', e.target.value)} 
-                          placeholder="e.g. North of Nairobi" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 5. Email Address (Partially Masked) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Email Address</span>
+                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Partial Mask</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-mono text-on-surface truncate">
+                          {maskEmail(formData.email) || "j***e@gmail.com"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Building Name</label>
-                        <input 
-                          value={formData.building} 
-                          onChange={(e) => handleInputChange('building', e.target.value)} 
-                          placeholder="e.g. Commercial Plaza" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 6. Phone Number (Completely Masked) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Mobile Phone</span>
+                          <span className="text-red-600 dark:text-red-400 font-semibold text-[9px] bg-red-500/10 px-1.5 py-0.5 rounded">Protected Phone</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-mono font-bold text-on-surface-variant tracking-widest">
+                          ••••••••••
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Street / Road</label>
-                        <input 
-                          value={formData.street} 
-                          onChange={(e) => handleInputChange('street', e.target.value)} 
-                          placeholder="e.g. Harambee Avenue" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 7. Region & City */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>County & Town</span>
+                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Location</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium text-on-surface truncate">
+                          {formData.county ? `${formData.county} · ${formData.town || formData.county}` : (formData.town || "Nairobi")}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">P.O. Box</label>
-                        <input 
-                          value={formData.poBox} 
-                          onChange={(e) => handleInputChange('poBox', e.target.value)} 
-                          placeholder="e.g. P.O. Box 40001" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 8. Registration Date */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Registration Date</span>
+                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Statutory</span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium text-on-surface">
+                          {formData.registeredDate || "On Official File"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-on-surface mb-1">Postal Code</label>
-                        <input 
-                          value={formData.postalCode} 
-                          onChange={(e) => handleInputChange('postalCode', e.target.value)} 
-                          placeholder="e.g. 00100" 
-                          className={cn(inputClass, "h-10 text-xs px-3")} 
-                        />
+
+                      {/* 9. Physical Building & Street Address (Protected) */}
+                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80 sm:col-span-2">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                          <span>Physical Address & Postal Records</span>
+                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">KDPA Protected</span>
+                        </div>
+                        <p className="text-xs font-mono text-on-surface-variant flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-primary" />
+                          <span>•••••••••••• (Secured — Complete unmasked details appear on official PDF certificate)</span>
+                        </p>
                       </div>
+
+                    </div>
+
+                    {/* Privacy Assurance Banner */}
+                    <div className="rounded-xl bg-surface-container p-3 border border-outline-variant/60 flex items-start gap-2.5 text-[11px] text-on-surface-variant">
+                      <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <p className="leading-relaxed">
+                        To protect citizen privacy under the Kenya Data Protection Act, contact details and identification numbers are partially masked during web preview. The full unmasked official record is embedded into your official PDF certificate upon payment of <strong>KES 20</strong>.
+                      </p>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto pt-3">
-                    <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
+                  <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto pt-2">
+                    <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "", rawPin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
                     <button 
-                      className={cn(primaryButtonClass, "shadow-lg shadow-primary/25 h-12 px-7 text-sm font-bold")} 
+                      className={cn(primaryButtonClass, "shadow-lg shadow-primary/25 h-12 px-8 text-sm font-bold flex items-center gap-2")} 
                       onClick={handleDownload}
                     >
-                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin Free)" : "Download PDF Certificate (KES 20)"}
+                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin Free)" : "Pay KES 20 & Download Certificate"}
                     </button>
                   </div>
                 </motion.div>

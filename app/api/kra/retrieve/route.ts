@@ -852,6 +852,7 @@ export async function POST(req: NextRequest) {
     const result = {
       success: true,
       data: clientTaxpayerData,
+      rawPin: fullPin,
       isSubscribed,
     };
 

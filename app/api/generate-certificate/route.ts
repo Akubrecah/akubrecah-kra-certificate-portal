@@ -10,10 +10,13 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Enforce Clerk authentication
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    // 1. Check authentication (allow guest downloads if they have a confirmed downloadId)
+    let userId: string | null = null;
+    try {
+      const session = await auth();
+      userId = session?.userId || null;
+    } catch {
+      // Guest download
     }
 
     // 2. Parse request payload
@@ -34,13 +37,13 @@ export async function POST(req: NextRequest) {
       postalCode,
       mobileNumber,
       registeredDate,
-      downloadId, // Required — server-issued after payment/subscription validation
+      downloadId, // Required — server-issued after confirmed payment
     } = body;
 
     // 3. Server-side authorization: require a valid downloadId
     if (!downloadId) {
       return NextResponse.json(
-        { success: false, error: 'Download authorization required. Please complete the payment or subscription flow.' },
+        { success: false, error: 'Download authorization required. Please complete the payment flow.' },
         { status: 403 }
       );
     }
@@ -48,17 +51,10 @@ export async function POST(req: NextRequest) {
     const prismaModule = await import('@/lib/prisma');
     const db = prismaModule.default as any;
 
-    // Resolve or auto-provision DB user
-    const dbUser = await getOrCreateDbUser(userId);
-    if (!dbUser) {
-      return NextResponse.json({ success: false, error: 'User record not found.' }, { status: 404 });
-    }
-
-    // Validate the download record belongs to this user
+    // Validate the download record exists
     const downloadRecord = await db.certificateDownload?.findFirst({
       where: {
         id: downloadId,
-        userId: dbUser.id,
       },
     });
 
@@ -68,6 +64,10 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Resolve or auto-provision DB user
+    const effectiveClerkId = userId || downloadRecord.clerkId || 'guest_user';
+    const dbUser = await getOrCreateDbUser(effectiveClerkId, 'guest@akubrecah.co.ke', 'Guest Taxpayer');
 
     // Prioritize clean unmasked PIN from download record, fallback to payload
     let cleanPin = '';
@@ -170,12 +170,14 @@ export async function POST(req: NextRequest) {
     const outBytes = await pdfDoc.save();
 
     // Audit log
-    let userEmail = userId;
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      userEmail = user.primaryEmailAddress?.emailAddress || userId;
-    } catch {}
+    let userEmail: string = userId || 'guest@akubrecah.co.ke';
+    if (userId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        userEmail = user.primaryEmailAddress?.emailAddress || userId;
+      } catch {}
+    }
 
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
 

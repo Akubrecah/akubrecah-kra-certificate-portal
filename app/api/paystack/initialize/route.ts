@@ -9,21 +9,23 @@ const DEFAULT_DOWNLOAD_FEE = 20;
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required. Please sign in to continue.' },
-        { status: 401 }
-      );
+    let userId: string | null = null;
+    try {
+      const session = await auth();
+      userId = session?.userId || null;
+    } catch {
+      // Guest
     }
 
-    // Admin users never need to pay — reject payment attempts.
-    const adminCheck = await isAdminUser(userId);
-    if (adminCheck) {
-      return NextResponse.json(
-        { success: false, error: 'Admin accounts have full access and do not require payment.' },
-        { status: 403 }
-      );
+    // Admin users never need to pay — reject payment attempts if admin
+    if (userId) {
+      const adminCheck = await isAdminUser(userId);
+      if (adminCheck) {
+        return NextResponse.json(
+          { success: false, error: 'Admin accounts have full access and do not require payment.' },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await req.json();
@@ -44,20 +46,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Resolve user email and full name from Clerk
-    let userEmail = 'user@akubrecah.co.ke';
+    // Resolve user email and full name
+    let userEmail = 'guest@akubrecah.co.ke';
     let userName = 'Customer';
-    try {
-      const client = await clerkClient();
-      const clerkUser = await client.users.getUser(userId);
-      userEmail = clerkUser.primaryEmailAddress?.emailAddress || userEmail;
-      userName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || userName;
-    } catch (e: any) {
-      console.warn('[Paystack Initialize] Clerk user fetch fallback:', e.message);
+    if (userId) {
+      try {
+        const client = await clerkClient();
+        const clerkUser = await client.users.getUser(userId);
+        userEmail = clerkUser.primaryEmailAddress?.emailAddress || userEmail;
+        userName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || userName;
+      } catch (e: any) {
+        console.warn('[Paystack Initialize] Clerk user fetch fallback:', e.message);
+      }
     }
 
+    const effectiveClerkId = userId || 'guest_user';
     // Ensure user exists in Prisma database
-    const dbUser = await getOrCreateDbUser(userId, userEmail, userName);
+    const dbUser = await getOrCreateDbUser(effectiveClerkId, userEmail, userName);
 
     const amountKes = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES) || DEFAULT_DOWNLOAD_FEE;
     const reference = `PSTK-CERT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;

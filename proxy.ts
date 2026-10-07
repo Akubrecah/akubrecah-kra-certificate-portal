@@ -9,10 +9,18 @@ const isPublicRoute = createRouteMatcher([
   '/blog(.*)',
   '/faq',
   '/about',
+  '/products(.*)',
+  '/retrieval-portal(.*)',
+  '/pin-checker(.*)',
   '/terms(.*)',
   '/privacy(.*)',
   '/careers(.*)',
-  '/api/public(.*)'
+  '/api/public(.*)',
+  '/api/kra(.*)',
+  '/api/mpesa(.*)',
+  '/api/certificate(.*)',
+  '/api/generate-certificate(.*)',
+  '/api/paystack(.*)'
 ]);
 
 const isAdminRoute = createRouteMatcher([
@@ -23,16 +31,11 @@ const isAdminRoute = createRouteMatcher([
 const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
   '/dashboard(.*)',
-  '/retrieval-portal(.*)',
-  '/pin-checker(.*)',
   '/onboarding(.*)',
   '/checkout(.*)',
   '/filing-success(.*)',
   '/api/admin(.*)',
-  '/api/user(.*)',
-  '/api/kra(.*)',
-  '/api/mpesa/stkpush(.*)',
-  '/api/mpesa/status(.*)'
+  '/api/user(.*)'
 ]);
 
 const BLOCKED_SCANNERS = [/sqlmap/i, /nikto/i, /nessus/i, /dirbuster/i, /acunetix/i, /havij/i];

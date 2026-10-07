@@ -1,9 +1,15 @@
 /**
  * Privacy and Data Protection Masking Utilities
- * Compliant with Kenya Data Protection Act (KDPA).
+ * Strictly compliant with Kenya Data Protection Act (KDPA).
  * 
- * Note: Monthly subscriptions have been decommissioned.
- * Users retrieve their tax data directly and pay KES 20 per certificate download.
+ * Rules:
+ * - Phone: completely masked ("••••••••••")
+ * - Email: partial email (e.g. "j***e@gmail.com")
+ * - Station name: unmasked, fully visible (e.g. "Kitale TSO", "West of Nairobi")
+ * - National ID: unmasked, fully visible (e.g. "28475912")
+ * - KRA PIN: partial PIN (e.g. "A01*****78Z")
+ * - Street / Building / Box: protected ("••••••••")
+ * - Certificate Download: strictly KES 20 ("20 bob")
  */
 
 export interface TaxpayerData {
@@ -57,13 +63,11 @@ export function maskEmail(email?: string | null): string {
 }
 
 /**
- * Partially masks a phone number (e.g., "0712345678" -> "07****5678")
+ * Completely masks a phone number (e.g., "0712345678" -> "••••••••••")
  */
 export function maskPhone(phone?: string | null): string {
   if (!phone || typeof phone !== 'string') return '';
-  const cleaned = phone.replace(/[^0-9+]/g, '');
-  if (cleaned.length < 6) return cleaned;
-  return `${cleaned.slice(0, 3)}****${cleaned.slice(-3)}`;
+  return '••••••••••';
 }
 
 /**
@@ -75,13 +79,43 @@ export function maskDate(dateStr?: string | null): string {
 }
 
 /**
- * Returns taxpayer data for verified display.
- * Since monthly subscription is removed, all verified inquiries return full verified data
- * and users pay KES 20 per official certificate download.
+ * Returns taxpayer data masked for preview and public query:
+ * - Phone completely masked
+ * - Email partially masked
+ * - Station name fully shown
+ * - National ID fully shown
+ * - PIN partially masked
+ * - Full legal name visible for identity verification
+ * - Building, street, poBox secured
  */
-export function maskTaxpayerData<T extends TaxpayerData>(data: T, _isSubscribed: boolean = true, _isAdmin: boolean = false): T & { isSubscribed: boolean } {
+export function maskTaxpayerData<T extends TaxpayerData>(
+  data: T,
+  _isSubscribed: boolean = false,
+  _isAdmin: boolean = false
+): T & { isSubscribed: boolean } {
+  if (_isAdmin) {
+    return {
+      ...data,
+      isSubscribed: true,
+    };
+  }
+
+  const name = data.name || data.taxpayerName || data.fullName || '';
+
   return {
     ...data,
-    isSubscribed: true,
+    pin: maskPin(data.pin),
+    phoneNumber: maskPhone(data.phoneNumber),
+    email: maskEmail(data.email),
+    station: data.station || '', // Fully visible
+    idNumber: data.idNumber || '', // Fully visible
+    name,
+    taxpayerName: name,
+    fullName: name,
+    building: data.building ? '••••••••' : '',
+    street: data.street ? '••••••••' : '',
+    poBox: data.poBox ? '••••••' : '',
+    postalCode: data.postalCode ? '•••••' : '',
+    isSubscribed: false,
   };
 }

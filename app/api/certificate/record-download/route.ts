@@ -19,9 +19,12 @@ export const maxDuration = 10;
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    let userId: string | null = null;
+    try {
+      const session = await auth();
+      userId = session?.userId || null;
+    } catch {
+      // Guest user
     }
 
     const body = await req.json();
@@ -33,14 +36,15 @@ export async function POST(req: NextRequest) {
 
     const db = prisma as any;
 
-    // 1. Resolve or auto-provision DB user
-    const dbUser = await getOrCreateDbUser(userId);
+    // 1. Resolve or auto-provision DB user (guest or authenticated)
+    const effectiveClerkId = userId || 'guest_user';
+    const dbUser = await getOrCreateDbUser(effectiveClerkId, 'guest@akubrecah.co.ke', 'Guest Taxpayer');
     if (!dbUser) {
       return NextResponse.json({ success: false, error: 'Unable to initialize user account.' }, { status: 500 });
     }
 
     const now = new Date();
-    const isAdmin = await isAdminUser(userId);
+    const isAdmin = userId ? await isAdminUser(userId) : false;
 
     // 2. Validate access type server-side — never trust client
     if (isAdmin || downloadType === 'subscription') {

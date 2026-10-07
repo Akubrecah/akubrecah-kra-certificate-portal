@@ -8,7 +8,14 @@ export const maxDuration = 15;
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: authClerkId } = await auth();
+    let authClerkId: string | null = null;
+    try {
+      const session = await auth();
+      authClerkId = session?.userId || null;
+    } catch {
+      // Guest
+    }
+
     const body = await req.json();
     const { reference } = body;
 
@@ -32,14 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     const metadata = verification.metadata || {};
-    const clerkId = authClerkId || metadata.clerkId;
-
-    if (!clerkId) {
-      return NextResponse.json(
-        { success: false, error: 'Unable to associate payment with user account.' },
-        { status: 400 }
-      );
-    }
+    const clerkId = authClerkId || metadata.clerkId || 'guest_user';
 
     const db = prisma as any;
     const dbUser = await getOrCreateDbUser(clerkId, verification.customerEmail);

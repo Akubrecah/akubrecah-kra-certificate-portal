@@ -10,32 +10,35 @@ export const maxDuration = 45;
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required.' }, { status: 401 });
-    }
+    let clerkId: string | null = null;
+    let userEmail = 'guest@akubrecah.co.ke';
+    try {
+      const session = await auth();
+      clerkId = session?.userId || null;
+      if (clerkId) {
+        userEmail = clerkId;
+        const client = await clerkClient();
+        const user = await client.users.getUser(clerkId);
+        userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
+      }
+    } catch {}
 
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
 
-    let userEmail = clerkId;
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(clerkId);
-      userEmail = user.primaryEmailAddress?.emailAddress || clerkId;
-    } catch {}
-
     // Check if user is super admin
     let isAdmin = false;
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(clerkId);
-      const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
-      const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-      const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-      if (email === "poweldayck@gmail.com" || email === configAdminEmail || email === configPublicAdminEmail || user.publicMetadata?.role === "Super Admin" || user.publicMetadata?.role === "Admin") {
-        isAdmin = true;
-      }
-    } catch {}
+    if (clerkId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(clerkId);
+        const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
+        const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+        const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+        if (email === "poweldayck@gmail.com" || email === configAdminEmail || email === configPublicAdminEmail || user.publicMetadata?.role === "Super Admin" || user.publicMetadata?.role === "Admin") {
+          isAdmin = true;
+        }
+      } catch {}
+    }
 
     const body = await req.json();
     const { idNumber, engineMode = 'auto' } = body;

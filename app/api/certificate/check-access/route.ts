@@ -4,19 +4,23 @@ import { isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
-// Official KRA Certificate download fee is fixed at KES 20 (monthly subscriptions decommissioned)
+// Official KRA Certificate download fee is strictly KES 20 ("20 bob")
 const DOWNLOAD_FEE_KES = 20;
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    let isAdmin = false;
+    try {
+      const session = await auth();
+      if (session?.userId) {
+        isAdmin = await isAdminUser(session.userId);
+      }
+    } catch {
+      // Guest / unauthenticated request
     }
 
     // Admin users bypass the fee
-    const adminAccess = await isAdminUser(userId);
-    if (adminAccess) {
+    if (isAdmin) {
       return NextResponse.json({
         success: true,
         access: 'admin',
@@ -25,7 +29,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Standard user: KES 20 per certificate download
+    // Standard user or guest: strictly KES 20 per certificate download
     return NextResponse.json({
       success: true,
       access: 'pay_per_download',

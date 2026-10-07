@@ -31,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { maskPin, maskEmail, maskPhone } from "@/lib/masking"
 
 interface TaxpayerObligation {
   name: string
@@ -451,9 +452,9 @@ export function KraPinChecker() {
                   <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
                     <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">KRA PIN</span>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-sm font-bold font-mono text-primary">{result.pin}</span>
+                      <span className="text-sm font-bold font-mono text-primary">{maskPin(result.pin)}</span>
                       <button
-                        onClick={() => handleCopy(result.pin, "pin")}
+                        onClick={() => handleCopy(maskPin(result.pin), "pin")}
                         className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         title="Copy PIN"
                       >
@@ -488,16 +489,10 @@ export function KraPinChecker() {
 
                   <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-outline-variant dark:border-zinc-700/60">
                     <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Tax Station</span>
-                    {hasFullAccess && result.station ? (
-                      <p className="text-xs sm:text-sm font-bold mt-0.5 flex items-center gap-1 truncate" title={result.station}>
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        {result.station}
-                      </p>
-                    ) : (
-                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Hidden (Subscribers)
-                      </p>
-                    )}
+                    <p className="text-xs sm:text-sm font-bold mt-0.5 flex items-center gap-1 truncate" title={result.station || "Station Confirmed"}>
+                      <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      {result.station || "Station Confirmed"}
+                    </p>
                   </div>
                 </div>
 
@@ -520,15 +515,15 @@ export function KraPinChecker() {
                       </div>
                       <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                         <span className="text-muted-foreground">Building / Plot</span>
-                        <span className="font-medium">{result.building || "Not specified"}</span>
+                        <span className="font-medium font-mono text-muted-foreground">••••••••</span>
                       </div>
                       <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
                         <span className="text-muted-foreground">Street / Road</span>
-                        <span className="font-medium">{result.street || "Not specified"}</span>
+                        <span className="font-medium font-mono text-muted-foreground">••••••••</span>
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-muted-foreground">Postal Box</span>
-                        <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || ''}` : "Not specified"}</span>
+                        <span className="font-medium font-mono text-muted-foreground">••••••</span>
                       </div>
                     </div>
                   </div>
@@ -545,7 +540,7 @@ export function KraPinChecker() {
                           <span className="text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" /> Email
                           </span>
-                          <span className="font-mono text-xs truncate max-w-[200px]">{result.email}</span>
+                          <span className="font-mono text-xs truncate max-w-[200px]">{maskEmail(result.email)}</span>
                         </div>
                       )}
 
@@ -553,13 +548,7 @@ export function KraPinChecker() {
                         <span className="text-muted-foreground flex items-center gap-1">
                           <Phone className="w-3 h-3" /> Mobile
                         </span>
-                        {hasFullAccess && result.phoneNumber ? (
-                          <span className="font-mono text-xs font-semibold">{result.phoneNumber}</span>
-                        ) : (
-                          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <Lock className="w-3 h-3" /> Hidden
-                          </span>
-                        )}
+                        <span className="font-mono text-xs font-bold tracking-widest text-muted-foreground">••••••••••</span>
                       </div>
 
                       <div>
