@@ -37,19 +37,38 @@ export async function POST(req: NextRequest) {
       postalCode,
       mobileNumber,
       registeredDate,
-      downloadId, // Required — server-issued after confirmed payment
+      downloadId: incomingDownloadId,
     } = body;
 
-    // 3. Server-side authorization: require a valid downloadId
-    if (!downloadId) {
-      return NextResponse.json(
-        { success: false, error: 'Download authorization required. Please complete the payment flow.' },
-        { status: 403 }
-      );
-    }
-
+    let downloadId = incomingDownloadId;
     const prismaModule = await import('@/lib/prisma');
     const db = prismaModule.default as any;
+
+    // 3. Server-side authorization: require a valid downloadId or verified admin access
+    if (!downloadId) {
+      const { isAdminUser } = await import('@/lib/subscription');
+      const isAdmin = userId ? await isAdminUser(userId) : false;
+      if (isAdmin) {
+        const effectiveClerkId = userId || 'admin_user';
+        const dbUser = await getOrCreateDbUser(effectiveClerkId, 'admin@akubrecah.co.ke', 'Administrator');
+        const adminDownloadRecord = await db.certificateDownload?.create({
+          data: {
+            userId: dbUser.id,
+            clerkId: effectiveClerkId,
+            pin: String(pin || 'KRA_CERT').toUpperCase().trim(),
+            downloadType: 'admin',
+            amountCharged: 0,
+            currency: 'KES',
+          },
+        });
+        downloadId = adminDownloadRecord?.id;
+      } else {
+        return NextResponse.json(
+          { success: false, error: 'Download authorization required. Please complete the payment flow.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Validate the download record exists
     const downloadRecord = await db.certificateDownload?.findFirst({

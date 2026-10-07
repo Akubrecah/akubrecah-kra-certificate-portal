@@ -298,7 +298,8 @@ export function KRAPortal() {
           if (data.downloadId) {
             setVerifiedDownloadId(data.downloadId)
             setPaymentStep("done")
-            setShowPaymentModal(true)
+            setShowPaymentModal(false)
+            setCurrentStep(4)
             await executeDownload(data.downloadId)
           }
         }
@@ -367,6 +368,9 @@ export function KRAPortal() {
             } else if (vData.downloadId) {
               setVerifiedDownloadId(vData.downloadId)
               setPaymentStep("done")
+              setShowPaymentModal(false)
+              setCurrentStep(4)
+              toast.success("Payment verified! Downloading certificate...", { duration: 4000 })
               await executeDownload(vData.downloadId)
             }
           } else if (pollAttempts >= 40) {
@@ -400,6 +404,12 @@ export function KRAPortal() {
   const checkAccess = async () => {
     if (!formData.pin && !formData.rawPin) {
       toast.error("Identity details missing. Please verify your ID again.")
+      return
+    }
+
+    // If payment was already verified for this taxpayer, download directly without re-opening payment modal
+    if (verifiedDownloadId) {
+      await executeDownload(verifiedDownloadId)
       return
     }
 
@@ -551,6 +561,9 @@ export function KRAPortal() {
             setVerifiedDownloadId(recordData.downloadId)
             setVerifiedReceipt(checkoutId)
             setPaymentStep("done")
+            setShowPaymentModal(false)
+            setCurrentStep(4)
+            toast.success("Payment received! Downloading certificate...", { duration: 4000 })
             await executeDownload(recordData.downloadId)
           } else if (statusData.status === 'failed') {
             clearInterval(pollInterval)
@@ -593,6 +606,8 @@ export function KRAPortal() {
           setVerifiedDownloadId(recordData.downloadId)
           setVerifiedReceipt(paymentCheckoutId)
           setPaymentStep("done")
+          setShowPaymentModal(false)
+          setCurrentStep(4)
           await executeDownload(recordData.downloadId)
           return
         } else {
@@ -1294,7 +1309,13 @@ export function KRAPortal() {
                       className={cn(primaryButtonClass, "shadow-lg shadow-primary/25 h-12 px-8 text-sm font-bold flex items-center gap-2")} 
                       onClick={handleDownload}
                     >
-                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin Free)" : "Pay KES 20 & Download Certificate"}
+                      <Download className="w-4 h-4" /> {
+                        isAdmin 
+                          ? "Download Certificate (Admin Free)" 
+                          : verifiedDownloadId 
+                          ? "Download Certificate (Paid)" 
+                          : "Pay KES 20 & Download Certificate"
+                      }
                     </button>
                   </div>
                 </motion.div>
@@ -1536,7 +1557,11 @@ export function KRAPortal() {
                     <button
                       type="button"
                       disabled={isDownloadingPdf}
-                      onClick={() => executeDownload()}
+                      onClick={async () => {
+                        setShowPaymentModal(false)
+                        setCurrentStep(4)
+                        await executeDownload()
+                      }}
                       className={cn(
                         primaryButtonClass,
                         "w-full py-4 text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2"
@@ -1557,10 +1582,13 @@ export function KRAPortal() {
 
                     <button
                       type="button"
-                      onClick={() => setShowPaymentModal(false)}
+                      onClick={() => {
+                        setShowPaymentModal(false)
+                        setCurrentStep(4)
+                      }}
                       className={cn(secondaryButtonClass, "w-full text-xs py-2.5")}
                     >
-                      Done / Close
+                      Return to Download Page
                     </button>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 
 const navLinks = [
+  { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: "badge" },
   { href: "/admin/system-health", label: "System Health", icon: "monitor_heart" },
   { href: "/admin/user-management", label: "User Management", icon: "group" },
   { href: "/admin/role-access", label: "Role Access", icon: "admin_panel_settings" },
