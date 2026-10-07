@@ -50,28 +50,28 @@ export function SiteFooter(): JSX.Element {
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/#services" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/services#web" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   Web Applications (Next.js/React)
                 </Link>
               </li>
               <li>
-                <Link href="/#services" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/services#mobile" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   Mobile Apps (iOS & Android)
                 </Link>
               </li>
               <li>
-                <Link href="/#services" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/services#cloud" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   Cloud Infrastructure & DevOps
                 </Link>
               </li>
               <li>
-                <Link href="/#services" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/services#enterprise" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   Custom Enterprise Architecture
                 </Link>
               </li>
               <li>
-                <Link href="/#services" className="hover:text-primary transition-colors flex items-center gap-1.5">
-                  High-Throughput API Design
+                <Link href="/solutions" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  Industry Solutions
                 </Link>
               </li>
             </ul>
@@ -116,7 +116,7 @@ export function SiteFooter(): JSX.Element {
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/#about" className="hover:text-primary transition-colors">
+                <Link href="/about" className="hover:text-primary transition-colors">
                   About Akubrecah
                 </Link>
               </li>
