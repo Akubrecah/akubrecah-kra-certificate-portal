@@ -32,13 +32,67 @@ import {
 } from "lucide-react"
 
 /* ──────────────────────────────────────────────────────────────
-   NAV DATA  (parent pages + child sub-routes inside them)
+   NAV TYPES & DATA  (parent pages + child sub-routes inside them)
 ────────────────────────────────────────────────────────────── */
-const navData = [
+interface NavSubItem {
+  title: string
+  desc: string
+  href: string
+  icon: any
+  badge?: string
+}
+
+interface NavGroup {
+  heading: string
+  items: NavSubItem[]
+}
+
+interface NavItem {
+  label: string
+  href: string
+  badge?: string
+  groups?: NavGroup[] | null
+  footer?: { label: string; href: string }
+}
+
+const navData: NavItem[] = [
   {
     label: "About",
     href: "/about",
     groups: null,   // simple link — no dropdown
+  },
+  {
+    label: "KRA PIN to Retrieval",
+    href: "/retrieval-portal",
+    badge: "KES 20",
+    groups: [
+      {
+        heading: "Statutory Retrieval Suite",
+        items: [
+          {
+            title: "Certificate Retrieval",
+            desc: "Instant compliance document download by PIN or ID",
+            href: "/retrieval-portal",
+            icon: FileCheck2,
+            badge: "KES 20",
+          },
+          {
+            title: "Live PIN & ID Checker",
+            desc: "Real-time taxpayer registry verification engine",
+            href: "/pin-checker",
+            icon: ShieldCheck,
+            badge: "Live",
+          },
+          {
+            title: "Automated Tax Filing",
+            desc: "Nil returns & statutory submission pipeline",
+            href: "/dashboard/filing",
+            icon: Send,
+          },
+        ],
+      },
+    ],
+    footer: { label: "Launch Retrieval Portal (KES 20) →", href: "/retrieval-portal" },
   },
   {
     label: "Services",
@@ -77,18 +131,18 @@ const navData = [
     footer: { label: "All Services →", href: "/services" },
   },
   {
-    label: "Products & Tools",
+    label: "Products",
     href: "/products",
     groups: [
       {
-        heading: "In-House GovTech Suite",
+        heading: "In-House Products",
         items: [
           {
             title: "KRA Certificate Portal",
             desc: "Instant compliance certificate retrieval by ID or PIN",
             href: "/retrieval-portal",
             icon: FileCheck2,
-            badge: "Flagship",
+            badge: "KES 20",
           },
           {
             title: "Live PIN & ID Validator",
@@ -159,7 +213,7 @@ function MegaMenu({
   open,
   onClose,
 }: {
-  item: (typeof navData)[0]
+  item: NavItem
   open: boolean
   onClose: () => void
 }) {
@@ -239,7 +293,7 @@ function DesktopNavItem({
   item,
   pathname,
 }: {
-  item: (typeof navData)[0]
+  item: NavItem
   pathname: string
 }) {
   const [open, setOpen] = useState(false)
@@ -261,13 +315,18 @@ function DesktopNavItem({
     return (
       <Link
         href={item.href}
-        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
           isActive
             ? "text-primary bg-primary/10"
             : "text-on-surface hover:text-primary hover:bg-surface-container"
         }`}
       >
-        {item.label}
+        <span>{item.label}</span>
+        {item.badge && (
+          <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-primary/15 text-primary border border-primary/25">
+            {item.badge}
+          </span>
+        )}
       </Link>
     )
   }
@@ -282,9 +341,14 @@ function DesktopNavItem({
       >
         <Link
           href={item.href}
-          className="px-3 py-2 text-xs font-semibold"
+          className="px-3 py-2 text-xs font-semibold flex items-center gap-1.5"
         >
-          {item.label}
+          <span>{item.label}</span>
+          {item.badge && (
+            <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-primary/15 text-primary border border-primary/25">
+              {item.badge}
+            </span>
+          )}
         </Link>
         <button
           onClick={() => setOpen((v) => !v)}
@@ -307,7 +371,7 @@ function MobileNavSection({
   item,
   onClose,
 }: {
-  item: (typeof navData)[0]
+  item: NavItem
   onClose: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -319,7 +383,14 @@ function MobileNavSection({
         onClick={onClose}
         className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-surface-container text-sm font-bold text-on-surface"
       >
-        {item.label}
+        <div className="flex items-center gap-2">
+          <span>{item.label}</span>
+          {item.badge && (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+              {item.badge}
+            </span>
+          )}
+        </div>
         <ChevronRight className="h-4 w-4 text-on-surface-variant" />
       </Link>
     )
@@ -332,9 +403,14 @@ function MobileNavSection({
         <Link
           href={item.href}
           onClick={onClose}
-          className="flex-1 px-4 py-3.5 text-sm font-bold text-on-surface"
+          className="flex-1 px-4 py-3.5 text-sm font-bold text-on-surface flex items-center gap-2"
         >
-          {item.label}
+          <span>{item.label}</span>
+          {item.badge && (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+              {item.badge}
+            </span>
+          )}
         </Link>
         <button
           onClick={() => setExpanded((v) => !v)}
