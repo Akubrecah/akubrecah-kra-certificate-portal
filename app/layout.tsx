@@ -18,8 +18,8 @@ const alfa = Alfa_Slab_One({ weight: "400", subsets: ["latin"], variable: "--fon
 const satisfy = Satisfy({ weight: "400", subsets: ["latin"], variable: "--font-satisfy" })
 
 export const metadata = {
-  title: "Akubrecah",
-  description: "Your Professional KRA Compliance & PDF Mastery Suite. Verify KRA PINs and access 88+ powerful, private PDF tools locally in your browser.",
+  title: "Akubrecah Technologies | Premier Software Engineering & Digital Solutions",
+  description: "Bespoke full-stack web platforms, iOS & Android mobile ecosystems, cloud infrastructure, and enterprise automation systems. Home of the Akubrecah KRA Compliance & Document Suite.",
 }
 
 export default async function RootLayout({

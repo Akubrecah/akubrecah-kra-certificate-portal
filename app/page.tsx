@@ -6,16 +6,28 @@ import {
   Fingerprint, 
   ShieldCheck, 
   Zap, 
+  Laptop, 
+  Smartphone, 
+  Cloud, 
+  Layers, 
+  Code2, 
+  CheckCircle2, 
+  FileCheck2, 
+  Send, 
   Lock, 
-  LockKeyhole,
-  Briefcase,
-  FileCheck2,
-  CheckCircle2
+  Cpu, 
+  Terminal, 
+  Sparkles,
+  ExternalLink,
+  ChevronRight,
+  Database,
+  Server,
+  Workflow
 } from 'lucide-react'
 import { motion, useInView, animate } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 function Counter({ value }: { value: string }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -51,402 +63,631 @@ function Counter({ value }: { value: string }) {
 }
 
 export default function Home() {
-  const containerRef = useRef<HTMLDivElement>(null)
   const { isSignedIn, isLoaded } = useUser()
-  const [activeTab, setActiveTab] = useState<"retrieval" | "pinchecker" | "filing" | "cv">("retrieval")
+  const [activeStackTab, setActiveStackTab] = useState<"web" | "mobile" | "cloud" | "backend">("web")
+  const [inquiryType, setInquiryType] = useState<string>("Web Engineering")
+  const [inquirySent, setInquirySent] = useState(false)
+
+  const services = [
+    {
+      id: "web",
+      title: "Full-Stack Web Engineering",
+      subtitle: "High-concurrency, ultra-fast web platforms",
+      description: "We build enterprise-grade web applications utilizing Next.js, React, Node.js, and strict TypeScript. Engineered for Core Web Vitals, bulletproof reliability, and zero-compromise security.",
+      icon: Laptop,
+      features: [
+        "Server-rendered & static modern Next.js architectures",
+        "Reactive state synchronization & resilient caching",
+        "Sub-second page loads & SEO/GEO optimization",
+        "Comprehensive accessibility (WCAG 2.1 AA compliant)"
+      ],
+      tag: "Web & SaaS"
+    },
+    {
+      id: "mobile",
+      title: "Mobile Ecosystems (iOS & Android)",
+      subtitle: "Fluid native & cross-platform applications",
+      description: "From custom iOS applications in Swift to native Android and cross-platform React Native solutions. We craft mobile experiences that function offline, sync instantaneously, and delight users.",
+      icon: Smartphone,
+      features: [
+        "Universal iOS & Android release pipelines",
+        "Offline-first local persistence & automatic sync",
+        "Biometric security, Apple Pay & Google Pay hooks",
+        "Hardware sensor & background execution integration"
+      ],
+      tag: "iOS / Android"
+    },
+    {
+      id: "cloud",
+      title: "Cloud Infrastructure & DevOps",
+      subtitle: "Autonomous scalability and zero-downtime",
+      description: "Modern microservices, containerization with Docker and Kubernetes, automated CI/CD deployment pipelines, and high-availability cloud setups on AWS, GCP, and modern edge networks.",
+      icon: Cloud,
+      features: [
+        "Kubernetes & Docker container orchestration",
+        "Automated GitHub Actions / GitOps CI/CD pipelines",
+        "Infrastructure as Code (IaC) & multi-region resilience",
+        "Edge caching, CDN routing & DDoS mitigation"
+      ],
+      tag: "DevOps & Cloud"
+    },
+    {
+      id: "enterprise",
+      title: "Custom Enterprise & GovTech Systems",
+      subtitle: "Mission-critical architectures for scale",
+      description: "Purpose-built internal platforms, high-throughput financial gateways, and automated statutory data portals. Our systems process millions of automated requests with 99.99% uptime.",
+      icon: Layers,
+      features: [
+        "High-throughput transactional APIs & microservices",
+        "M-Pesa STK Push, Card & statutory payment gateways",
+        "Government registry & public service integrations",
+        "Automated audit logging & role-based access control"
+      ],
+      tag: "Enterprise"
+    }
+  ]
+
+  const inHouseTools = [
+    {
+      title: "KRA Certificate Retrieval Portal",
+      badge: "Flagship Product",
+      description: "Our in-house automated statutory retrieval engine. Retrieve official KRA PIN certificates and Compliance Certificates instantly with National ID or PIN. Instant PDF generation & automated verification.",
+      href: "/retrieval-portal",
+      icon: FileCheck2,
+      ctaText: "Launch Retrieval Portal",
+      stats: "50,000+ Certificates Issued"
+    },
+    {
+      title: "Live PIN & ID Validator",
+      badge: "GovTech Utility",
+      description: "Real-time automated taxpayer status validation, station verification, and fraud prevention gateway connecting directly with official tax registries.",
+      href: "/pin-checker",
+      icon: ShieldCheck,
+      ctaText: "Run Live PIN Check",
+      stats: "Instant Real-Time Verification"
+    },
+    {
+      title: "Automated Tax Returns Filing",
+      badge: "Compliance Engine",
+      description: "A streamlined, guided tax compliance assistant that prepares and files nil returns with automated validation checks and receipt generation.",
+      href: "/dashboard/filing",
+      icon: Send,
+      ctaText: "File Returns Online",
+      stats: "Zero-Error Compliance"
+    }
+  ]
+
+  const stackItems = {
+    web: [
+      { name: "Next.js 15 / React 19", role: "SSR, ISR & Modern Frontend Architecture" },
+      { name: "TypeScript", role: "Strict End-to-End Type Safety" },
+      { name: "Tailwind CSS & Tokens", role: "Modern Design Systems & Micro-motion" },
+      { name: "Framer Motion", role: "Hardware-Accelerated UI Interactions" }
+    ],
+    mobile: [
+      { name: "React Native", role: "Cross-Platform High-Performance Mobile" },
+      { name: "Swift / SwiftUI", role: "Native iOS Systems & Widget Extensions" },
+      { name: "Kotlin / Jetpack", role: "Native Android Engineering" },
+      { name: "SQLite / WatermelonDB", role: "Offline-First Reactive Local Stores" }
+    ],
+    cloud: [
+      { name: "Docker & Kubernetes", role: "Scalable Container Architecture" },
+      { name: "AWS & GCP Cloud", role: "High-Availability Infrastructure" },
+      { name: "GitHub Actions", role: "Continuous Integration & Automated Delivery" },
+      { name: "PostgreSQL & Redis", role: "Relational Persistence & High-Speed Cache" }
+    ],
+    backend: [
+      { name: "Node.js & Express", role: "High-Throughput Microservice APIs" },
+      { name: "Python / FastAPI", role: "Data Processing & Algorithmic Workflows" },
+      { name: "Prisma ORM", role: "Declarative & Type-Safe Database Access" },
+      { name: "M-Pesa Daraja API", role: "Seamless Mobile Payment Gateways" }
+    ]
+  }
+
+  const handleInquirySubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setInquirySent(true)
+  }
 
   return (
-    <div ref={containerRef} className="relative z-10 w-full bg-background text-on-background font-body-md pt-2 pb-8 overflow-x-hidden">
+    <div className="relative z-10 w-full bg-background text-on-background font-sans overflow-x-hidden">
       
-      {/* Background Decorative Gradients & Blobs */}
-      <div className="absolute top-0 inset-x-0 h-[400px] bg-[radial-gradient(circle_at_top,rgba(125,0,14,0.06)_0%,transparent_70%)] pointer-events-none z-0" />
-      <div className="absolute top-10 right-[15%] w-72 h-72 bg-primary/5 rounded-full filter blur-[100px] animate-blob z-0" />
-      <div className="absolute top-[30%] left-[10%] w-64 h-64 bg-[#E9A23B]/5 rounded-full filter blur-[90px] animate-blob animation-delay-2000 z-0" />
+      {/* Dynamic Background Mesh (Strictly No Purple - Red/Neutral/Warm Glow) */}
+      <div className="absolute top-0 inset-x-0 h-[650px] bg-[radial-gradient(ellipse_at_top,rgba(186,26,26,0.08)_0%,transparent_70%)] pointer-events-none z-0" />
+      <div className="absolute top-24 right-[10%] w-80 h-80 bg-primary/5 rounded-full filter blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-[40%] left-[5%] w-72 h-72 bg-neutral-900/5 dark:bg-zinc-800/20 rounded-full filter blur-[100px] pointer-events-none z-0" />
 
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="w-full flex flex-col space-y-10 md:space-y-12 py-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10"
-      >
-        {/* 01. Hero Section */}
-        <section id="hero" className="relative flex flex-col items-center text-center gap-4 pt-1 max-w-3xl mx-auto w-full">
-          <div className="space-y-3.5 max-w-2xl flex flex-col items-center">
-            
-            <h1 className="text-3xl md:text-[44px] text-on-surface leading-tight font-black tracking-tight">
-              Manage Your KRA Obligations <br />
-              <span className="text-primary bg-gradient-to-r from-primary to-[#BA1A1A] bg-clip-text text-transparent">
-                Instantly & Securely.
+      {/* Main Content Wrapper */}
+      <div className="w-full flex flex-col space-y-20 md:space-y-28 py-6 md:py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* ========================================================= */}
+        {/* 01. HERO SECTION                                          */}
+        {/* ========================================================= */}
+        <section id="hero" className="pt-6 md:pt-12 text-center max-w-4xl mx-auto space-y-6">
+          
+          {/* Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-xs font-semibold text-on-surface shadow-xs animate-in fade-in duration-500">
+            <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
+            <span className="text-primary font-bold">Akubrecah Technologies</span>
+            <span className="text-outline-muted">|</span>
+            <span className="text-on-surface-variant">Full-Cycle Software Engineering Firm</span>
+          </div>
+
+          {/* Master Headline */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tight leading-[1.12]">
+            Architecting Resilient <br className="hidden sm:inline" />
+            <span className="text-primary bg-gradient-to-r from-primary via-red-600 to-[#900010] bg-clip-text text-transparent">
+              Web, Mobile & Cloud Systems.
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
+            We build high-performance web applications, native iOS & Android platforms, scalable cloud infrastructure, 
+            and mission-critical automated tools. Home of East Africa&apos;s leading KRA compliance automation suite.
+          </p>
+
+          {/* Primary Action Group */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4 max-w-md mx-auto w-full">
+            <Link href="#contact" className="w-full sm:w-auto flex-1">
+              <Button size="lg" className="w-full h-12 px-6 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/95 shadow-md shadow-primary/20 flex items-center justify-center gap-2 group">
+                <span>Start a Project</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+
+            <Link href="#in-house-products" className="w-full sm:w-auto flex-1">
+              <Button variant="outline" size="lg" className="w-full h-12 px-6 rounded-xl border-outline-variant font-bold text-sm hover:bg-surface-container flex items-center justify-center gap-2">
+                <FileCheck2 className="h-4 w-4 text-primary" />
+                <span>In-House Products</span>
+              </Button>
+            </Link>
+          </div>
+
+          {/* Live Trust Metrics Strip */}
+          <div className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto border-t border-outline-variant/60">
+            <div className="flex flex-col items-center p-3">
+              <span className="text-2xl sm:text-3xl font-black text-on-surface">
+                <Counter value="99.98%" />
               </span>
-            </h1>
-            
-            <p className="text-sm md:text-base text-on-surface-variant max-w-lg text-center leading-relaxed">
-              Fast KRA PIN retrieval, Compliance Certificate downloads, simplified Nil returns filing, and professional resume building.
-            </p>
+              <span className="text-xs text-on-surface-variant mt-0.5">Uptime SLA</span>
+            </div>
+            <div className="flex flex-col items-center p-3">
+              <span className="text-2xl sm:text-3xl font-black text-on-surface">
+                <Counter value="120k+" />
+              </span>
+              <span className="text-xs text-on-surface-variant mt-0.5">Automated Queries</span>
+            </div>
+            <div className="flex flex-col items-center p-3">
+              <span className="text-2xl sm:text-3xl font-black text-on-surface">
+                <Counter value="100%" />
+              </span>
+              <span className="text-xs text-on-surface-variant mt-0.5">Type-Safe Stack</span>
+            </div>
+            <div className="flex flex-col items-center p-3">
+              <span className="text-2xl sm:text-3xl font-black text-on-surface">
+                <Counter value="24/7" />
+              </span>
+              <span className="text-xs text-on-surface-variant mt-0.5">Monitoring & Guard</span>
+            </div>
+          </div>
+        </section>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full max-w-lg">
-              <Link href="/retrieval-portal" className="w-full sm:flex-1">
-                <button className="w-full bg-primary text-white font-bold h-11 px-5 rounded-xl hover:bg-primary/95 hover:scale-[1.01] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-md shadow-primary/20 text-sm">
-                  <Fingerprint className="h-4 w-4" />
-                  Certificate Portal (ID / PIN)
+
+        {/* ========================================================= */}
+        {/* 02. IN-HOUSE PRODUCTS: KRA SUITE HIGHLIGHT                */}
+        {/* ========================================================= */}
+        <section id="in-house-products" className="space-y-8 scroll-mt-24">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant pb-6">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
+                <Sparkles className="h-4 w-4" />
+                <span>Featured In-House Systems</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
+                Battle-Tested Statutory Automation Suite
+              </h2>
+              <p className="text-sm text-on-surface-variant max-w-xl mt-1">
+                Our in-house products demonstrate the precision of our engineering. Used daily by thousands for instant, verified tax compliance.
+              </p>
+            </div>
+            {isLoaded && isSignedIn ? (
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl text-xs font-bold gap-2">
+                  <span>Launch Client Console</span>
                   <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </Link>
-              <Link href="/pin-checker" className="w-full sm:flex-1">
-                <button className="w-full bg-surface-container-lowest border border-red-500/30 hover:border-red-500 text-red-600 dark:text-red-400 font-bold h-11 px-5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-all flex justify-center items-center gap-2 shadow-sm text-sm">
-                  <ShieldCheck className="h-4 w-4" />
-                  Live PIN & ID Checker
-                </button>
+            ) : (
+              <Link href="/sign-up">
+                <Button size="sm" className="h-10 px-4 rounded-xl bg-primary text-white text-xs font-bold gap-2">
+                  <span>Create Account</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
               </Link>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {inHouseTools.map((tool) => {
+              const Icon = tool.icon
+              return (
+                <div
+                  key={tool.title}
+                  className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant hover:border-primary/50 transition-all duration-300 shadow-soft hover:shadow-xl flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+                        {tool.badge}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">
+                        {tool.title}
+                      </h3>
+                      <p className="text-xs text-on-surface-variant leading-relaxed">
+                        {tool.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-4 border-t border-outline-variant/60 space-y-3">
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+                      ✓ {tool.stats}
+                    </span>
+                    <Link href={tool.href} className="block">
+                      <Button className="w-full h-10 rounded-xl bg-surface-container-high hover:bg-primary text-on-surface hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 group-hover:bg-primary group-hover:text-white">
+                        <span>{tool.ctaText}</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+
+        {/* ========================================================= */}
+        {/* 03. FULL-CYCLE SOFTWARE ENGINEERING SERVICES              */}
+        {/* ========================================================= */}
+        <section id="services" className="space-y-10 scroll-mt-24">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              Capabilities & Offerings
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+              From Concept to Scaled Production
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              We design, build, and maintain digital products that withstand heavy user loads, stringent security standards, and rapid scaling.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {services.map((service) => {
+              const Icon = service.icon
+              return (
+                <div
+                  key={service.id}
+                  className="p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all duration-300 shadow-soft flex flex-col justify-between"
+                >
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3.5 rounded-2xl bg-surface-container text-primary">
+                        <Icon className="h-7 w-7" />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-primary px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                        {service.tag}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl font-bold text-on-surface">
+                        {service.title}
+                      </h3>
+                      <p className="text-xs font-semibold text-primary">
+                        {service.subtitle}
+                      </p>
+                      <p className="text-xs text-on-surface-variant leading-relaxed pt-1">
+                        {service.description}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      {service.features.map((feat, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs text-on-surface">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-6 border-t border-outline-variant/60">
+                    <Link href="#contact" className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline">
+                      <span>Request consultation on {service.title}</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+
+        {/* ========================================================= */}
+        {/* 04. ENGINEERING METHODOLOGY / PROCESS                     */}
+        {/* ========================================================= */}
+        <section id="process" className="p-8 sm:p-12 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-8 scroll-mt-24">
+          <div className="max-w-xl space-y-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              Execution Discipline
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
+              How We Deliver Software
+            </h2>
+            <p className="text-xs text-on-surface-variant">
+              Every project follows our 5-phase engineering methodology to eliminate bottlenecks and guarantee reliability.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-5 rounded-2xl bg-surface-container border border-outline-variant space-y-2.5">
+              <span className="text-xs font-mono font-black text-primary">01 / ARCHITECT</span>
+              <h4 className="text-sm font-bold text-on-surface">System Architecture</h4>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Requirements scoping, API contracts, schema models, and security boundary definition before touching code.
+              </p>
             </div>
+
+            <div className="p-5 rounded-2xl bg-surface-container border border-outline-variant space-y-2.5">
+              <span className="text-xs font-mono font-black text-primary">02 / BUILD</span>
+              <h4 className="text-sm font-bold text-on-surface">Vertical Slice Sprints</h4>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Clean, end-to-end features delivered incrementally — UI, business logic, persistence, and verification.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-surface-container border border-outline-variant space-y-2.5">
+              <span className="text-xs font-mono font-black text-primary">03 / AUDIT</span>
+              <h4 className="text-sm font-bold text-on-surface">Rigorous Testing & QA</h4>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Automated type-checking, linter validation, integration tests, and OWASP security vulnerability reviews.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-surface-container border border-outline-variant space-y-2.5">
+              <span className="text-xs font-mono font-black text-primary">04 / DEPLOY</span>
+              <h4 className="text-sm font-bold text-on-surface">Zero-Downtime Rollout</h4>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Edge deployment, blue-green releases, health telemetry, and ongoing performance profiling.
+              </p>
+            </div>
+          </div>
+        </section>
+
+
+        {/* ========================================================= */}
+        {/* 05. TECHNOLOGY STACK MATRIX                               */}
+        {/* ========================================================= */}
+        <section id="stack" className="space-y-6 scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                Our Toolchain
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
+                Production-Grade Technologies
+              </h2>
+            </div>
+
+            {/* Tab switchers */}
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-container border border-outline-variant text-xs font-bold">
+              {(["web", "mobile", "cloud", "backend"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveStackTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg capitalize transition-colors ${
+                    activeStackTab === tab
+                      ? "bg-surface-container-lowest text-primary shadow-xs"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stackItems[activeStackTab].map((tech) => (
+              <div
+                key={tech.name}
+                className="p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-sm font-bold text-on-surface">{tech.name}</span>
+                </div>
+                <p className="text-xs text-on-surface-variant">{tech.role}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+
+        {/* ========================================================= */}
+        {/* 06. SOLUTIONS & INDUSTRIES                                */}
+        {/* ========================================================= */}
+        <section id="solutions" className="space-y-8 scroll-mt-24">
+          <div className="max-w-2xl space-y-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              Specialized Domains
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
+              Tailored for Complex Business Environments
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant space-y-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-primary/10 text-primary">Fintech & Payments</span>
+              <h3 className="text-lg font-bold text-on-surface">Automated Financial Workflows</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                M-Pesa STK Push integrations, multi-currency ledger engines, automated payment callbacks, and automated reconciliations with bank statements.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant space-y-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-primary/10 text-primary">GovTech & Public Portals</span>
+              <h3 className="text-lg font-bold text-on-surface">Statutory & Identity Platforms</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Government registry gateways, National ID verification, automated certificate generation, and secure document storage adhering to Kenyan data privacy standards.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant space-y-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-primary/10 text-primary">Enterprise Workflows</span>
+              <h3 className="text-lg font-bold text-on-surface">Digitized Business Operations</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Replacing sluggish manual paperwork with real-time web & mobile portals, automated PDF document generation, and custom role-based dashboards.
+              </p>
+            </div>
+          </div>
+        </section>
+
+
+        {/* ========================================================= */}
+        {/* 07. INTERACTIVE PROJECT INQUIRY / CONTACT                */}
+        {/* ========================================================= */}
+        <section id="contact" className="p-8 sm:p-12 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft scroll-mt-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             
-            <div className="flex flex-wrap items-center justify-center gap-5 pt-1.5 text-xs text-on-surface-variant font-medium">
-              <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-primary" /> 100% Secure SSL
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Direct iTax Integration
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-primary" /> Instant PDF download
+            <div className="space-y-4">
+              <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                Get in Touch
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                Let&apos;s Build Your Next Engineering Breakthrough.
+              </h2>
+              <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+                Whether you need a dedicated development team for a full-scale web/mobile platform, a custom GovTech integration, or enterprise cloud migration — Akubrecah Technologies brings unmatched engineering rigor.
+              </p>
+
+              <div className="pt-2 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-on-surface">Direct access to senior software architects</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-on-surface">Detailed technical architecture proposals within 48 hours</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-on-surface">Proven production track record in East Africa</span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* 02. Detailed Services Showcase (Tabs layout) */}
-        <section id="services" className="space-y-6">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <h2 className="font-headline-lg text-3xl font-black text-on-surface tracking-tight">
-              One Consolidated Obligation Portal
-            </h2>
-            <p className="text-on-surface-variant text-base">
-              Say goodbye to navigating slow government website forms. Get everything done securely in three distinct browser modules.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-              {[
-                { id: "retrieval", label: "PIN Retrieval", icon: Fingerprint },
-                { id: "pinchecker", label: "Live PIN Checker", icon: ShieldCheck },
-                { id: "filing", label: "Filing Assistant", icon: FileCheck2 },
-                { id: "cv", label: "Professional CV Builder", icon: Briefcase }
-              ].map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold border transition-all duration-200",
-                      activeTab === tab.id 
-                        ? "bg-primary text-white border-primary shadow-md shadow-primary/10" 
-                        : "bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:bg-surface-container"
-                    )}
+            {/* Interactive Form Card */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-surface-container border border-outline-variant">
+              {inquirySent ? (
+                <div className="text-center py-10 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface">Consultation Request Received</h3>
+                  <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
+                    Thank you! Our engineering lead will review your project requirements and contact you within 24 business hours.
+                  </p>
+                  <Button
+                    onClick={() => setInquirySent(false)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs rounded-xl"
                   >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    Submit Another Inquiry
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleInquirySubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-on-surface">Project Domain</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        "Web Engineering", 
+                        "Mobile App (iOS/Android)", 
+                        "Cloud & DevOps", 
+                        "GovTech / Statutory"
+                      ].map((type) => (
+                        <button
+                          type="button"
+                          key={type}
+                          onClick={() => setInquiryType(type)}
+                          className={`p-2 rounded-xl text-left text-xs font-semibold border transition-all ${
+                            inquiryType === type
+                              ? "bg-primary text-white border-primary shadow-xs"
+                              : "bg-surface-container-lowest text-on-surface border-outline-variant hover:border-primary/50"
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* Dynamic Details Content for Selected Service */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 md:p-8 shadow-soft transition-shadow duration-300">
-            {activeTab === "retrieval" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                    <Fingerprint className="w-6 h-6" />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-on-surface">Your Name & Organization</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Kelvin Mutua — Tech Lead at Alpha Corp"
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-lowest border border-outline-variant text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold text-on-surface font-headline-md">
-                    KRA PIN Verification & PDF Retrieval
-                  </h3>
-                  <p className="text-on-surface-variant text-base leading-relaxed">
-                    Easily search your taxpayer credentials using your National ID or PIN. The system connects to the iTax Pin Checker endpoint using randomized user-agent strings and premium proxy endpoints, resolving details and downloading the PDF compliance certificate directly inside the browser.
-                  </p>
-                  <ul className="space-y-3.5 text-sm text-on-surface">
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Determine obligations, registration dates, and stations automatically.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Automated captcha solving through low-latency OCR scripts.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Generate and download clean, verified KRA PDF certificates instantly.</span>
-                    </li>
-                  </ul>
-                  <div className="pt-2">
-                    <Link href="/retrieval-portal">
-                      <button className="bg-primary text-white font-bold py-2.5 px-6 rounded-xl hover:bg-primary/95 transition-colors flex items-center gap-2">
-                        Open Retrieval Portal <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-surface rounded-2xl p-6 border border-outline-variant space-y-4">
-                  <h4 className="font-bold text-on-surface text-sm uppercase tracking-wide">Portal Status Checker</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">KRA iTax Server</span>
-                      <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full">Operational</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">Verification Engine</span>
-                      <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full">99.9% Uptime</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">Avg Retrieval Speed</span>
-                      <span className="text-xs font-bold text-on-surface-variant">28 seconds</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {activeTab === "pinchecker" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                  <div className="w-12 h-12 bg-red-600/10 rounded-xl flex items-center justify-center text-red-600">
-                    <ShieldCheck className="w-6 h-6" />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-on-surface">Work Email or Phone</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. kelvin@company.com or +254 7..."
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-lowest border border-outline-variant text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold text-on-surface font-headline-md">
-                    Official Live KRA PIN & ID Status Checker
-                  </h3>
-                  <p className="text-on-surface-variant text-base leading-relaxed">
-                    Verify any Kenyan National ID or KRA PIN in real-time through the official KRA API Gateway and Direct Web Remoting (DWR) protocol. Instantly review taxpayer names, obligations, station, exact registration dates, and location details.
-                  </p>
-                  <ul className="space-y-3.5 text-sm text-on-surface">
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
-                      </div>
-                      <span>Instant OAuth2 live gateway queries without CAPTCHA friction.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
-                      </div>
-                      <span>Flexible engine switcher: Live API, DWR, or Auto Best-Match.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-red-600/15 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
-                      </div>
-                      <span>Print verification summaries and copy details with one click.</span>
-                    </li>
-                  </ul>
-                  <div className="pt-2">
-                    <Link href="/pin-checker">
-                      <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2">
-                        Open Live PIN Checker <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-surface rounded-2xl p-6 border border-outline-variant space-y-4">
-                  <h4 className="font-bold text-on-surface text-sm uppercase tracking-wide">Live Gateway Metrics</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">KRA API Gateway</span>
-                      <span className="px-2.5 py-0.5 bg-emerald-600/10 text-emerald-600 text-xs font-bold rounded-full">Connected (Live)</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">DWR Remoting Engine</span>
-                      <span className="px-2.5 py-0.5 bg-emerald-600/10 text-emerald-600 text-xs font-bold rounded-full">Active</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/60">
-                      <span className="text-sm font-medium text-on-surface">Verification Response Time</span>
-                      <span className="text-xs font-bold text-on-surface-variant">&lt; 1.2s</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {activeTab === "filing" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                    <FileCheck2 className="w-6 h-6" />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-on-surface">Brief Project Requirements</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Tell us what you want to build, key objectives, or timeline..."
+                      className="w-full p-3 rounded-xl bg-surface-container-lowest border border-outline-variant text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold text-on-surface font-headline-md">
-                    Automated Nil Returns Filing
-                  </h3>
-                  <p className="text-on-surface-variant text-base leading-relaxed">
-                    Filing Nil returns shouldn't take half an hour of your day. Our filing assistant automates the login and submissions process, submitting your Nil return to the iTax system with a single click.
-                  </p>
-                  <ul className="space-y-3.5 text-sm text-on-surface">
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>No need to navigate complex multi-page iTax questionnaire tabs.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Auto-detects tax obligations (e.g. Resident Individual).</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Download the official KRA filing receipt immediately on completion.</span>
-                    </li>
-                  </ul>
-                  <div className="pt-2">
-                    <Link href="/dashboard/filing">
-                      <button className="bg-primary text-white font-bold py-2.5 px-6 rounded-xl hover:bg-primary/95 transition-colors flex items-center gap-2">
-                        Start Filing Return <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-surface rounded-2xl p-6 border border-outline-variant space-y-4">
-                  <h4 className="font-bold text-on-surface text-sm uppercase tracking-wide">Filing Steps Flow</h4>
-                  <div className="space-y-3 text-xs">
-                    <div className="flex gap-3 p-3 bg-surface-container-lowest border border-outline-variant/60 rounded-xl">
-                      <div className="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold">1</div>
-                      <div>
-                        <p className="font-bold text-on-surface">Obligation Match</p>
-                        <p className="text-on-surface-variant mt-0.5">The system cross-references active obligations on your PIN details.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 bg-surface-container-lowest border border-outline-variant/60 rounded-xl">
-                      <div className="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold">2</div>
-                      <div>
-                        <p className="font-bold text-on-surface">Auto-fill & Submit</p>
-                        <p className="text-on-surface-variant mt-0.5">Fills KRA's form details programmatically via local secure workers.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 bg-surface-container-lowest border border-outline-variant/60 rounded-xl">
-                      <div className="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold">3</div>
-                      <div>
-                        <p className="font-bold text-on-surface">Download Receipt</p>
-                        <p className="text-on-surface-variant mt-0.5">Fetches and saves the official confirmation PDF to your device.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {activeTab === "cv" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                    <Briefcase className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-on-surface font-headline-md">
-                    Professional CV Builder
-                  </h3>
-                  <p className="text-on-surface-variant text-base leading-relaxed">
-                    Build resume layouts designed to pass Applicant Tracking Systems (ATS). Our interactive CV Builder lets you enter your education, experiences, skills, and projects, formatting them into a premium PDF design instantly.
-                  </p>
-                  <ul className="space-y-3.5 text-sm text-on-surface">
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>ATS-friendly layouts that ensure scanner readability.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Dynamic live preview to check spacing and layouts on the fly.</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 dark:bg-primary/25 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>Instant browser-side compilation (zero data logs on servers).</span>
-                    </li>
-                  </ul>
-                  <div className="pt-2">
-                    <Link href="/dashboard/cv-builder">
-                      <button className="bg-primary text-white font-bold py-2.5 px-6 rounded-xl hover:bg-primary/95 transition-colors flex items-center gap-2">
-                        Open CV Builder <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-surface rounded-2xl p-6 border border-outline-variant space-y-4">
-                  <h4 className="font-bold text-on-surface text-sm uppercase tracking-wide">Available Templates</h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between p-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg">
-                      <span className="font-medium text-on-surface">Executive Minimalist</span>
-                      <span className="text-[10px] font-bold text-primary uppercase">ATS Optimized</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg">
-                      <span className="font-medium text-on-surface">Tech Innovator</span>
-                      <span className="text-[10px] font-bold text-primary uppercase">Modern Classic</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg">
-                      <span className="font-medium text-on-surface">Creative Compact</span>
-                      <span className="text-[10px] font-bold text-zinc-500">2-Column</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* 03. Call to Action Banner */}
-        <section id="cta" className="relative bg-gradient-to-r from-primary to-primary-container text-white p-6 md:p-10 rounded-2xl overflow-hidden shadow-lg max-w-4xl mx-auto w-full text-center">
-          <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] pointer-events-none" />
-          <div className="relative z-10 max-w-xl mx-auto space-y-4">
-            <h2 className="text-2xl md:text-3xl font-black leading-tight tracking-tight">
-              Ready to Secure Your Tax Documents?
-            </h2>
-            <p className="text-white/80 max-w-lg mx-auto text-base">
-              Get instant compliance checks, check active obligations, build resumes, and file your tax returns automatically in a couple of clicks.
-            </p>
-            <div className="pt-2">
-              {isLoaded && isSignedIn ? (
-                <Link href="/dashboard">
-                  <button className="bg-white text-primary font-bold py-3.5 px-8 rounded-xl hover:bg-neutral-50 hover:scale-[1.02] active:scale-[0.98] transition-all inline-flex items-center gap-2 shadow-lg shadow-black/10">
-                    Go to Your Dashboard <ArrowRight className="w-4.5 h-4.5" />
-                  </button>
-                </Link>
-              ) : isLoaded && (
-                <Link href="/sign-up">
-                  <button className="bg-white text-primary font-bold py-3.5 px-8 rounded-xl hover:bg-neutral-50 hover:scale-[1.02] active:scale-[0.98] transition-all inline-flex items-center gap-2 shadow-lg shadow-black/10">
-                    Create an Account <ArrowRight className="w-4.5 h-4.5" />
-                  </button>
-                </Link>
+                  <Button
+                    type="submit"
+                    className="w-full h-11 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary/95 shadow-md shadow-primary/20"
+                  >
+                    Send Engineering Inquiry &rarr;
+                  </Button>
+                </form>
               )}
             </div>
+
           </div>
         </section>
 
-        {/* 04. Security Certifications Banner */}
-        <section className="max-w-4xl mx-auto w-full px-4 text-center pb-8">
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 hover:opacity-90 transition-all duration-300">
-            <div className="flex items-center gap-2 font-bold text-sm text-on-surface">
-              <LockKeyhole className="w-5 h-5 text-primary" /> End-to-End SSL Encryption
-            </div>
-            <div className="flex items-center gap-2 font-bold text-sm text-on-surface">
-              <ShieldCheck className="w-5 h-5 text-primary" /> KRA Compliance Audited
-            </div>
-            <div className="flex items-center gap-2 font-bold text-sm text-on-surface">
-              <Zap className="w-5 h-5 text-primary" /> Real-time Calculation & Verification
-            </div>
-          </div>
-        </section>
-
-      </motion.div>
+      </div>
     </div>
   )
 }
