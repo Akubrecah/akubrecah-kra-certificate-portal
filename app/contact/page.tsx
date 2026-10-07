@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { Send, MapPin, Mail, Clock, MessageSquare, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Send, MapPin, Mail, Clock, MessageSquare, ArrowRight, CheckCircle2, Shield, Lock, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,170 +10,218 @@ import { Textarea } from "@/components/ui/textarea"
 type FormState = "idle" | "submitting" | "success"
 
 const projectTypes = [
-  "Web Platform / SaaS", "Mobile App (iOS/Android)",
-  "Cloud Infrastructure", "Enterprise System",
-  "Government / GovTech Portal", "Fintech / Payment Integration",
-  "M-Pesa / KRA API Integration", "Other",
+  "Web Application / Scalable SaaS",
+  "Mobile App (iOS / Android / React Native)",
+  "Cloud Infrastructure & DevOps",
+  "Enterprise & Internal System",
+  "Government / GovTech Compliance Portal",
+  "Fintech & M-Pesa / Card Gateway Integration",
+  "Custom In-House Product Licensing",
+  "Other Engineering Consultation",
 ]
 
 const budgetRanges = [
-  "Under KES 500K", "KES 500K – 2M", "KES 2M – 5M",
-  "KES 5M – 15M", "KES 15M+", "Let's discuss",
+  "Under KES 500,000",
+  "KES 500,000 – KES 2,000,000",
+  "KES 2,000,000 – KES 5,000,000",
+  "KES 5,000,000 – KES 15,000,000",
+  "KES 15,000,000+",
+  "Flexible / Not Yet Determined",
+]
+
+const engagementHighlights = [
+  {
+    icon: Shield,
+    title: "Non-Disclosure by Default",
+    desc: "Every discussion is protected under our standard enterprise NDA. Your proprietary requirements and data remain strictly confidential.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Direct Engineer Access",
+    desc: "No sales commission runarounds. You converse directly with senior architects who will be designing and building your product.",
+  },
+  {
+    icon: Zap,
+    title: "Transparent Scoping",
+    desc: "We provide itemized deliverables, defined milestones, fixed timelines, and measurable success criteria upfront.",
+  },
 ]
 
 export default function ContactPage() {
   const [form, setForm] = useState({
-    name: "", email: "", company: "", phone: "",
-    projectType: "", budget: "", message: "",
+    name: "",
+    email: "",
+    company: "",
+    phone: "",
+    projectType: "",
+    budget: "",
+    message: "",
   })
   const [formState, setFormState] = useState<FormState>("idle")
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setFormState("submitting")
-    await new Promise(r => setTimeout(r, 1500))
+    await new Promise((r) => setTimeout(r, 1200))
     setFormState("success")
   }
 
   return (
     <div className="min-h-screen bg-background text-on-background">
 
-      {/* ── HERO: Stark dark editorial ── */}
-      <section className="bg-on-surface dark:bg-[#0d0d0d] text-surface dark:text-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 space-y-6">
-          <nav className="flex items-center gap-2 text-xs text-surface/40 dark:text-white/40">
+      {/* Page Hero - Matching Products Design */}
+      <div className="bg-surface-container-lowest border-b border-outline-variant">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 space-y-6">
+          <nav className="flex items-center gap-2 text-xs text-on-surface-variant">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <span>/</span>
-            <span>Contact</span>
+            <span className="text-on-surface font-semibold">Contact & Engagement</span>
           </nav>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-5"
-          >
-            <p className="text-xs font-black text-primary uppercase tracking-[0.3em]">Start a Project</p>
-            <h1 className="text-[clamp(2.5rem,8vw,6rem)] font-black leading-[0.93] tracking-tight">
+          <div className="max-w-3xl space-y-4">
+            <span className="text-xs font-black text-primary uppercase tracking-widest">Start a Project</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tight leading-tight">
               Let&apos;s Build<br />
-              <span className="text-primary">Something</span><br />
-              Great.
+              <span className="text-primary">Something Exceptional.</span>
             </h1>
-            <p className="text-sm text-surface/60 dark:text-white/50 max-w-lg leading-relaxed border-l-2 border-primary pl-4">
-              Our senior engineers review every brief and respond within 24 hours with a proposed 
-              approach and timeline — no automated replies.
+            <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl leading-relaxed">
+              Have an upcoming product launch, enterprise modernization need, or statutory integration? 
+              Our principal engineers review every brief and reply within 24 hours with actionable technical guidance.
             </p>
-          </motion.div>
+          </div>
         </div>
-        <div className="absolute bottom-0 inset-x-0 h-px bg-primary/30" />
-      </section>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 space-y-20">
 
-          {/* Left: Info (2 cols) */}
-          <div className="lg:col-span-2 space-y-10">
+        {/* Main Contact Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
 
-            <div className="space-y-5">
-              {[
-                { icon: MapPin, label: "Location", value: "Nairobi, Kenya\nEast Africa Hub" },
-                { icon: Mail, label: "Email", value: "engineering@akubrecah.com", isEmail: true },
-                { icon: Clock, label: "Response Time", value: "Within 24h on business days.\nPriority for enterprise inquiries." },
-                { icon: MessageSquare, label: "Free Discovery Call", value: "30-min architecture scoping call with a senior engineer — no cost." },
-              ].map(({ icon: Icon, label, value, isEmail }) => (
-                <div key={label} className="flex items-start gap-4 border-b border-outline-variant pb-5">
-                  <div className="p-2 border border-outline-variant text-primary shrink-0">
-                    <Icon className="h-4 w-4" />
+          {/* Left Column: Contact Info & Value Prop (2 cols) */}
+          <div className="lg:col-span-2 space-y-8">
+
+            {/* Office & Direct Info Card */}
+            <div className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-6">
+              <h4 className="text-xs font-black uppercase tracking-widest text-on-surface-variant">Engineering Headquarters</h4>
+              
+              <div className="space-y-4">
+                {[
+                  { icon: MapPin, label: "Location", value: "Nairobi, Kenya\nEast Africa Tech Hub" },
+                  { icon: Mail, label: "Email", value: "engineering@akubrecah.com", isLink: true, href: "mailto:engineering@akubrecah.com" },
+                  { icon: Clock, label: "Office Hours", value: "Monday – Friday: 08:00 – 18:00 EAT\n24/7 Monitoring for Enterprise SLAs" },
+                  { icon: MessageSquare, label: "Discovery Consultation", value: "Free 30-min architecture scoping call with our lead engineers" },
+                ].map(({ icon: Icon, label, value, isLink, href }) => (
+                  <div key={label} className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-surface-container">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant block">{label}</span>
+                      {isLink && href ? (
+                        <a href={href} className="text-xs sm:text-sm font-bold text-primary hover:underline mt-0.5 block">
+                          {value}
+                        </a>
+                      ) : (
+                        <p className="text-xs font-bold text-on-surface whitespace-pre-line mt-0.5">{value}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-black text-on-surface-variant uppercase tracking-widest mb-1">{label}</p>
-                    {isEmail ? (
-                      <a href={`mailto:${value}`} className="text-sm font-bold text-primary hover:underline">{value}</a>
-                    ) : (
-                      <p className="text-xs text-on-surface whitespace-pre-line leading-relaxed">{value}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold pt-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Engineering Availability: Open for New Projects
+              </div>
             </div>
 
-            {/* What happens next */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-on-surface uppercase tracking-widest">What Happens Next</h3>
-              <div className="space-y-0 border border-outline-variant">
+            {/* What Happens Next Card */}
+            <div className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-widest text-on-surface-variant">What to Expect</h4>
+              <div className="space-y-3">
                 {[
-                  { num: "01", text: "We review your brief within 24h" },
-                  { num: "02", text: "Senior engineer contacts you" },
-                  { num: "03", text: "We send scope doc & timeline" },
-                  { num: "04", text: "Project kickoff on agreement" },
+                  { num: "01", text: "We review your brief within 24 hours" },
+                  { num: "02", text: "Senior engineer coordinates a technical discovery call" },
+                  { num: "03", text: "We deliver an architecture plan, timeline & cost estimate" },
+                  { num: "04", text: "Sprint kickoff with clear milestones and access credentials" },
                 ].map((step) => (
-                  <div key={step.num} className="flex items-center gap-4 px-4 py-3 border-b border-outline-variant last:border-b-0">
-                    <span className="font-mono font-black text-primary text-xs w-6 shrink-0">{step.num}</span>
-                    <span className="text-xs text-on-surface">{step.text}</span>
+                  <div key={step.num} className="flex items-center gap-3 text-xs text-on-surface">
+                    <span className="font-mono font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10 text-[11px] shrink-0">
+                      {step.num}
+                    </span>
+                    <span>{step.text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Live Tools quick-links */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-black text-on-surface-variant uppercase tracking-widest">Live Tools</h3>
-              {[
-                { label: "KRA Certificate Portal", href: "/retrieval-portal" },
-                { label: "PIN & ID Validator", href: "/pin-checker" },
-                { label: "Tax Filing Portal", href: "/dashboard/filing" },
-              ].map((tool) => (
-                <Link
-                  key={tool.label}
-                  href={tool.href}
-                  className="flex items-center justify-between py-2.5 border-b border-outline-variant text-xs font-bold text-on-surface hover:text-primary transition-colors group"
-                >
-                  {tool.label}
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              ))}
+            {/* Quick Link to In-House Tools */}
+            <div className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-widest text-on-surface-variant">Looking For Our Live Tools?</h4>
+              <div className="space-y-2">
+                {[
+                  { name: "KRA Certificate Retrieval Portal", href: "/retrieval-portal" },
+                  { name: "Live PIN & National ID Validator", href: "/pin-checker" },
+                  { name: "Automated Tax Returns Filing", href: "/dashboard/filing" },
+                ].map((tool) => (
+                  <Link
+                    key={tool.name}
+                    href={tool.href}
+                    className="flex items-center justify-between p-3 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary transition-colors text-xs font-bold text-on-surface group"
+                  >
+                    <span>{tool.name}</span>
+                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                ))}
+              </div>
             </div>
+
           </div>
 
-          {/* Right: Form (3 cols) */}
+          {/* Right Column: Brief Form (3 cols) */}
           <div className="lg:col-span-3">
             {formState === "success" ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex flex-col items-center justify-center text-center py-20 space-y-5 border border-outline-variant"
-              >
-                <div className="p-4 border-2 border-emerald-500 text-emerald-600">
-                  <CheckCircle2 className="h-10 w-10" />
+              <div className="p-10 sm:p-14 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft text-center space-y-6">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h2 className="text-3xl font-black text-on-surface">Brief Received.</h2>
-                <p className="text-sm text-on-surface-variant max-w-sm leading-relaxed">
-                  Our engineering team will review your submission and contact you within 24 business hours.
-                </p>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-on-surface">Brief Received Successfully!</h3>
+                  <p className="text-sm text-on-surface-variant max-w-md mx-auto leading-relaxed">
+                    Thank you for reaching out. Our engineering team is currently reviewing your project details and will be in touch within 24 business hours.
+                  </p>
+                </div>
                 <Button
-                  className="h-11 px-7 rounded-none bg-primary text-white font-black text-sm"
-                  onClick={() => { setFormState("idle"); setForm({ name: "", email: "", company: "", phone: "", projectType: "", budget: "", message: "" }) }}
+                  className="h-11 px-7 rounded-xl bg-primary text-white font-bold text-xs"
+                  onClick={() => {
+                    setFormState("idle")
+                    setForm({ name: "", email: "", company: "", phone: "", projectType: "", budget: "", message: "" })
+                  }}
                 >
-                  Send Another Brief
+                  Submit Another Inquiry
                 </Button>
-              </motion.div>
+              </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6 border border-outline-variant p-8 sm:p-10">
-                <h2 className="text-2xl font-black text-on-surface">Project Brief</h2>
+              <form onSubmit={handleSubmit} className="p-8 sm:p-10 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-6">
+                <div>
+                  <h2 className="text-2xl font-black text-on-surface">Submit Project Brief</h2>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Provide as much context as possible to help us prepare a relevant architectural proposal.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { id: "name", label: "Full Name *", placeholder: "John Kamau", type: "text", required: true },
-                    { id: "email", label: "Email *", placeholder: "john@company.com", type: "email", required: true },
-                    { id: "company", label: "Company", placeholder: "Acme Corp Ltd", type: "text", required: false },
-                    { id: "phone", label: "Phone", placeholder: "+254 7XX XXX XXX", type: "tel", required: false },
+                    { id: "name", label: "Full Name *", placeholder: "e.g. Brian Ochieng", type: "text", required: true },
+                    { id: "email", label: "Work Email *", placeholder: "brian@company.com", type: "email", required: true },
+                    { id: "company", label: "Organization / Company", placeholder: "Acme Enterprises Ltd", type: "text", required: false },
+                    { id: "phone", label: "Phone Number", placeholder: "+254 7XX XXX XXX", type: "tel", required: false },
                   ].map((field) => (
                     <div key={field.id} className="space-y-1.5">
-                      <label htmlFor={field.id} className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
+                      <label htmlFor={field.id} className="text-xs font-bold text-on-surface">
                         {field.label}
                       </label>
                       <Input
@@ -185,39 +232,54 @@ export default function ContactPage() {
                         onChange={handleChange}
                         required={field.required}
                         placeholder={field.placeholder}
-                        className="h-11 rounded-none border-outline-variant bg-surface-container text-sm focus-visible:ring-primary"
+                        className="h-11 rounded-xl border border-outline-variant bg-surface-container text-xs text-on-surface focus-visible:ring-primary"
                       />
                     </div>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[
-                    { id: "projectType", label: "Project Type *", options: projectTypes, required: true },
-                    { id: "budget", label: "Estimated Budget", options: budgetRanges, required: false },
-                  ].map((sel) => (
-                    <div key={sel.id} className="space-y-1.5">
-                      <label htmlFor={sel.id} className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
-                        {sel.label}
-                      </label>
-                      <select
-                        id={sel.id}
-                        name={sel.id}
-                        value={form[sel.id as keyof typeof form]}
-                        onChange={handleChange}
-                        required={sel.required}
-                        className="w-full h-11 px-3 border border-outline-variant bg-surface-container text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary rounded-none"
-                      >
-                        <option value="" disabled>Select...</option>
-                        {sel.options.map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="projectType" className="text-xs font-bold text-on-surface">
+                      Project Category *
+                    </label>
+                    <select
+                      id="projectType"
+                      name="projectType"
+                      value={form.projectType}
+                      onChange={handleChange}
+                      required
+                      className="w-full h-11 px-3 border border-outline-variant bg-surface-container rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="" disabled>Select category...</option>
+                      {projectTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="budget" className="text-xs font-bold text-on-surface">
+                      Estimated Budget
+                    </label>
+                    <select
+                      id="budget"
+                      name="budget"
+                      value={form.budget}
+                      onChange={handleChange}
+                      className="w-full h-11 px-3 border border-outline-variant bg-surface-container rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="" disabled>Select budget bracket...</option>
+                      {budgetRanges.map((range) => (
+                        <option key={range} value={range}>{range}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="message" className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
-                    Project Brief *
+                  <label htmlFor="message" className="text-xs font-bold text-on-surface">
+                    Project Brief & Objective *
                   </label>
                   <Textarea
                     id="message"
@@ -226,8 +288,8 @@ export default function ContactPage() {
                     onChange={handleChange}
                     required
                     rows={6}
-                    placeholder="Describe your project: What problem does it solve? Who are the users? What integrations are needed? Target timeline?"
-                    className="rounded-none border-outline-variant bg-surface-container text-sm resize-none focus-visible:ring-primary"
+                    placeholder="Tell us about your project: What are the core goals? Who are the target users? Any required integrations (M-Pesa, KRA, AWS, CRM)? What is your preferred launch timeline?"
+                    className="rounded-xl border border-outline-variant bg-surface-container text-xs text-on-surface resize-none focus-visible:ring-primary leading-relaxed"
                   />
                 </div>
 
@@ -235,27 +297,51 @@ export default function ContactPage() {
                   type="submit"
                   size="lg"
                   disabled={formState === "submitting"}
-                  className="w-full h-13 rounded-none bg-primary text-white font-black text-sm flex items-center justify-center gap-2 group disabled:opacity-70"
+                  className="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-2 group disabled:opacity-70"
                 >
                   {formState === "submitting" ? (
                     <>
                       <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Sending Brief...
+                      Submitting Brief...
                     </>
                   ) : (
-                    <>Submit Project Brief <Send className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" /></>
+                    <>
+                      Submit Project Brief <Send className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </>
                   )}
                 </Button>
 
                 <p className="text-[11px] text-on-surface-variant text-center">
-                  By submitting, you agree to our{" "}
-                  <Link href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
-                  Your information is never shared.
+                  Protected by mutual non-disclosure. We respect your confidentiality and never share client data.
                 </p>
               </form>
             )}
           </div>
+
         </div>
+
+        {/* Highlights Section - Matching Products Highlights */}
+        <div className="space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-black text-primary uppercase tracking-widest">Our Commitment</span>
+            <h2 className="text-3xl font-black text-on-surface">Why Forward-Thinking Teams Partner With Us</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {engagementHighlights.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant space-y-4 shadow-soft">
+                  <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface">{item.title}</h3>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">{item.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
       </div>
     </div>
   )

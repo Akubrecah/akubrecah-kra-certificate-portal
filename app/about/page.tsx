@@ -1,343 +1,314 @@
 "use client"
 
 import Link from "next/link"
-import { motion, useInView } from "framer-motion"
-import { useRef } from "react"
 import { 
-  CheckCircle2, ArrowRight, ArrowUpRight, Code2, Target, Zap, Shield, MapPin
+  ShieldCheck, Zap, Lock, Users, Target, ArrowRight, CheckCircle2, 
+  MapPin, Code2, Smartphone, Cloud, FileCheck2, ArrowUpRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: "-80px" })
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  )
-}
-
-const expertise = [
-  "Full-Stack TypeScript / React / Next.js",
-  "Native iOS (Swift/SwiftUI)",
-  "Native Android (Kotlin/Jetpack)",
-  "React Native Cross-Platform",
-  "Node.js, Python, Go Microservices",
-  "AWS, GCP, Azure Architecture",
-  "Docker & Kubernetes DevOps",
-  "Terraform Infrastructure as Code",
-  "PostgreSQL & Redis Engineering",
-  "M-Pesa Daraja Payment Gateways",
-  "KRA iTax & eCitizen Gov APIs",
-  "GraphQL, REST, gRPC Design",
-]
-
-const proof = [
-  { value: "50K+", label: "Compliance certificates issued", href: "/retrieval-portal" },
-  { value: "10K+", label: "Daily taxpayer validations", href: "/pin-checker" },
-  { value: "99.98%", label: "Platform uptime SLA", href: "/products" },
-  { value: "80+", label: "Projects delivered", href: "/contact" },
-]
-
 const principles = [
   {
+    icon: Code2,
     num: "01",
     title: "Engineering Rigor Above All",
-    body: "We treat software engineering as a discipline, not a craft. Every component is typed, tested, audited, and documented before it ships to production. No shortcuts. No technical debt by design.",
+    desc: "We treat software engineering as a rigorous discipline. Every module is strictly typed, tested, audited, and documented before deploying to production.",
   },
   {
+    icon: Lock,
     num: "02",
-    title: "Outcome-Driven Development",
-    body: "We don't measure success by lines of code or velocity metrics. We measure it by business outcomes — uptime, user adoption, and measurable ROI delivered to clients.",
-  },
-  {
-    num: "03",
     title: "Security by Default",
-    body: "Security is not a feature — it is the foundation. OWASP standards, end-to-end encryption, and regular penetration testing are non-negotiable on every project we touch.",
+    desc: "Bank-grade TLS 1.3 encryption, OWASP hardening, and rigorous access control are built into the foundation from day one, never bolted on after.",
   },
   {
-    num: "04",
-    title: "Performance Without Compromise",
-    body: "We design for sub-second response times, optimize database query plans, and profile every critical path before shipping any production-bound code.",
+    icon: Target,
+    num: "03",
+    title: "Measurable Business Outcomes",
+    desc: "We prioritize real-world velocity, uptime, latency metrics, and user adoption over vanity metrics and superficial deliverable checklists.",
   },
+  {
+    icon: Zap,
+    num: "04",
+    title: "Sub-Second Performance",
+    desc: "Optimized database query planners, distributed caching, and lean bundle delivery ensure lightning-fast interactions across all devices.",
+  },
+]
+
+const stackCategories = [
+  {
+    title: "Web & Enterprise SaaS",
+    icon: Code2,
+    desc: "Modern reactive web apps built with Next.js 15, React 19, strict TypeScript, and Tailwind CSS for peak Core Web Vitals.",
+    technologies: ["Next.js 15", "React 19", "TypeScript", "Tailwind CSS", "Prisma ORM", "PostgreSQL"],
+  },
+  {
+    title: "Mobile App Ecosystems",
+    icon: Smartphone,
+    desc: "High-performance native iOS (Swift), Android (Kotlin), and universal React Native applications with offline-first synchronization.",
+    technologies: ["React Native", "Swift / SwiftUI", "Kotlin / Compose", "SQLite", "Expo", "Firebase"],
+  },
+  {
+    title: "Cloud & DevOps Infrastructure",
+    icon: Cloud,
+    desc: "Containerized microservices and automated GitOps CI/CD pipelines deployed to AWS, GCP, and modern edge CDN networks.",
+    technologies: ["AWS / GCP", "Docker & K8s", "Terraform", "GitHub Actions", "Redis", "Cloudflare"],
+  },
+]
+
+const inHouseProducts = [
+  {
+    title: "KRA Certificate Retrieval Portal",
+    tag: "Flagship GovTech",
+    stat: "50,000+ Certificates Issued",
+    speed: "< 30s processing",
+    href: "/retrieval-portal",
+    desc: "Automated retrieval and cryptographic verification of compliance documents via National ID and PIN.",
+  },
+  {
+    title: "Live PIN & National ID Validator",
+    tag: "Registry Engine",
+    stat: "10,000+ Validations / Day",
+    speed: "< 3s response time",
+    href: "/pin-checker",
+    desc: "Direct integration with public records for instant verification, fraud detection, and tax station lookup.",
+  },
+  {
+    title: "Automated Tax Returns Filing",
+    tag: "Compliance Suite",
+    stat: "25,000+ Returns Processed",
+    speed: "99.9% success rate",
+    href: "/dashboard/filing",
+    desc: "Streamlined statutory compliance assistant guiding Kenyan businesses through iTax nil returns in under 5 minutes.",
+  },
+]
+
+const companyStats = [
+  { label: "Compliance Certificates Issued", value: "50,000+" },
+  { label: "Daily Taxpayer Validations", value: "10,000+" },
+  { label: "Platform Uptime SLA", value: "99.98%" },
+  { label: "Production Deployments", value: "80+" },
 ]
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background text-on-background overflow-x-hidden">
+    <div className="min-h-screen bg-background text-on-background">
 
-      {/* ── HERO: Full-bleed dark editorial ── */}
-      <section className="relative bg-on-surface dark:bg-[#0d0d0d] text-surface dark:text-white overflow-hidden">
-        {/* Grain texture overlay */}
-        <div className="absolute inset-0 opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjY1IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWx0ZXI9InVybCgjYSkiLz48L3N2Zz4=')] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-          <nav className="flex items-center gap-2 text-xs text-surface/40 dark:text-white/40 mb-14">
+      {/* Page Hero - Matching Products Design */}
+      <div className="bg-surface-container-lowest border-b border-outline-variant">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 space-y-6">
+          <nav className="flex items-center gap-2 text-xs text-on-surface-variant">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <span>/</span>
-            <span>About</span>
+            <span className="text-on-surface font-semibold">About Akubrecah</span>
           </nav>
-
-          {/* Massive editorial headline */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="space-y-6"
-          >
-            <p className="text-xs font-black text-primary uppercase tracking-[0.3em]">
-              Akubrecah Technologies · Est. Nairobi
-            </p>
-
-            <h1 className="text-[clamp(3rem,10vw,8rem)] font-black leading-[0.92] tracking-tight text-surface dark:text-white">
-              We Build<br />
-              <span className="text-primary">Software</span><br />
-              That Lasts.
+          <div className="max-w-3xl space-y-4">
+            <span className="text-xs font-black text-primary uppercase tracking-widest">Engineering Excellence · Nairobi, Kenya</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tight leading-tight">
+              We Build Software<br />
+              <span className="text-primary">That Lasts & Scales.</span>
             </h1>
-
-            <div className="max-w-2xl border-l-2 border-primary pl-6 py-2 mt-8">
-              <p className="text-base sm:text-lg text-surface/70 dark:text-white/60 leading-relaxed">
-                A premier software engineering company headquartered in Nairobi, Kenya. 
-                We architect high-impact web platforms, native mobile apps, cloud infrastructure, 
-                and mission-critical statutory automation systems — built to outlast trends and 
-                withstand real production load.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 text-surface/50 dark:text-white/40 text-xs font-semibold mt-6">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              Nairobi, Kenya — Engineering for East Africa & Global Markets
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Bottom cut border */}
-        <div className="absolute bottom-0 inset-x-0 h-px bg-primary/30" />
-      </section>
-
-      {/* ── PROOF NUMBERS: Full-width stark band ── */}
-      <section className="border-b border-outline-variant bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4">
-            {proof.map((p, i) => (
-              <Reveal key={p.label} delay={i * 0.08}>
-                <Link
-                  href={p.href}
-                  className="group block border-r border-outline-variant last:border-r-0 px-8 py-10 hover:bg-surface-container transition-colors"
-                >
-                  <span className="block text-4xl sm:text-5xl font-black text-primary mb-1 group-hover:scale-105 transition-transform origin-left">
-                    {p.value}
-                  </span>
-                  <span className="block text-xs text-on-surface-variant leading-snug">{p.label}</span>
-                  <ArrowUpRight className="h-4 w-4 text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              </Reveal>
-            ))}
+            <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl leading-relaxed">
+              Akubrecah Technologies is a premier software engineering firm headquartered in Nairobi. 
+              We architect high-impact web platforms, native mobile applications, cloud infrastructure, 
+              and mission-critical statutory automation systems that withstand real production load.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant pt-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span>Nairobi, Kenya — Engineering for East Africa and Global Enterprises</span>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── MISSION: Bold editorial statement ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-        <Reveal>
-          <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-start">
-            <div className="lg:w-1/3 shrink-0">
-              <p className="text-xs font-black text-primary uppercase tracking-[0.25em] mb-4">Mission</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-on-surface leading-tight">
-                Our<br />North Star.
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 space-y-20">
+
+        {/* Core Philosophy Section - Matching Products 5-Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+          
+          {/* Main Content (3 cols) */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                <ShieldCheck className="h-7 w-7" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                Engineering Conviction
+              </span>
+            </div>
+
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                World-Class Standards. Local Market Depth.
               </h2>
-            </div>
-            <div className="lg:flex-1 space-y-4">
-              <blockquote className="text-xl sm:text-2xl font-black text-on-surface leading-snug border-l-4 border-primary pl-6">
-                "To engineer digital systems of exceptional quality — fast, secure, and built to last — enabling 
-                our clients to compete and win on a global scale."
-              </blockquote>
-              <p className="text-sm text-on-surface-variant leading-relaxed pl-6">
-                Founded in Nairobi, Akubrecah Technologies was built on a conviction that East African businesses 
-                deserve world-class engineering — not compromised, offshore-minimum-viable code. We apply the same 
-                standards as leading global software houses to local market realities and domain expertise.
+              <p className="text-sm font-bold mt-1 text-primary">
+                Zero shortcuts, zero compromises, and no technical debt by design.
+              </p>
+              <p className="text-sm text-on-surface-variant mt-3 leading-relaxed">
+                Founded on the conviction that East African businesses and institutions deserve engineering 
+                built to global top-tier benchmarks. From high-throughput M-Pesa payment gateways to resilient 
+                statutory compliance portals, our software is engineered for mission-critical reliability.
               </p>
             </div>
-          </div>
-        </Reveal>
-      </section>
 
-      {/* ── PRINCIPLES: Numbered vertical stack ── */}
-      <section className="border-t border-outline-variant">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <Reveal className="mb-12">
-            <p className="text-xs font-black text-primary uppercase tracking-[0.25em] mb-3">Guiding Principles</p>
-            <h2 className="text-4xl sm:text-5xl font-black text-on-surface">What We Stand For.</h2>
-          </Reveal>
-
-          <div className="space-y-0">
-            {principles.map((p, i) => (
-              <Reveal key={p.num} delay={i * 0.08}>
-                <div className="group flex flex-col sm:flex-row gap-6 sm:gap-12 py-8 border-b border-outline-variant hover:bg-surface-container transition-colors -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 cursor-default">
-                  <div className="shrink-0 w-12">
-                    <span className="text-xs font-mono font-black text-primary">{p.num}</span>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <h3 className="text-xl sm:text-2xl font-black text-on-surface group-hover:text-primary transition-colors">
-                      {p.title}
-                    </h3>
-                    <p className="text-sm text-on-surface-variant leading-relaxed max-w-2xl">{p.body}</p>
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {[
+                "Strict TypeScript & comprehensive type safety",
+                "Automated CI/CD pipelines & zero-downtime releases",
+                "Bank-grade TLS 1.3 encryption & OWASP hardening",
+                "Sub-second Core Web Vitals across all screens",
+                "Resilient offline-first mobile sync capabilities",
+                "Clear documentation & enterprise code ownership",
+              ].map((feat) => (
+                <div key={feat} className="flex items-start gap-2.5 text-sm text-on-surface">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>{feat}</span>
                 </div>
-              </Reveal>
-            ))}
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <Link href="/contact">
+                <Button className="h-12 px-7 rounded-xl bg-primary text-white font-bold text-sm flex items-center gap-2 group w-fit">
+                  Work With Our Engineers <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── EXPERTISE: Two-col tag cloud with hard borders ── */}
-      <section className="border-t border-outline-variant bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-start">
-            <Reveal className="lg:w-1/3 shrink-0 space-y-3">
-              <p className="text-xs font-black text-primary uppercase tracking-[0.25em]">Technical Depth</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-on-surface leading-tight">
-                Full-Stack<br />Mastery.
-              </h2>
-              <p className="text-sm text-on-surface-variant leading-relaxed">
-                No knowledge gaps. No subcontracting to generalists. Our engineers own every layer of the stack.
-              </p>
-            </Reveal>
-
-            <Reveal delay={0.12} className="lg:flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-outline-variant">
-                {expertise.map((skill, i) => (
-                  <div
-                    key={skill}
-                    className="flex items-center gap-3 px-5 py-4 border-b border-r border-outline-variant last:border-b-0 hover:bg-surface-container hover:text-primary transition-colors text-xs font-semibold text-on-surface group"
-                    style={{ borderRight: i % 2 !== 0 ? "none" : undefined }}
-                  >
-                    <div className="w-1 h-1 rounded-full bg-primary shrink-0 group-hover:scale-150 transition-transform" />
-                    {skill}
+          {/* Stats Card (2 cols) - Matching Products Live Card */}
+          <div className="lg:col-span-2">
+            <div className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant shadow-soft space-y-5 sticky top-24">
+              <h4 className="text-xs font-black uppercase tracking-widest text-on-surface-variant">Engineering Track Record</h4>
+              <div className="space-y-4">
+                {companyStats.map((stat) => (
+                  <div key={stat.label} className="flex items-center justify-between p-4 rounded-2xl bg-surface-container">
+                    <span className="text-xs text-on-surface-variant font-semibold">{stat.label}</span>
+                    <span className="text-lg font-black text-on-surface">{stat.value}</span>
                   </div>
                 ))}
               </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ── IN-HOUSE PROOF: Horizontal list ── */}
-      <section className="border-t border-outline-variant">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <Reveal className="mb-10">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-xs font-black text-primary uppercase tracking-[0.25em]">Proof of Engineering</p>
-                <h2 className="text-3xl sm:text-4xl font-black text-on-surface">We Eat Our Own Cooking.</h2>
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold pt-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Active Engineering Operations
               </div>
-              <Link href="/products">
-                <Button variant="outline" size="sm" className="h-10 px-5 rounded-none border-2 border-on-surface text-on-surface font-black text-xs gap-2 hover:bg-on-surface hover:text-background transition-colors">
-                  View All Products <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
             </div>
-            <p className="text-sm text-on-surface-variant mt-4 max-w-2xl leading-relaxed">
-              Our in-house KRA Compliance Suite is the best demonstration of our engineering standards — 
-              the same architecture, security models, and deployment pipelines we deliver to every client.
-            </p>
-          </Reveal>
-
-          <div className="space-y-0 border border-outline-variant">
-            {[
-              { 
-                title: "KRA Certificate Retrieval Portal", 
-                stat: "50,000+ certificates issued", 
-                uptime: "99.2% success rate", 
-                href: "/retrieval-portal",
-                tag: "Flagship"
-              },
-              { 
-                title: "Live PIN & National ID Validator", 
-                stat: "10,000+ validations/day", 
-                uptime: "< 3s response time", 
-                href: "/pin-checker",
-                tag: "GovTech"
-              },
-              { 
-                title: "Automated Tax Returns Filing", 
-                stat: "25,000+ returns filed", 
-                uptime: "< 0.1% error rate", 
-                href: "/dashboard/filing",
-                tag: "Compliance"
-              },
-            ].map((item, i) => (
-              <Reveal key={item.title} delay={i * 0.07}>
-                <Link
-                  href={item.href}
-                  className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-6 border-b border-outline-variant last:border-b-0 hover:bg-surface-container transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black px-2 py-1 border border-outline-variant text-on-surface-variant">
-                      {item.tag}
-                    </span>
-                    <h3 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
-                      {item.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-6 shrink-0">
-                    <span className="text-xs text-on-surface-variant">{item.stat}</span>
-                    <span className="hidden sm:block text-xs font-bold text-emerald-600">{item.uptime}</span>
-                    <ArrowUpRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              </Reveal>
-            ))}
           </div>
 
-          {/* Zero-incident badge */}
-          <Reveal delay={0.2} className="mt-6 flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              All systems operational
-            </div>
-            <span className="text-xs text-on-surface-variant">·</span>
-            <span className="text-xs text-on-surface-variant">Zero critical security incidents since launch</span>
-          </Reveal>
         </div>
-      </section>
 
-      {/* ── CTA: Hard-edge full-bleed red ── */}
-      <section className="bg-primary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-3">
-              <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-                Ready to Build<br />Something Real?
-              </h2>
-              <p className="text-white/70 text-sm max-w-lg leading-relaxed">
-                Startup, enterprise, or government agency — if you need software built with discipline, 
-                precision, and long-term thinking, this is where that conversation starts.
+        {/* Guiding Principles - 4 Column / 2x2 Grid */}
+        <div className="space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-black text-primary uppercase tracking-widest">Our Foundation</span>
+            <h2 className="text-3xl font-black text-on-surface">Guiding Principles That Drive Every Line of Code</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {principles.map((p) => {
+              const Icon = p.icon
+              return (
+                <div key={p.num} className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant space-y-4 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-xs font-mono font-black text-primary">{p.num}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-on-surface">{p.title}</h3>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">{p.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Technical Depth - 3 Cards Highlight */}
+        <div className="space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-black text-primary uppercase tracking-widest">Technical Capabilities</span>
+            <h2 className="text-3xl font-black text-on-surface">Full-Stack Depth Across Every Layer</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {stackCategories.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant space-y-5 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-on-surface">{item.title}</h3>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">{item.desc}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {item.technologies.map((tech) => (
+                      <span key={tech} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Proof of Work - In-House Products Highlights */}
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <span className="text-xs font-black text-primary uppercase tracking-widest">Demonstrated Precision</span>
+              <h2 className="text-3xl font-black text-on-surface">Our In-House GovTech Suite</h2>
+              <p className="text-sm text-on-surface-variant max-w-xl">
+                The best testament to our capabilities: high-concurrency compliance tools built and run completely in-house.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-              <Link href="/contact">
-                <Button size="lg" className="h-13 px-8 rounded-none bg-white text-primary font-black text-sm flex items-center gap-2 group hover:bg-white/92">
-                  Start a Conversation <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
+            <Link href="/products">
+              <Button variant="outline" className="rounded-xl border-outline-variant text-on-surface font-bold text-xs flex items-center gap-2">
+                Explore All Products <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {inHouseProducts.map((prod) => (
+              <Link key={prod.title} href={prod.href} className="group block">
+                <div className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all duration-300 space-y-4 h-full flex flex-col justify-between shadow-soft">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                        {prod.tag}
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    </div>
+                    <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">{prod.title}</h3>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">{prod.desc}</p>
+                  </div>
+                  <div className="pt-3 border-t border-outline-variant flex items-center justify-between text-xs">
+                    <span className="font-bold text-on-surface">{prod.stat}</span>
+                    <span className="text-emerald-600 font-semibold">{prod.speed}</span>
+                  </div>
+                </div>
               </Link>
-              <Link href="/services">
-                <Button variant="outline" size="lg" className="h-13 px-8 rounded-none border-2 border-white text-white hover:bg-white/10 font-black text-sm">
-                  View Services
-                </Button>
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
-      </section>
 
+        {/* CTA - Matching Products Style */}
+        <div className="p-10 sm:p-14 rounded-3xl bg-primary text-white text-center space-y-5">
+          <h2 className="text-3xl font-black">Ready to Build With Our Engineering Team?</h2>
+          <p className="text-white/80 text-sm max-w-lg mx-auto">
+            Whether launching a new venture, modernizing legacy enterprise systems, or automating statutory workflows — let&apos;s engineer something extraordinary together.
+          </p>
+          <Link href="/contact">
+            <Button size="lg" className="h-12 px-8 rounded-xl bg-white text-primary font-bold text-sm flex items-center gap-2 mx-auto group">
+              Start a Conversation <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
+        </div>
+
+      </div>
     </div>
   )
 }
