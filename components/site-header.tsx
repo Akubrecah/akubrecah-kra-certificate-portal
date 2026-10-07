@@ -36,6 +36,11 @@ import {
 ────────────────────────────────────────────────────────────── */
 const navData = [
   {
+    label: "About",
+    href: "/about",
+    groups: null,   // simple link — no dropdown
+  },
+  {
     label: "Services",
     href: "/services",          // parent page
     groups: [
@@ -138,11 +143,6 @@ const navData = [
       },
     ],
     footer: { label: "All Solutions →", href: "/solutions" },
-  },
-  {
-    label: "About",
-    href: "/about",
-    groups: null,   // simple link — no dropdown
   },
   {
     label: "Contact",
