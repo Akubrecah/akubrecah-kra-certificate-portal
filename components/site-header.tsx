@@ -541,7 +541,7 @@ export function SiteHeader() {
             : "bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant"
         } h-16`}
       >
-        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 xl:gap-4">
+        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 xl:gap-4 flex-nowrap min-w-0">
 
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
@@ -553,64 +553,47 @@ export function SiteHeader() {
           </Link>
 
           {/* Desktop Nav — hierarchical (lg screens and above) */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
             {navData.map((item) => (
               <DesktopNavItem key={item.label} item={item} pathname={pathname} />
             ))}
-
-            {/* Authenticated: Client Console link */}
-            {isLoaded && isSignedIn && (
-              <Link
-                href="/dashboard"
-                className={`flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  pathname === "/dashboard" || pathname?.startsWith("/dashboard/")
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-primary/10 text-primary hover:bg-primary/15"
-                }`}
-              >
-                <LayoutDashboard className="h-3.5 w-3.5" />
-                <span>Client Console</span>
-              </Link>
-            )}
           </nav>
 
           {/* Right: Auth + Theme + Hamburger */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-nowrap">
             <ThemeToggle />
 
             {isLoaded && isSignedIn ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-nowrap">
                 {isAdmin && (
                   <Link href="/admin/system-health">
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary hover:text-white transition-all cursor-pointer">
+                    <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary hover:text-white transition-all cursor-pointer shrink-0">
                       <Shield className="h-3 w-3" />
                       Admin
                     </span>
                   </Link>
                 )}
-                <div className="text-right hidden xl:block">
-                  <p className="text-xs font-bold text-on-surface leading-tight">
-                    {user?.fullName || user?.firstName || "Client Account"}
-                  </p>
-                  <p className="text-[10px] text-on-surface-variant leading-tight">
-                    {user?.primaryEmailAddress?.emailAddress || ""}
-                  </p>
-                </div>
+                <Link href="/dashboard">
+                  <Button size="sm" className="h-8.5 px-3 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary/90 flex items-center gap-1.5 shrink-0">
+                    <LayoutDashboard className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Console</span>
+                  </Button>
+                </Link>
                 <UserButton
                   appearance={{
-                    elements: { avatarBox: "w-9 h-9 rounded-full ring-2 ring-primary/20" },
+                    elements: { avatarBox: "w-8.5 h-8.5 rounded-full ring-2 ring-primary/20" },
                   }}
                 />
               </div>
             ) : isLoaded && !isSignedIn ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 flex-nowrap">
                 <Link href="/sign-in">
-                  <Button variant="ghost" size="sm" className="h-9 px-3.5 rounded-xl text-xs font-semibold text-on-surface hover:text-primary">
+                  <Button variant="ghost" size="sm" className="h-9 px-3.5 rounded-xl text-xs font-semibold text-on-surface hover:text-primary shrink-0">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/contact" className="hidden xl:block">
-                  <Button size="sm" className="h-9 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/95 shadow-sm flex items-center gap-1.5">
+                  <Button size="sm" className="h-9 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/95 shadow-sm flex items-center gap-1.5 shrink-0">
                     Start a Project <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
