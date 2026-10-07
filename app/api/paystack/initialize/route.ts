@@ -5,7 +5,6 @@ import { getOrCreateDbUser, isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 15;
 
-const DEFAULT_SUBSCRIPTION_AMOUNT = 499;
 const DEFAULT_DOWNLOAD_FEE = 20;
 
 export async function POST(req: NextRequest) {
@@ -30,16 +29,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { type = 'pay_per_download', pin, callbackUrl } = body;
 
-    if (type !== 'subscription' && type !== 'pay_per_download') {
+    // Monthly subscriptions have been decommissioned in favor of a single transparent KES 20 fee
+    if (type === 'subscription') {
       return NextResponse.json(
-        { success: false, error: 'Invalid payment type. Must be "subscription" or "pay_per_download".' },
+        { success: false, error: 'Monthly subscriptions are discontinued. KRA certificate retrieval is now only KES 20 per download.' },
         { status: 400 }
       );
     }
 
-    if (type === 'pay_per_download' && !pin) {
+    if (!pin) {
       return NextResponse.json(
-        { success: false, error: 'PIN is required for single certificate download payment.' },
+        { success: false, error: 'KRA PIN is required for certificate download payment.' },
         { status: 400 }
       );
     }
@@ -59,11 +59,8 @@ export async function POST(req: NextRequest) {
     // Ensure user exists in Prisma database
     const dbUser = await getOrCreateDbUser(userId, userEmail, userName);
 
-    const subscriptionAmount = Number(process.env.PAYSTACK_SUBSCRIPTION_AMOUNT_KES) || DEFAULT_SUBSCRIPTION_AMOUNT;
-    const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES) || DEFAULT_DOWNLOAD_FEE;
-    const amountKes = type === 'subscription' ? subscriptionAmount : downloadFee;
-
-    const reference = `PSTK-${type.toUpperCase().substring(0, 4)}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const amountKes = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES) || DEFAULT_DOWNLOAD_FEE;
+    const reference = `PSTK-CERT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin || 'http://localhost:3000';
     const finalCallbackUrl = callbackUrl || `${appUrl}/?paystack_ref=${reference}&type=${type}`;

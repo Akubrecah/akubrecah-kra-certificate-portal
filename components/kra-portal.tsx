@@ -282,7 +282,7 @@ export function KRAPortal() {
 
         if (data.type === 'subscription') {
           setIsSubscribed(true)
-          toast.success("🎉 Monthly Subscription Activated! Full taxpayer details unlocked.", { duration: 6000 })
+          toast.success("🎉 Payment Verified! Ready to download your certificate.", { duration: 4000 })
           // Re-retrieve to reveal full unmasked profile
           if (formData.idNumber || formData.pin) {
             handleIdSearch()
@@ -305,13 +305,8 @@ export function KRAPortal() {
     }
   }
 
-  // Initiates Paystack checkout for either monthly subscription or single download
-  const handlePaystackPayment = async (type: 'subscription' | 'pay_per_download') => {
-    if (type === 'subscription' && authLoaded && !isSignedIn) {
-      toast.error("Please sign in to start a monthly subscription.", { icon: "🔒" })
-      return
-    }
-
+  // Initiates Paystack checkout for official certificate download (KES 20)
+  const handlePaystackPayment = async (type: 'subscription' | 'pay_per_download' = 'pay_per_download') => {
     // Persist current active form data to survive redirects
     if (typeof window !== "undefined") {
       try {
@@ -359,7 +354,7 @@ export function KRAPortal() {
             setVerifiedReceipt(pollRef)
             if (vData.type === 'subscription') {
               setIsSubscribed(true)
-              toast.success("Monthly Subscription Activated! Full details unlocked.", { duration: 6000 })
+              toast.success("Payment verified! Ready to download your certificate.", { duration: 4000 })
               setShowPaymentModal(false)
               if (formData.idNumber || formData.pin) {
                 handleIdSearch()
@@ -677,33 +672,41 @@ export function KRAPortal() {
 
   return (
     <div className="w-full">
-      <div className="mb-2.5 flex flex-col items-center justify-center text-center">
-        <h1 className="text-xl md:text-2xl font-bold text-on-surface tracking-tight text-center">Retrieve Your KRA Certificate</h1>
-        <p className="text-xs text-on-surface-variant max-w-md">Verify your identity to retrieve and download your official tax compliance certificate.</p>
+      <div className="mb-5 flex flex-col items-center justify-center text-center space-y-2">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-[11px] font-black text-primary uppercase tracking-widest shadow-xs">
+          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+          Official KRA Statutory Verification Engine
+        </div>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-on-surface tracking-tight">
+          Retrieve Your Tax Compliance Certificate
+        </h1>
+        <p className="text-xs sm:text-sm text-on-surface-variant max-w-lg leading-relaxed">
+          Instant government-backed verification using your National ID or KRA PIN. Official PDF certificate download fee: <span className="text-primary font-black underline decoration-primary/40 underline-offset-2">KES 20 only</span>.
+        </p>
       </div>
 
       {isVerified && (
-        <div className="w-full max-w-2xl mx-auto mb-3">
-          <Alert className="bg-success-bg border-success-green/30 text-success-green rounded-xl flex items-center gap-2.5 py-2 px-3.5">
-            <CheckCircle className="h-4 w-4 flex-shrink-0" />
-            <AlertDescription className="text-xs font-medium">
-              Certificate details retrieved. Review before downloading.
+        <div className="w-full max-w-2xl mx-auto mb-4">
+          <Alert className="bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl flex items-center gap-3 py-3 px-4 shadow-sm">
+            <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <AlertDescription className="text-xs font-semibold">
+              Taxpayer compliance record retrieved successfully. Review details below and download your official certificate.
             </AlertDescription>
           </Alert>
         </div>
       )}
 
-      {/* Step Progress Bar */}
-      <div className="w-full max-w-md mx-auto mb-4 px-2">
-        <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider mb-1.5">
-          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant/70")}>01. Identity</span>
-          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant/70")}>02. Personal</span>
-          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant/70")}>03. Address</span>
-          <span className={cn(currentStep >= 4 ? "text-primary" : "text-on-surface-variant/70")}>04. Review</span>
+      {/* Eye-Catching Step Progress Bar */}
+      <div className="w-full max-w-lg mx-auto mb-6 px-3">
+        <div className="flex justify-between items-center text-[11px] font-black tracking-wide mb-2">
+          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant/60")}>1. Identify</span>
+          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant/60")}>2. Details</span>
+          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant/60")}>3. Address</span>
+          <span className={cn(currentStep >= 4 ? "text-primary font-black" : "text-on-surface-variant/60")}>4. Download (KES 20)</span>
         </div>
-        <div className="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden relative">
+        <div className="h-2 w-full bg-surface-variant/50 rounded-full overflow-hidden relative border border-outline-variant/40">
           <motion.div 
-            className="h-full bg-primary rounded-full"
+            className="h-full bg-gradient-to-r from-primary via-red-600 to-primary rounded-full shadow-xs"
             initial={{ width: "25%" }}
             animate={{ width: `${(currentStep / 4) * 100}%` }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -1140,274 +1143,166 @@ export function KRAPortal() {
                     <p className="text-[11px] text-on-surface-variant">Confirm details that will appear on your official KRA PDF certificate.</p>
                   </div>
 
-                  {/* Unsubscribed Preview Warning Banner */}
-                  {!hasFullAccess && (
-                    <div className="w-full max-w-2xl mx-auto bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-left">
-                      <div className="flex items-center gap-2.5">
-                        <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                        <div>
-                          <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                            Protected Preview Mode
-                            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded font-semibold">Unsubscribed</span>
-                          </p>
-                          <p className="text-[11px] text-on-surface-variant">
-                            Phone number & location hidden. PIN & email partially masked. Legal name is verified.
-                          </p>
-                        </div>
+                  {/* Official Verification Success Badge & KES 20 Notice */}
+                  <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethod("paystack")
-                          setSelectedTier("subscription")
-                          checkAccess()
-                        }}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" /> Unlock All (KES 499)
-                      </button>
+                      <div>
+                        <p className="text-xs sm:text-sm font-black text-on-surface flex items-center gap-2">
+                          Official Compliance Record Ready
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">100% Verified</span>
+                        </p>
+                        <p className="text-[11px] text-on-surface-variant mt-0.5">
+                          All taxpayer details retrieved directly from government registries. Ready for instant PDF generation.
+                        </p>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Summary / Direct Edit Grid */}
-                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-xl p-3.5 sm:p-4 border border-outline-variant space-y-2.5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="block text-[11px] font-semibold text-on-surface">KRA PIN</label>
-                          {!hasFullAccess && (
-                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Masked
-                            </span>
-                          )}
-                        </div>
-                        <input 
-                          value={formData.pin} 
-                          onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
-                          readOnly={!hasFullAccess}
-                          placeholder="A012345678Z" 
-                          className={cn(inputClass, "h-9 text-xs font-bold text-primary px-3", !hasFullAccess && "bg-muted/30 cursor-not-allowed")} 
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="block text-[11px] font-semibold text-on-surface">Taxpayer Full Name</label>
-                          <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                            <Check className="w-2.5 h-2.5" /> Full Name
-                          </span>
-                        </div>
-                        <input 
-                          value={formData.fullName} 
-                          onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
-                          readOnly={!hasFullAccess}
-                          placeholder="JOHN DOE" 
-                          className={cn(inputClass, "h-9 text-xs font-semibold px-3")} 
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="block text-[11px] font-semibold text-on-surface">Email Address</label>
-                          {!hasFullAccess && (
-                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Partial
-                            </span>
-                          )}
-                        </div>
-                        <input 
-                          value={formData.email} 
-                          onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
-                          readOnly={!isSubscribed}
-                          placeholder="email@example.com" 
-                          type="email"
-                          className={cn(inputClass, "h-9 text-xs px-3", !isSubscribed && "bg-muted/30 cursor-not-allowed")} 
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="block text-[11px] font-semibold text-on-surface">Mobile Phone Number</label>
-                          {!hasFullAccess && (
-                            <span className="text-[9px] font-semibold text-rose-500 bg-rose-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Hidden
-                            </span>
-                          )}
-                        </div>
-                        {hasFullAccess ? (
-                          <input 
-                            value={formData.phoneNumber} 
-                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
-                            placeholder="07XXXXXXXX" 
-                            className={cn(inputClass, "h-9 text-xs px-3")} 
-                          />
-                        ) : (
-                          <div className="relative">
-                            <input 
-                              disabled 
-                              value="•••••••••• (Hidden — Subscribers Only)" 
-                              className={cn(inputClass, "h-9 opacity-75 cursor-not-allowed bg-muted/40 font-mono text-[11px] px-3 pr-16")} 
-                            />
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                setPaymentMethod("paystack")
-                                setSelectedTier("subscription")
-                                checkAccess()
-                              }} 
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
-                            >
-                              Unlock
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="md:col-span-2">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="block text-[11px] font-semibold text-on-surface">Exact Registration Date</label>
-                          {!hasFullAccess && (
-                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Partial
-                            </span>
-                          )}
-                        </div>
-                        <input 
-                          value={formData.registeredDate} 
-                          onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
-                          readOnly={!hasFullAccess}
-                          placeholder="DD/MM/YYYY" 
-                          className={cn(inputClass, "h-9 text-xs px-3", !hasFullAccess && "bg-muted/30 cursor-not-allowed")} 
-                        />
-                      </div>
-
-                      {/* Location Details: Visible only when subscribed */}
-                      {hasFullAccess ? (
-                        <>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">County</label>
-                            <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
-                              <SelectTrigger className={cn(inputClass, "h-9 text-xs px-3")}>
-                                <SelectValue placeholder="Select County" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-lg">
-                                {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">City / Town</label>
-                            <input 
-                              value={formData.town} 
-                              onChange={(e) => handleInputChange('town', e.target.value)} 
-                              placeholder="e.g. Nairobi" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">District / Sub County</label>
-                            <input 
-                              value={formData.district} 
-                              onChange={(e) => handleInputChange('district', e.target.value)} 
-                              placeholder="e.g. Central District" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Tax Station</label>
-                            <input 
-                              value={formData.station} 
-                              onChange={(e) => handleInputChange('station', e.target.value)} 
-                              placeholder="e.g. North of Nairobi" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Building Name</label>
-                            <input 
-                              value={formData.building} 
-                              onChange={(e) => handleInputChange('building', e.target.value)} 
-                              placeholder="e.g. Commercial Plaza" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Street / Road</label>
-                            <input 
-                              value={formData.street} 
-                              onChange={(e) => handleInputChange('street', e.target.value)} 
-                              placeholder="e.g. Harambee Avenue" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">P.O. Box</label>
-                            <input 
-                              value={formData.poBox} 
-                              onChange={(e) => handleInputChange('poBox', e.target.value)} 
-                              placeholder="e.g. P.O. Box 40001" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-[11px] font-semibold text-on-surface mb-0.5">Postal Code</label>
-                            <input 
-                              value={formData.postalCode} 
-                              onChange={(e) => handleInputChange('postalCode', e.target.value)} 
-                              placeholder="e.g. 00100" 
-                              className={cn(inputClass, "h-9 text-xs px-3")} 
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="md:col-span-2 bg-surface-container-lowest/80 border border-dashed border-outline-variant rounded-xl p-3 text-center space-y-1.5">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            <h4 className="font-semibold text-xs text-on-surface">Location & Address Details Hidden</h4>
-                          </div>
-                          <p className="text-[11px] text-on-surface-variant max-w-sm mx-auto">
-                            County, KRA Station, City/Town, Building, and P.O. Box details are only visible to subscribers.
-                          </p>
-                          <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPaymentMethod('paystack')
-                                if (!isAdmin) setSelectedTier('subscription')
-                                checkAccess()
-                              }}
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
-                            >
-                              <Sparkles className="w-3 h-3" /> Subscribe to Reveal All (KES 499)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleDownload}
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-outline-variant bg-surface hover:bg-surface-variant/40 text-on-surface transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <Download className="w-3 h-3" /> Download Certificate (KES 20)
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                    <div className="shrink-0 bg-primary/10 border border-primary/20 rounded-xl px-3 py-1.5 text-center">
+                      <span className="block text-[10px] uppercase font-black text-primary tracking-wider">Download Fee</span>
+                      <span className="text-sm font-black text-primary">KES 20 only</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-2xl mx-auto pt-2.5">
+                  {/* Complete Verified Taxpayer Record Grid */}
+                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-2xl p-4 sm:p-5 border border-outline-variant space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">KRA PIN</label>
+                        <input 
+                          value={formData.pin} 
+                          onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())} 
+                          placeholder="A012345678Z" 
+                          className={cn(inputClass, "h-10 text-xs font-mono font-bold text-primary px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Taxpayer Legal Name</label>
+                        <input 
+                          value={formData.fullName} 
+                          onChange={(e) => handleInputChange('fullName', e.target.value.toUpperCase())} 
+                          placeholder="JOHN DOE" 
+                          className={cn(inputClass, "h-10 text-xs font-semibold px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Email Address</label>
+                        <input 
+                          value={formData.email} 
+                          onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())} 
+                          placeholder="email@example.com" 
+                          type="email"
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Mobile Phone Number</label>
+                        <input 
+                          value={formData.phoneNumber} 
+                          onChange={(e) => handleInputChange('phoneNumber', e.target.value)} 
+                          placeholder="07XXXXXXXX" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Registration Date</label>
+                        <input 
+                          value={formData.registeredDate} 
+                          onChange={(e) => handleInputChange('registeredDate', e.target.value)} 
+                          placeholder="DD/MM/YYYY" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+
+                      {/* Location & Tax Station Information */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">County</label>
+                        <Select value={formData.county} onValueChange={(v) => { handleInputChange('county', v); handleInputChange('district', '') }}>
+                          <SelectTrigger className={cn(inputClass, "h-10 text-xs px-3")}>
+                            <SelectValue placeholder="Select County" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-surface-container-lowest border-outline-muted rounded-xl">
+                            {COUNTIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">City / Town</label>
+                        <input 
+                          value={formData.town} 
+                          onChange={(e) => handleInputChange('town', e.target.value)} 
+                          placeholder="e.g. Nairobi" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">District / Sub County</label>
+                        <input 
+                          value={formData.district} 
+                          onChange={(e) => handleInputChange('district', e.target.value)} 
+                          placeholder="e.g. Central District" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Tax Station</label>
+                        <input 
+                          value={formData.station} 
+                          onChange={(e) => handleInputChange('station', e.target.value)} 
+                          placeholder="e.g. North of Nairobi" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Building Name</label>
+                        <input 
+                          value={formData.building} 
+                          onChange={(e) => handleInputChange('building', e.target.value)} 
+                          placeholder="e.g. Commercial Plaza" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Street / Road</label>
+                        <input 
+                          value={formData.street} 
+                          onChange={(e) => handleInputChange('street', e.target.value)} 
+                          placeholder="e.g. Harambee Avenue" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">P.O. Box</label>
+                        <input 
+                          value={formData.poBox} 
+                          onChange={(e) => handleInputChange('poBox', e.target.value)} 
+                          placeholder="e.g. P.O. Box 40001" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-on-surface mb-1">Postal Code</label>
+                        <input 
+                          value={formData.postalCode} 
+                          onChange={(e) => handleInputChange('postalCode', e.target.value)} 
+                          placeholder="e.g. 00100" 
+                          className={cn(inputClass, "h-10 text-xs px-3")} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto pt-3">
                     <button className={secondaryButtonClass} onClick={() => { setCurrentStep(1); setIdSearchStatus("idle"); setIsVerified(false); setFormData(prev => ({ ...prev, idNumber: "", pin: "" })); }}>
                       <RefreshCw className="w-4 h-4" /> New Search
                     </button>
-                    {!hasFullAccess && (
-                      <button 
-                        type="button"
-                        className={secondaryButtonClass} 
-                        onClick={() => {
-                          setPaymentMethod('paystack')
-                          setSelectedTier('subscription')
-                          checkAccess()
-                        }}
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-500" /> Unlock Full Record
-                      </button>
-                    )}
-                    <button className={primaryButtonClass} onClick={handleDownload}>
-                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin)" : hasFullAccess ? "Download with Plan" : "Download PDF Certificate (KES 20)"}
+                    <button 
+                      className={cn(primaryButtonClass, "shadow-lg shadow-primary/25 h-12 px-7 text-sm font-bold")} 
+                      onClick={handleDownload}
+                    >
+                      <Download className="w-4 h-4" /> {isAdmin ? "Download Certificate (Admin Free)" : "Download PDF Certificate (KES 20)"}
                     </button>
                   </div>
                 </motion.div>
@@ -1429,17 +1324,11 @@ export function KRAPortal() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-sm">
-                    {accessInfo.access === 'subscription' ? (
-                      <Sparkles className="w-6 h-6 text-primary" />
-                    ) : (
-                      <ShieldCheck className="w-6 h-6 text-primary" />
-                    )}
+                    <ShieldCheck className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-bold text-on-surface text-lg sm:text-xl tracking-tight">
-                      {paymentStep === 'done' 
-                        ? 'Certificate Ready' 
-                        : (accessInfo.access === 'subscription' ? 'Active Subscription' : 'KRA Certificate Checkout')}
+                      {paymentStep === 'done' ? 'Certificate Ready' : 'Official Certificate Checkout'}
                     </h3>
                     <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5">
                       Republic of Kenya • Official Tax Compliance Portal
@@ -1468,29 +1357,22 @@ export function KRAPortal() {
                 </div>
               </div>
 
-              {/* Active Subscription: Instant Download */}
-              {accessInfo.access === 'subscription' && paymentStep === 'confirm' && (
+              {/* Payment Gate: Single KES 20 Certificate Download */}
+              {paymentStep === 'confirm' && (
                 <div className="space-y-4">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-sm text-on-surface space-y-1">
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4" /> Active Monthly Subscription
-                    </p>
-                    <p className="text-on-surface-variant text-xs leading-relaxed">
-                      Your monthly subscription is active until {accessInfo.subscription?.expiresAt ? new Date(accessInfo.subscription.expiresAt).toLocaleDateString('en-GB') : 'end of billing period'}. Enjoy unlimited certificate downloads at KES 0.
-                    </p>
+                  {/* Certificate Item & Fee Summary */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-primary block">Official Document</span>
+                      <p className="text-sm font-bold text-on-surface">KRA Tax Compliance Certificate (PDF)</p>
+                      <p className="text-[11px] text-on-surface-variant mt-0.5">Instant generation with digital validation QR code</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-semibold text-on-surface-variant block uppercase">One-Time Fee</span>
+                      <span className="text-2xl font-black text-primary">KES 20</span>
+                    </div>
                   </div>
-                  <div className="flex gap-3 pt-2">
-                    <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Close</button>
-                    <button className={primaryButtonClass + " flex-1"} onClick={handleSubscriptionDownload}>
-                      <Download className="w-4 h-4" /> Download Certificate (KES 0)
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              {/* Pay Per Download / Tier Selection */}
-              {accessInfo.access === 'pay_per_download' && paymentStep === 'confirm' && (
-                <div className="space-y-4">
                   {/* Segmented Gateway Toggle */}
                   <div className="grid grid-cols-2 gap-1.5 bg-surface-container p-1 rounded-2xl border border-outline-variant/60">
                     <button
@@ -1503,7 +1385,7 @@ export function KRAPortal() {
                           : "text-on-surface-variant hover:text-on-surface"
                       )}
                     >
-                      <CreditCard className="w-4 h-4" /> Paystack (Cards / M-Pesa)
+                      <CreditCard className="w-4 h-4" /> Paystack (Card / M-Pesa)
                     </button>
                     <button
                       type="button"
@@ -1519,72 +1401,16 @@ export function KRAPortal() {
                     </button>
                   </div>
 
-                  {/* Paystack Plans */}
+                  {/* Paystack Checkout */}
                   {paymentMethod === 'paystack' && (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Single Certificate */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedTier('download')}
-                          onKeyDown={(e) => e.key === 'Enter' && setSelectedTier('download')}
-                          className={cn(
-                            "p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
-                            selectedTier === 'download'
-                              ? "border-primary bg-primary/5 ring-2 ring-primary shadow-sm"
-                              : "border-outline-variant/70 bg-surface-container/30 hover:bg-surface-container/70"
-                          )}
-                        >
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant block">Single Download</span>
-                            <p className="text-xl font-extrabold text-primary mt-1">KES 20</p>
-                            <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
-                              One-time official certificate generation for this PIN.
-                            </p>
-                          </div>
-                          <div className="mt-3.5 pt-2.5 border-t border-outline-variant/40 flex items-center gap-1.5 text-[11px] font-medium text-on-surface">
-                            <Check className="w-3.5 h-3.5 text-primary" /> Instant PDF Download
-                          </div>
-                        </div>
-
-                        {/* Monthly Unlimited Plan */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedTier('subscription')}
-                          onKeyDown={(e) => e.key === 'Enter' && setSelectedTier('subscription')}
-                          className={cn(
-                            "p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer relative overflow-hidden",
-                            selectedTier === 'subscription'
-                              ? "border-primary bg-primary/5 ring-2 ring-primary shadow-sm"
-                              : "border-outline-variant/70 bg-surface-container/30 hover:bg-surface-container/70"
-                          )}
-                        >
-                          <div className="absolute top-0 right-0 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider">
-                            BEST VALUE
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant block">Monthly Pass</span>
-                            <p className="text-xl font-extrabold text-primary mt-1">KES 499 <span className="text-[10px] font-normal text-on-surface-variant">/ mo</span></p>
-                            <p className="text-[11px] text-on-surface-variant mt-1.5 leading-relaxed">
-                              Unlimited downloads & unlocks all masked taxpayer numbers.
-                            </p>
-                          </div>
-                          <div className="mt-3.5 pt-2.5 border-t border-outline-variant/40 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                            <Sparkles className="w-3.5 h-3.5" /> Full Profiles Unmasked
-                          </div>
-                        </div>
-                      </div>
-
+                    <div className="space-y-3 pt-1">
                       {/* Provider Trust Badges */}
-                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-on-surface-variant">
-                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Visa</span>
-                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Mastercard</span>
-                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">Apple Pay</span>
-                        <span className="bg-surface-container px-2 py-0.5 rounded-md font-medium text-[10px]">M-Pesa</span>
+                      <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-[11px] text-on-surface-variant">
+                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Visa / Mastercard</span>
+                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">M-Pesa</span>
+                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Apple Pay</span>
                         <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/80 ml-1">
-                          <Lock className="w-3 h-3" /> 256-Bit SSL Encrypted
+                          <Lock className="w-3 h-3 text-emerald-600" /> 256-Bit SSL Secured
                         </span>
                       </div>
 
@@ -1596,16 +1422,15 @@ export function KRAPortal() {
                         <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
                         <button
                           type="button"
-                          className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20")}
-                          onClick={() => handlePaystackPayment(selectedTier === 'subscription' ? 'subscription' : 'pay_per_download')}
+                          className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20 h-11")}
+                          onClick={() => handlePaystackPayment('pay_per_download')}
                           disabled={isInitializingPaystack}
                         >
                           {isInitializingPaystack ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <>
-                              <CreditCard className="w-4 h-4" />
-                              {selectedTier === 'subscription' ? 'Subscribe KES 499' : 'Pay KES 20 & Download'}
+                              <CreditCard className="w-4 h-4" /> Pay KES 20 & Download
                             </>
                           )}
                         </button>
@@ -1615,18 +1440,7 @@ export function KRAPortal() {
 
                   {/* Direct M-Pesa STK Flow */}
                   {paymentMethod === 'mpesa' && (
-                    <div className="space-y-4">
-                      <div className="bg-surface-container/60 rounded-2xl p-4 text-xs space-y-1.5 border border-outline-variant/60">
-                        <div className="flex justify-between items-center">
-                          <span className="text-on-surface-variant">Selected Certificate PIN:</span>
-                          <span className="font-mono font-bold text-primary">{formData.pin}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-outline-variant/40">
-                          <span className="text-on-surface-variant">Single Download Fee:</span>
-                          <span className="font-bold text-on-surface text-sm">KES {accessInfo.feeKes}</span>
-                        </div>
-                      </div>
-
+                    <div className="space-y-4 pt-1">
                       <div>
                         <label className={labelClass}>M-Pesa Phone Number</label>
                         <div className="relative mt-1">
@@ -1639,7 +1453,7 @@ export function KRAPortal() {
                           />
                         </div>
                         <p className="text-[11px] text-on-surface-variant mt-1.5">
-                          An STK push payment prompt will be sent directly to this phone number.
+                          An STK push payment prompt of <strong>KES 20</strong> will be sent to this phone.
                         </p>
                       </div>
 
@@ -1649,8 +1463,8 @@ export function KRAPortal() {
 
                       <div className="flex gap-3 pt-2">
                         <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                        <button className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20")} onClick={handleMpesaPayment}>
-                          <Smartphone className="w-4 h-4" /> Send STK Prompt (KES {accessInfo.feeKes})
+                        <button className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20 h-11")} onClick={handleMpesaPayment}>
+                          <Smartphone className="w-4 h-4" /> Send STK Prompt (KES 20)
                         </button>
                       </div>
                     </div>

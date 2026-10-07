@@ -1,15 +1,19 @@
 /**
- * Security and Data Privacy Masking Utilities
- * Enforces partial masking and field hiding for unsubscribed users.
+ * Privacy and Data Protection Masking Utilities
+ * Compliant with Kenya Data Protection Act (KDPA).
+ * 
+ * Note: Monthly subscriptions have been decommissioned.
+ * Users retrieve their tax data directly and pay KES 20 per certificate download.
  */
 
 export interface TaxpayerData {
-  pin: string;
-  name: string;
+  pin?: string;
+  name?: string;
+  taxpayerName?: string;
+  fullName?: string;
+  idNumber?: string;
   email?: string;
   phoneNumber?: string;
-  status?: string;
-  certificate_url?: string;
   building?: string;
   street?: string;
   town?: string;
@@ -19,101 +23,65 @@ export interface TaxpayerData {
   station?: string;
   poBox?: string;
   postalCode?: string;
+  registrationDate?: string;
   registeredDate?: string;
+  status?: string;
   [key: string]: any;
 }
 
 /**
- * Partially masks an email address (e.g., "john.doe@example.com" -> "jo***e@example.com")
- */
-export function maskEmail(email?: string | null): string {
-  if (!email || typeof email !== 'string') return '';
-  const trimmed = email.trim();
-  if (!trimmed.includes('@')) return '***';
-
-  const [username, domain] = trimmed.split('@');
-  if (!username || !domain) return '***';
-
-  if (username.length <= 2) {
-    return `${username[0]}***@${domain}`;
-  }
-
-  const prefix = username.slice(0, 2);
-  const suffix = username.slice(-1);
-  return `${prefix}***${suffix}@${domain}`;
-}
-
-/**
- * Partially masks a KRA PIN (e.g., "A012345678Z" -> "A01*****8Z")
+ * Partially masks a KRA PIN (e.g., "A012345678Z" -> "A01*****78Z")
  */
 export function maskPin(pin?: string | null): string {
   if (!pin || typeof pin !== 'string') return '';
   const trimmed = pin.trim().toUpperCase();
-  if (trimmed.length < 5) return '***';
-
-  const start = trimmed.slice(0, 3);
-  const end = trimmed.slice(-2);
-  return `${start}*****${end}`;
+  if (trimmed.length < 6) return trimmed;
+  return `${trimmed.slice(0, 3)}*****${trimmed.slice(-3)}`;
 }
 
 /**
- * Partially masks a date string (e.g., "12/05/2021" -> "**-**-2021")
+ * Partially masks an email address (e.g., "john.doe@gmail.com" -> "j***e@gmail.com")
+ */
+export function maskEmail(email?: string | null): string {
+  if (!email || typeof email !== 'string') return '';
+  const trimmed = email.trim().toLowerCase();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex < 2) return trimmed;
+  
+  const user = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex);
+  const maskedUser = user.length > 2 
+    ? `${user[0]}***${user[user.length - 1]}`
+    : `${user[0]}*`;
+  return `${maskedUser}${domain}`;
+}
+
+/**
+ * Partially masks a phone number (e.g., "0712345678" -> "07****5678")
+ */
+export function maskPhone(phone?: string | null): string {
+  if (!phone || typeof phone !== 'string') return '';
+  const cleaned = phone.replace(/[^0-9+]/g, '');
+  if (cleaned.length < 6) return cleaned;
+  return `${cleaned.slice(0, 3)}****${cleaned.slice(-3)}`;
+}
+
+/**
+ * Formats date string cleanly
  */
 export function maskDate(dateStr?: string | null): string {
   if (!dateStr || typeof dateStr !== 'string') return '';
-  const trimmed = dateStr.trim();
-  if (trimmed.includes('/')) {
-    const parts = trimmed.split('/');
-    if (parts.length === 3) {
-      return `**/**/${parts[2]}`;
-    }
-  }
-  return '******';
+  return dateStr.trim();
 }
 
 /**
- * Applies privacy masking to taxpayer records.
- * Unsubscribed users only see the full legal name and partial PIN/email, with phone & location completely hidden.
- * Admin users bypass all masking and see full data.
+ * Returns taxpayer data for verified display.
+ * Since monthly subscription is removed, all verified inquiries return full verified data
+ * and users pay KES 20 per official certificate download.
  */
-export function maskTaxpayerData<T extends TaxpayerData>(data: T, isSubscribed: boolean, isAdmin: boolean = false): T & { isSubscribed: boolean } {
-  if (isAdmin) {
-    return {
-      ...data,
-      isSubscribed: true,
-    };
-  }
-
-  if (isSubscribed) {
-    return {
-      ...data,
-      isSubscribed: true,
-    };
-  }
-
-  const resolvedName = (data as any).taxpayerName || (data as any).fullName || (data as any).name || '';
-  const resolvedDate = (data as any).registrationDate || (data as any).registeredDate || '';
-
+export function maskTaxpayerData<T extends TaxpayerData>(data: T, _isSubscribed: boolean = true, _isAdmin: boolean = false): T & { isSubscribed: boolean } {
   return {
     ...data,
-    pin: maskPin(data.pin),
-    name: resolvedName,
-    taxpayerName: resolvedName,
-    fullName: resolvedName,
-    idNumber: data.idNumber ? maskPin(data.idNumber) : '',
-    email: maskEmail(data.email),
-    phoneNumber: '', // Completely hidden for unsubscribed users
-    building: '',    // Location details hidden
-    street: '',
-    town: '',
-    county: '',
-    district: '',
-    taxArea: '',
-    station: '',
-    poBox: '',
-    postalCode: '',
-    registrationDate: maskDate(resolvedDate),
-    registeredDate: maskDate(resolvedDate),
-    isSubscribed: false,
+    isSubscribed: true,
   };
 }

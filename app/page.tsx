@@ -52,11 +52,11 @@ export default function Home() {
   const inHouseTools = [
     {
       title: "KRA Certificate Retrieval Portal",
-      badge: "Flagship",
-      description: "Instant official KRA compliance document retrieval by National ID or PIN. Automated PDF generation and verification at scale.",
+      badge: "KES 20 · Instant Download",
+      description: "Instant official KRA compliance document retrieval by National ID or PIN. Automated PDF generation, verified in seconds for only KES 20.",
       href: "/retrieval-portal",
       icon: FileCheck2,
-      ctaText: "Launch Portal",
+      ctaText: "Retrieve Certificate (KES 20)",
       color: "text-primary"
     },
     {
@@ -214,13 +214,29 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {inHouseTools.map((tool) => {
               const Icon = tool.icon
+              const isFlagship = tool.href === "/retrieval-portal"
               return (
-                <div key={tool.title} className="group p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 shadow-soft hover:shadow-xl transition-all duration-300 flex flex-col">
+                <div 
+                  key={tool.title} 
+                  className={`group p-7 rounded-3xl bg-surface-container-lowest border transition-all duration-300 flex flex-col ${
+                    isFlagship 
+                      ? 'border-primary/40 ring-1 ring-primary/25 shadow-lg shadow-primary/5 hover:border-primary hover:shadow-2xl hover:shadow-primary/10' 
+                      : 'border-outline-variant hover:border-primary/40 shadow-soft hover:shadow-xl'
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-5">
-                    <div className={`p-3 rounded-xl bg-surface-container ${tool.color} group-hover:bg-primary group-hover:text-white transition-colors`}>
+                    <div className={`p-3 rounded-xl transition-colors ${
+                      isFlagship 
+                        ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                        : `bg-surface-container ${tool.color} group-hover:bg-primary group-hover:text-white`
+                    }`}>
                       <Icon className="h-6 w-6" />
                     </div>
-                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+                    <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+                      isFlagship 
+                        ? 'bg-primary/10 text-primary border-primary/30 font-black' 
+                        : 'bg-surface-container text-on-surface-variant border-outline-variant'
+                    }`}>
                       {tool.badge}
                     </span>
                   </div>
@@ -228,7 +244,11 @@ export default function Home() {
                   <p className="text-xs text-on-surface-variant leading-relaxed flex-1">{tool.description}</p>
                   <div className="pt-5 mt-4 border-t border-outline-variant/60">
                     <Link href={tool.href}>
-                      <Button className="w-full h-10 rounded-xl bg-surface-container group-hover:bg-primary text-on-surface group-hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2">
+                      <Button className={`w-full h-11 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                        isFlagship 
+                          ? 'bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20' 
+                          : 'bg-surface-container group-hover:bg-primary text-on-surface group-hover:text-white'
+                      }`}>
                         {tool.ctaText} <ArrowRight className="h-3.5 w-3.5" />
                       </Button>
                     </Link>

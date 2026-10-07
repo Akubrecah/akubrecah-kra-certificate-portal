@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 export interface PaystackInitializeOptions {
   email: string;
-  amountKes: number; // In KES (e.g. 30 for pay-per-download, 499 for monthly)
+  amountKes: number; // In KES (e.g. 20 for single certificate download)
   reference?: string;
   callbackUrl?: string;
   metadata?: Record<string, any>;

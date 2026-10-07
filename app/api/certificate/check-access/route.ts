@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import prisma from '@/lib/prisma';
-import { getOrCreateDbUser, isAdminUser } from '@/lib/subscription';
+import { isAdminUser } from '@/lib/subscription';
 
 export const maxDuration = 10;
 
-const DOWNLOAD_FEE_KES = 30;
+// Official KRA Certificate download fee is fixed at KES 20 (monthly subscriptions decommissioned)
+const DOWNLOAD_FEE_KES = 20;
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,57 +14,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    // 0. Admin users always have subscription-level access.
+    // Admin users bypass the fee
     const adminAccess = await isAdminUser(userId);
     if (adminAccess) {
       return NextResponse.json({
         success: true,
-        access: 'subscription',
+        access: 'admin',
         feeKes: 0,
-        subscription: { id: 'admin', planName: 'Admin Access', expiresAt: null },
-      });
-    }
-
-    // 1. Look up or auto-provision the user's DB record by clerkId
-    const db = prisma as any;
-    const dbUser = await getOrCreateDbUser(userId);
-
-    if (!dbUser) {
-      // Fallback: treat as no subscription
-      return NextResponse.json({
-        success: true,
-        access: 'pay_per_download',
-        feeKes: DOWNLOAD_FEE_KES,
         subscription: null,
       });
     }
 
-    // 2. Check for an active subscription
-    const now = new Date();
-    const subDelegate = db.subscription || db.subscriptions;
-    const activeSub = await subDelegate?.findFirst({
-      where: {
-        userId: dbUser.id,
-        status: 'active',
-        expiresAt: { gt: now },
-      },
-      orderBy: { expiresAt: 'desc' },
-    });
-
-    if (activeSub) {
-      return NextResponse.json({
-        success: true,
-        access: 'subscription',
-        feeKes: 0,
-        subscription: {
-          id: activeSub.id,
-          planName: activeSub.planName,
-          expiresAt: activeSub.expiresAt,
-        },
-      });
-    }
-
-    // 3. No active subscription — must pay per download
+    // Standard user: KES 20 per certificate download
     return NextResponse.json({
       success: true,
       access: 'pay_per_download',

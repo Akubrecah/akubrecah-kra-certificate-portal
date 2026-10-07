@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           clerkId: userId,
           pin: pin.toUpperCase(),
           downloadType: 'pay_per_download',
-          amountCharged: payment.metadata?.amount || 30,
+          amountCharged: payment.metadata?.amount || 20,
           currency: 'KES',
           mpesaReceipt: payment.metadata?.mpesaReceiptNumber || null,
           checkoutId,

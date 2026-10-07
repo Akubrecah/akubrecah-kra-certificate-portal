@@ -21,7 +21,9 @@ import {
   Mail,
   Phone,
   Sparkles,
-  Lock
+  Lock,
+  CheckCircle2,
+  Download
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -82,8 +84,8 @@ export function KraPinChecker() {
   const [result, setResult] = useState<TaxpayerProfile | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
-  // Effective full access: admin always has full access regardless of subscription
-  const hasFullAccess = isAdmin || Boolean(result?.isSubscribed)
+  // All authenticated/public searches reveal verified record without monthly paywall
+  const hasFullAccess = true
 
   const handleCopy = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text)
@@ -429,22 +431,20 @@ export function KraPinChecker() {
               </div>
 
               <CardContent className="p-3.5 sm:p-4 space-y-3">
-                {/* Privacy & Subscription Notice Banner */}
-                {!hasFullAccess && (
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        <strong className="text-on-surface">Preview Mode:</strong> Phone, station & address details hidden until subscribed. Legal name verified.
-                      </p>
-                    </div>
-                    <Link href={`/?pin=${result.pin}&action=unlock`} className="shrink-0 w-full sm:w-auto">
-                      <Button size="sm" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-bold text-xs h-7 px-3 flex items-center gap-1 shadow-sm cursor-pointer whitespace-nowrap">
-                        <Sparkles className="w-3 h-3" /> Unlock Full Profile (KES 499)
-                      </Button>
-                    </Link>
+                {/* Verified Taxpayer Record Banner */}
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <p className="text-[11px] text-on-surface font-semibold">
+                      Verified Taxpayer Record • Ready to download official compliance certificate for KES 20.
+                    </p>
                   </div>
-                )}
+                  <Link href={`/retrieval-portal?pin=${result.pin}`}>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold text-xs h-7 px-3 flex items-center gap-1 shadow-sm cursor-pointer whitespace-nowrap">
+                      Download PDF (KES 20) <ArrowRight className="w-3 h-3" />
+                    </Button>
+                  </Link>
+                </div>
 
                 {/* Highlights Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -509,45 +509,28 @@ export function KraPinChecker() {
                       <MapPin className="w-3.5 h-3.5 text-primary" />
                       Location & Address Details
                     </h3>
-                    {hasFullAccess ? (
-                      <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-2.5 px-3 space-y-1 bg-zinc-50/50 dark:bg-zinc-800/30 text-xs">
-                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
-                          <span className="text-muted-foreground">County</span>
-                          <span className="font-medium">{result.county || "Not specified"}</span>
-                        </div>
-                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
-                          <span className="text-muted-foreground">City / Town</span>
-                          <span className="font-medium">{result.town || "Not specified"}</span>
-                        </div>
-                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
-                          <span className="text-muted-foreground">Building / Plot</span>
-                          <span className="font-medium">{result.building || "Not specified"}</span>
-                        </div>
-                        <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
-                          <span className="text-muted-foreground">Street / Road</span>
-                          <span className="font-medium">{result.street || "Not specified"}</span>
-                        </div>
-                        <div className="flex justify-between py-0.5">
-                          <span className="text-muted-foreground">Postal Box</span>
-                          <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || ''}` : "Not specified"}</span>
-                        </div>
+                    <div className="rounded-xl border border-outline-variant dark:border-zinc-800 p-2.5 px-3 space-y-1 bg-zinc-50/50 dark:bg-zinc-800/30 text-xs">
+                      <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                        <span className="text-muted-foreground">County</span>
+                        <span className="font-medium">{result.county || "Not specified"}</span>
                       </div>
-                    ) : (
-                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 px-3 text-center space-y-1">
-                        <p className="text-xs font-bold text-on-surface flex items-center justify-center gap-1.5">
-                          <Lock className="w-3 h-3 text-amber-600" />
-                          Physical Address Protected
-                        </p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">
-                          County, town, building, and postal address details require a monthly subscription.
-                        </p>
-                        <Link href={`/?pin=${result.pin}&action=unlock`} className="inline-block pt-0.5">
-                          <Button size="sm" variant="outline" className="text-[11px] border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-6 px-2 font-semibold cursor-pointer">
-                            <Sparkles className="w-2.5 h-2.5 mr-1" /> Unlock Location
-                          </Button>
-                        </Link>
+                      <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                        <span className="text-muted-foreground">City / Town</span>
+                        <span className="font-medium">{result.town || "Not specified"}</span>
                       </div>
-                    )}
+                      <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                        <span className="text-muted-foreground">Building / Plot</span>
+                        <span className="font-medium">{result.building || "Not specified"}</span>
+                      </div>
+                      <div className="flex justify-between py-0.5 border-b border-zinc-100 dark:border-zinc-800/50">
+                        <span className="text-muted-foreground">Street / Road</span>
+                        <span className="font-medium">{result.street || "Not specified"}</span>
+                      </div>
+                      <div className="flex justify-between py-0.5">
+                        <span className="text-muted-foreground">Postal Box</span>
+                        <span className="font-medium">{result.poBox ? `${result.poBox} - ${result.postalCode || ''}` : "Not specified"}</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Contact & Obligations */}
@@ -627,19 +610,13 @@ export function KraPinChecker() {
                     <RefreshCw className="w-3 h-3" />
                     New Search
                   </Button>
-                  <Link href={`/?pin=${result.pin}`}>
-                    <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer">
-                      {isAdmin ? "Retrieve Certificate" : "Retrieve Certificate (KES 20)"}
+                  <Link href={`/retrieval-portal?pin=${result.pin}`}>
+                    <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer text-primary border-primary/30 hover:bg-primary/10">
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      {isAdmin ? "Download Certificate (Admin)" : "Download Certificate (KES 20)"}
                     </Button>
                   </Link>
-                  {!hasFullAccess && (
-                    <Link href={`/?pin=${result.pin}&action=unlock`}>
-                      <Button size="sm" variant="outline" className="h-8 px-3 rounded-lg text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1 whitespace-nowrap cursor-pointer">
-                        <Sparkles className="w-3 h-3" /> Unlock Full Profile (KES 499)
-                      </Button>
-                    </Link>
-                  )}
-                  <Link href={`/retrieval-portal?pin=${result.pin}`}>
+                  <Link href={`/dashboard/filing?pin=${result.pin}`}>
                     <Button size="sm" className="h-8 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1 whitespace-nowrap cursor-pointer">
                       File Nil Return
                       <ArrowRight className="w-3 h-3" />
