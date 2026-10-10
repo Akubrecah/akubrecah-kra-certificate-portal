@@ -267,8 +267,9 @@ export async function handleWhatsAppChat(params: {
     }
 
     // 6. Optional Direct Dispatch to Evolution API
+    let sendResult: any = null;
     if (sendDirect && replyText) {
-      await sendEvolutionTextMessage(userPhone, replyText);
+      sendResult = await sendEvolutionTextMessage(userPhone, replyText);
     }
 
     return {
@@ -277,6 +278,7 @@ export async function handleWhatsAppChat(params: {
       step: nextStep,
       reply: replyText,
       metadata,
+      sendResult,
     };
   } catch (error: any) {
     console.error('[WhatsApp Chat Route Error]:', error);
