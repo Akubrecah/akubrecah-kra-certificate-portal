@@ -1164,141 +1164,190 @@ export function KRAPortal() {
                   </div>
 
                   {/* Official Verification Success Badge & KES 20 Notice */}
-                  <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <CheckCircle2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs sm:text-sm font-black text-on-surface flex items-center gap-2">
-                          Official Compliance Record Ready
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">100% Verified</span>
-                        </p>
-                        <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                          Taxpayer record matched directly with government registries. Pay strictly <strong>KES 20 (20 bob)</strong> to download your official tamper-proof PDF.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="shrink-0 bg-primary/10 border border-primary/25 rounded-xl px-3.5 py-2 text-center w-full sm:w-auto">
-                      <span className="block text-[10px] uppercase font-black text-primary tracking-wider">Download Fee</span>
-                      <span className="text-sm sm:text-base font-black text-primary">KES 20 only</span>
-                    </div>
-                  </div>
-
-                  {/* KDPA Masked Taxpayer Preview Grid */}
-                  <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-2xl p-4 sm:p-6 border border-outline-variant space-y-4 shadow-sm">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      
-                      {/* 1. Taxpayer Legal Name (Unmasked) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Taxpayer Legal Name</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Verified Citizen</span>
+                  {(() => {
+                    const isRecordUnlocked = Boolean(verifiedDownloadId || isAdmin);
+                    return (
+                      <>
+                        <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                              <CheckCircle2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs sm:text-sm font-black text-on-surface flex items-center gap-2">
+                                {isRecordUnlocked ? "Compliance Certificate Ready" : "Official Compliance Record Ready"}
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                                  {isRecordUnlocked ? "Paid & Unmasked" : "100% Verified"}
+                                </span>
+                              </p>
+                              <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
+                                {isRecordUnlocked 
+                                  ? "Payment verified. Your official certificate is compiled and full taxpayer details are unmasked below." 
+                                  : <>Taxpayer record matched directly with government registries. Confidential fields remain masked until you pay strictly <strong>KES 20 (20 bob)</strong> to unmask and download your official tamper-proof PDF.</>}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="shrink-0 bg-primary/10 border border-primary/25 rounded-xl px-3.5 py-2 text-center w-full sm:w-auto">
+                            <span className="block text-[10px] uppercase font-black text-primary tracking-wider">Download Fee</span>
+                            <span className="text-sm sm:text-base font-black text-primary">
+                              {isRecordUnlocked ? "PAID" : "KES 20 only"}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs sm:text-sm font-bold text-on-surface uppercase truncate">
-                          {formData.fullName || "REGISTERED TAXPAYER"}
-                        </p>
-                      </div>
 
-                      {/* 2. National ID (Unmasked - Fully Visible) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>National ID Number</span>
-                          <span className="text-primary font-semibold text-[9px] bg-primary/10 px-1.5 py-0.5 rounded">Official ID</span>
+                        {/* KDPA Masked Taxpayer Preview Grid */}
+                        <div className="w-full max-w-2xl mx-auto bg-surface-variant/30 rounded-2xl p-4 sm:p-6 border border-outline-variant space-y-4 shadow-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            
+                            {/* 1. Taxpayer Legal Name (Unmasked) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Taxpayer Legal Name</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Verified Citizen</span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-bold text-on-surface uppercase truncate">
+                                {formData.fullName || "REGISTERED TAXPAYER"}
+                              </p>
+                            </div>
+
+                            {/* 2. National ID (Unmasked - Fully Visible) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>National ID Number</span>
+                                <span className="text-primary font-semibold text-[9px] bg-primary/10 px-1.5 py-0.5 rounded">Official ID</span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-mono font-bold text-on-surface">
+                                {formData.idNumber || "On File"}
+                              </p>
+                            </div>
+
+                            {/* 3. KRA PIN (Masked until paid) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>KRA PIN</span>
+                                <span className={cn(
+                                  "font-semibold text-[9px] px-1.5 py-0.5 rounded",
+                                  isRecordUnlocked ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                )}>
+                                  {isRecordUnlocked ? "Verified & Paid" : "Partial Mask"}
+                                </span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-mono font-black text-primary tracking-wider">
+                                {isRecordUnlocked 
+                                  ? (formData.rawPin || formData.pin) 
+                                  : (maskPin(formData.pin || formData.rawPin) || "A01*****78Z")}
+                              </p>
+                            </div>
+
+                            {/* 4. Tax Station (Unmasked - Fully Visible) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Tax Station</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Station Match</span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-bold text-on-surface truncate">
+                                {formData.station || "Kitale TSO"}
+                              </p>
+                            </div>
+
+                            {/* 5. Email Address (Masked until paid) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Email Address</span>
+                                <span className={cn(
+                                  "font-semibold text-[9px] px-1.5 py-0.5 rounded",
+                                  isRecordUnlocked ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-surface-variant text-on-surface-variant"
+                                )}>
+                                  {isRecordUnlocked ? "Unmasked" : "Partial Mask"}
+                                </span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-mono text-on-surface truncate">
+                                {isRecordUnlocked 
+                                  ? (formData.email || "Registered Email") 
+                                  : (maskEmail(formData.email) || "j***e@gmail.com")}
+                              </p>
+                            </div>
+
+                            {/* 6. Phone Number (Completely Masked until paid) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Mobile Phone</span>
+                                <span className={cn(
+                                  "font-semibold text-[9px] px-1.5 py-0.5 rounded",
+                                  isRecordUnlocked ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                )}>
+                                  {isRecordUnlocked ? "Unmasked" : "Protected Phone"}
+                                </span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-mono font-bold text-on-surface tracking-wider">
+                                {isRecordUnlocked && formData.phoneNumber && !formData.phoneNumber.includes('•')
+                                  ? formData.phoneNumber 
+                                  : "••••••••••"}
+                              </p>
+                            </div>
+
+                            {/* 7. Region & City */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>County & Town</span>
+                                <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Location</span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-medium text-on-surface truncate">
+                                {formData.county ? `${formData.county} · ${formData.town || formData.county}` : (formData.town || "Nairobi")}
+                              </p>
+                            </div>
+
+                            {/* 8. Registration Date */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Registration Date</span>
+                                <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Statutory</span>
+                              </div>
+                              <p className="text-xs sm:text-sm font-medium text-on-surface">
+                                {formData.registeredDate || "On Official File"}
+                              </p>
+                            </div>
+
+                            {/* 9. Physical Building & Street Address (Protected until paid) */}
+                            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80 sm:col-span-2">
+                              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
+                                <span>Physical Address & Postal Records</span>
+                                <span className={cn(
+                                  "font-semibold text-[9px] px-1.5 py-0.5 rounded",
+                                  isRecordUnlocked ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-surface-variant text-on-surface-variant"
+                                )}>
+                                  {isRecordUnlocked ? "Unmasked" : "KDPA Protected"}
+                                </span>
+                              </div>
+                              <p className="text-xs font-mono text-on-surface flex items-center gap-1.5">
+                                {isRecordUnlocked ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                    {[formData.building, formData.street, formData.poBox ? `P.O. Box ${formData.poBox}` : '', formData.postalCode].filter(Boolean).join(', ') || "Official Address Records on File"}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <Lock className="w-3.5 h-3.5 text-primary" />
+                                    <span className="text-on-surface-variant">•••••••••••• (Secured — Pay KES 20 to unmask and download official certificate)</span>
+                                  </>
+                                )}
+                              </p>
+                            </div>
+
+                          </div>
+
+                          {/* Privacy Assurance Banner */}
+                          <div className="rounded-xl bg-surface-container p-3 border border-outline-variant/60 flex items-start gap-2.5 text-[11px] text-on-surface-variant">
+                            <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">
+                              {isRecordUnlocked 
+                                ? "Payment verified. Your complete, unmasked statutory record is shown and included in your downloaded certificate."
+                                : <>To protect citizen privacy under the Kenya Data Protection Act, contact details and identification numbers are partially masked during web preview. The full unmasked official record is embedded into your official PDF certificate upon payment of <strong>KES 20</strong>.</>}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs sm:text-sm font-mono font-bold text-on-surface">
-                          {formData.idNumber || "On File"}
-                        </p>
-                      </div>
-
-                      {/* 3. KRA PIN (Partially Masked) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>KRA PIN</span>
-                          <span className="text-amber-600 dark:text-amber-400 font-semibold text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded">Partial Mask</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-mono font-black text-primary tracking-wider">
-                          {maskPin(formData.pin || formData.rawPin) || "A01*****78Z"}
-                        </p>
-                      </div>
-
-                      {/* 4. Tax Station (Unmasked - Fully Visible) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Tax Station</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded">Station Match</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-bold text-on-surface truncate">
-                          {formData.station || "Kitale TSO"}
-                        </p>
-                      </div>
-
-                      {/* 5. Email Address (Partially Masked) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Email Address</span>
-                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Partial Mask</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-mono text-on-surface truncate">
-                          {maskEmail(formData.email) || "j***e@gmail.com"}
-                        </p>
-                      </div>
-
-                      {/* 6. Phone Number (Completely Masked) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Mobile Phone</span>
-                          <span className="text-red-600 dark:text-red-400 font-semibold text-[9px] bg-red-500/10 px-1.5 py-0.5 rounded">Protected Phone</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-mono font-bold text-on-surface-variant tracking-widest">
-                          ••••••••••
-                        </p>
-                      </div>
-
-                      {/* 7. Region & City */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>County & Town</span>
-                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Location</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-medium text-on-surface truncate">
-                          {formData.county ? `${formData.county} · ${formData.town || formData.county}` : (formData.town || "Nairobi")}
-                        </p>
-                      </div>
-
-                      {/* 8. Registration Date */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Registration Date</span>
-                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">Statutory</span>
-                        </div>
-                        <p className="text-xs sm:text-sm font-medium text-on-surface">
-                          {formData.registeredDate || "On Official File"}
-                        </p>
-                      </div>
-
-                      {/* 9. Physical Building & Street Address (Protected) */}
-                      <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/80 sm:col-span-2">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-on-surface-variant mb-1">
-                          <span>Physical Address & Postal Records</span>
-                          <span className="text-on-surface-variant font-semibold text-[9px] bg-surface-variant px-1.5 py-0.5 rounded">KDPA Protected</span>
-                        </div>
-                        <p className="text-xs font-mono text-on-surface-variant flex items-center gap-1.5">
-                          <Lock className="w-3.5 h-3.5 text-primary" />
-                          <span>•••••••••••• (Secured — Complete unmasked details appear on official PDF certificate)</span>
-                        </p>
-                      </div>
-
-                    </div>
-
-                    {/* Privacy Assurance Banner */}
-                    <div className="rounded-xl bg-surface-container p-3 border border-outline-variant/60 flex items-start gap-2.5 text-[11px] text-on-surface-variant">
-                      <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">
-                        To protect citizen privacy under the Kenya Data Protection Act, contact details and identification numbers are partially masked during web preview. The full unmasked official record is embedded into your official PDF certificate upon payment of <strong>KES 20</strong>.
-                      </p>
-                    </div>
-                  </div>
+                      </>
+                    );
+                  })()}
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto pt-2">

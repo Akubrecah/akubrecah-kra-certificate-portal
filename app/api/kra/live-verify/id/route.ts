@@ -130,7 +130,11 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({
       success: true,
-      data: maskedData,
+      data: {
+        ...maskedData,
+        rawPin: taxpayerData.pin,
+        rawId: cleanId,
+      },
       isSubscribed,
     });
   } catch (error: any) {

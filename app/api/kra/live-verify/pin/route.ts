@@ -130,7 +130,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: maskedData,
+      data: {
+        ...maskedData,
+        rawPin: cleanPin,
+      },
       isSubscribed,
     });
   } catch (error: any) {

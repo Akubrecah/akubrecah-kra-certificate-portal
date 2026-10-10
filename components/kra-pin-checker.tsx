@@ -123,6 +123,7 @@ export function KraPinChecker() {
         }
         setResult({
           ...data.data,
+          rawPin: data.data?.rawPin || cleanPin,
           isSubscribed: Boolean(data.isSubscribed ?? data.data?.isSubscribed),
         })
       } catch (err: any) {
@@ -154,6 +155,8 @@ export function KraPinChecker() {
         }
         setResult({
           ...data.data,
+          rawId: data.data?.rawId || cleanId,
+          rawPin: data.data?.rawPin,
           isSubscribed: Boolean(data.isSubscribed ?? data.data?.isSubscribed),
         })
       } catch (err: any) {
