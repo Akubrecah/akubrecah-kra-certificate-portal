@@ -3,7 +3,20 @@
  * Compatible with atendai/evolution-api:latest
  */
 
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'http://169.58.96.131:8085';
+export function getEvolutionApiUrl(): string {
+  const envUrl = (process.env.EVOLUTION_API_URL || '').trim();
+  // If undefined, empty, localhost/127.0.0.1, or placeholder from setup script, use production VPS IP
+  if (
+    !envUrl ||
+    envUrl.includes('localhost') ||
+    envUrl.includes('127.0.0.1') ||
+    envUrl.includes('<YOUR_VPS_IP>')
+  ) {
+    return 'http://169.58.96.131:8085';
+  }
+  return envUrl;
+}
+
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || 'akubrecah_secret_whatsapp_key_2026';
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || 'akubrecah-kra';
 
@@ -27,10 +40,14 @@ export function sanitizeWhatsAppPhone(phone: string): string {
 /**
  * Send a plain text or formatted message to a WhatsApp user
  */
-export async function sendEvolutionTextMessage(phone: string, text: string): Promise<{ success: boolean; error?: string }> {
+export async function sendEvolutionTextMessage(
+  phone: string,
+  text: string
+): Promise<{ success: boolean; error?: string; targetUrl?: string }> {
+  const baseUrl = getEvolutionApiUrl();
+  const url = `${baseUrl.replace(/\/$/, '')}/message/sendText/${EVOLUTION_INSTANCE}`;
   try {
     const formattedPhone = sanitizeWhatsAppPhone(phone);
-    const url = `${EVOLUTION_API_URL.replace(/\/$/, '')}/message/sendText/${EVOLUTION_INSTANCE}`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -47,13 +64,14 @@ export async function sendEvolutionTextMessage(phone: string, text: string): Pro
     if (!response.ok) {
       const errText = await response.text();
       console.error('[Evolution API] Failed to send text message:', response.status, errText);
-      return { success: false, error: `Evolution API returned ${response.status}: ${errText}` };
+      return { success: false, error: `Evolution API returned ${response.status}: ${errText}`, targetUrl: url };
     }
 
-    return { success: true };
+    return { success: true, targetUrl: url };
   } catch (error: any) {
-    console.error('[Evolution API Exception] sendEvolutionTextMessage:', error.message);
-    return { success: false, error: error.message };
+    const causeMsg = error.cause ? ` (cause: ${error.cause?.code || error.cause?.message || JSON.stringify(error.cause)})` : '';
+    console.error('[Evolution API Exception] sendEvolutionTextMessage:', error.message, causeMsg);
+    return { success: false, error: `${error.message}${causeMsg}`, targetUrl: url };
   }
 }
 
@@ -68,7 +86,8 @@ export async function markEvolutionMessageRead({
   messageId?: string;
 }): Promise<void> {
   try {
-    const url = `${EVOLUTION_API_URL.replace(/\/$/, '')}/chat/markMessageAsRead/${EVOLUTION_INSTANCE}`;
+    const baseUrl = getEvolutionApiUrl();
+    const url = `${baseUrl.replace(/\/$/, '')}/chat/markMessageAsRead/${EVOLUTION_INSTANCE}`;
     await fetch(url, {
       method: 'POST',
       headers: {
@@ -105,9 +124,10 @@ export async function sendEvolutionDocument({
   caption?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
+    const baseUrl = getEvolutionApiUrl();
     const formattedPhone = sanitizeWhatsAppPhone(phone);
     const base64Data = pdfBuffer.toString('base64');
-    const url = `${EVOLUTION_API_URL.replace(/\/$/, '')}/message/sendMedia/${EVOLUTION_INSTANCE}`;
+    const url = `${baseUrl.replace(/\/$/, '')}/message/sendMedia/${EVOLUTION_INSTANCE}`;
 
     const response = await fetch(url, {
       method: 'POST',
