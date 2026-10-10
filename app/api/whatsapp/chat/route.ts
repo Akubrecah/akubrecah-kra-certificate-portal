@@ -4,6 +4,7 @@ import { sanitizeWhatsAppPhone, sendEvolutionTextMessage } from '@/lib/evolution
 import { fetchTaxpayerById, fetchTaxpayerByPin } from '@/lib/kra-api';
 import { maskTaxpayerData } from '@/lib/masking';
 import { initializePaystackTransaction } from '@/lib/paystack';
+import { dispatchMpesaStkPush } from '@/app/api/mpesa/stkpush/route';
 
 export const maxDuration = 60;
 
@@ -26,18 +27,14 @@ function formatDisplayPhone(phone: string): string {
 }
 
 async function triggerMpesaPush(phone: string, pin: string, amount: number) {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
-  const stkRes = await fetch(`${appUrl}/api/mpesa/stkpush`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      phone,
-      amount,
-      reference: pin,
-      description: `KRA Cert: ${pin}`,
-    }),
+  return await dispatchMpesaStkPush({
+    phone,
+    amount,
+    reference: pin,
+    description: `KRA Cert: ${pin}`,
+    userClerkId: 'wa_' + phone,
+    userEmail: `wa_${phone.replace(/[^a-zA-Z0-9]/g, '')}@akubrecah.co.ke`,
   });
-  return await stkRes.json();
 }
 
 async function createPaystackLink(userPhone: string, pin: string, amount: number, customerName?: string) {
