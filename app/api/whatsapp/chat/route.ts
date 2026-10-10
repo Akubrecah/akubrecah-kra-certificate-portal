@@ -17,28 +17,18 @@ function normalizePhoneNumber(phone: string): string {
   return cleaned;
 }
 
-/**
- * POST /api/whatsapp/chat
- *
- * Core WhatsApp State Router Endpoint.
- * Can be called by n8n, Evolution API webhooks, or test clients.
- *
- * Body:
- *   - phone: string (User's WhatsApp phone number)
- *   - message: string (User's text input)
- *   - sendDirect?: boolean (If true, automatically sends reply via Evolution API)
- */
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { phone: rawPhone, message: rawMessage, sendDirect = true } = body;
+export async function handleWhatsAppChat(params: {
+  phone: string;
+  message: string;
+  sendDirect?: boolean;
+}) {
+  const { phone: rawPhone, message: rawMessage, sendDirect = true } = params;
 
-    if (!rawPhone || !rawMessage) {
-      return NextResponse.json(
-        { success: false, error: 'Both phone and message are required.' },
-        { status: 400 }
-      );
-    }
+  if (!rawPhone || !rawMessage) {
+    return { success: false, error: 'Both phone and message are required.' };
+  }
+
+  try {
 
     const userPhone = sanitizeWhatsAppPhone(rawPhone);
     const incomingText = String(rawMessage).trim();
@@ -200,7 +190,7 @@ export async function POST(req: NextRequest) {
         if (!replyText) {
           const pinToDownload = metadata.pin;
           const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app';
 
           const stkRes = await fetch(`${appUrl.replace(/\/$/, '')}/api/mpesa/stkpush`, {
             method: 'POST',
@@ -250,15 +240,31 @@ export async function POST(req: NextRequest) {
       await sendEvolutionTextMessage(userPhone, replyText);
     }
 
-    return NextResponse.json({
+    return {
       success: true,
       userPhone,
       step: nextStep,
       reply: replyText,
       metadata,
-    });
+    };
   } catch (error: any) {
     console.error('[WhatsApp Chat Route Error]:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * POST /api/whatsapp/chat
+ * Standard HTTP POST endpoint
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const result = await handleWhatsAppChat(body);
+    const status = result.success ? 200 : 400;
+    return NextResponse.json(result, { status });
+  } catch (error: any) {
+    console.error('[WhatsApp Chat POST Handler Error]:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
