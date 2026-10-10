@@ -408,10 +408,10 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       `• *Taxpayer:* ${resolvedName}\n` +
       `• *PIN:* \`${cleanPin}\`\n` +
       `• *Receipt No:* \`${receiptNum}\`\n\n` +
-      `Thank you for using Akubrecah KRA Portal. Reply *MENU* anytime to perform another lookup.`
+      `Thank you for using Akubrecah KRA Portal. Send */kra* or */menu* anytime to start a new lookup.`
     );
 
-    // 8. Update conversation step to COMPLETED
+    // 8. Update conversation step to COMPLETED and end active session
     const conversation = await db.ai_conversations?.findFirst({
       where: {
         channel: 'whatsapp',
@@ -423,11 +423,15 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
     if (conversation) {
       const meta = (conversation.metadata as any) || {};
       meta.step = 'COMPLETED';
+      meta.activeSession = false;
       meta.mpesaReceipt = receiptNum;
       meta.completedAt = new Date().toISOString();
       await db.ai_conversations?.update({
         where: { id: conversation.id },
-        data: { metadata: meta },
+        data: {
+          metadata: meta,
+          updated_at: new Date(),
+        },
       });
     }
 

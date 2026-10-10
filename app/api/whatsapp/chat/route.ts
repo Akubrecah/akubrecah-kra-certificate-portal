@@ -97,32 +97,53 @@ export async function handleWhatsAppChat(params: {
     }
 
     const metadata: Record<string, any> = (conversation.metadata as Record<string, any>) || { step: 'IDLE' };
-    const lastUpdated = conversation.updated_at ? new Date(conversation.updated_at).getTime() : 0;
-    const isSessionExpired = (Date.now() - lastUpdated) > 15 * 60 * 1000; // 15 minutes timeout
+    let replyText = '';
+    let nextStep = metadata.step || 'IDLE';
+
+    async function saveConversationState(newStep: string, extraMeta: Record<string, any> = {}) {
+      metadata.step = newStep;
+      metadata.lastActiveAt = Date.now();
+      metadata.activeSession = newStep !== 'IDLE' && newStep !== 'COMPLETED';
+      Object.assign(metadata, extraMeta);
+
+      await db.ai_conversations?.update({
+        where: { id: conversation.id },
+        data: {
+          metadata,
+          updated_at: new Date(),
+        },
+      });
+      nextStep = newStep;
+    }
+
+    const lastActiveAt = Number(metadata.lastActiveAt || (conversation.updated_at ? new Date(conversation.updated_at).getTime() : 0));
+    const SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours active session timeout
+    const isSessionExpired = lastActiveAt > 0 && (Date.now() - lastActiveAt) > SESSION_TIMEOUT_MS;
 
     let currentStep = metadata.step || 'IDLE';
-    if (isSessionExpired && currentStep !== 'IDLE') {
+    let isSessionActive = Boolean(metadata.activeSession) && currentStep !== 'IDLE' && currentStep !== 'COMPLETED';
+
+    if (isSessionExpired && isSessionActive) {
       currentStep = 'IDLE';
-      metadata.step = 'IDLE';
+      isSessionActive = false;
+      await saveConversationState('IDLE', { activeSession: false });
     }
 
     const isSlashCommand = incomingText.startsWith('/');
 
-    // 2. Normal Message Filter: If bot is IDLE or COMPLETED and message is normal text, DO NOT TRIGGER
-    if (!isSlashCommand && (currentStep === 'IDLE' || currentStep === 'COMPLETED')) {
-      console.log(`[WhatsApp Chat] Ignored normal message from ${userPhone} (bot is ${currentStep}).`);
+    // 2. Normal Message Filter:
+    // If the bot has not been initiated (not in active session) and message has no slash, DO NOT TRIGGER!
+    if (!isSlashCommand && !isSessionActive) {
+      console.log(`[WhatsApp Chat] Ignored normal message from ${userPhone} (no active bot session).`);
       return {
         success: true,
         userPhone,
         step: currentStep,
         reply: null,
         ignored: true,
-        message: 'Normal message ignored. Bot is only triggered by "/" commands.',
+        message: 'Normal message ignored. Bot is only triggered by "/" commands until initiated.',
       };
     }
-
-    let replyText = '';
-    let nextStep = currentStep;
 
     // 3. Process Slash Commands (/kra, /menu, /start, /cancel, etc.)
     if (isSlashCommand) {
@@ -133,19 +154,15 @@ export async function handleWhatsAppChat(params: {
 
       // A. Cancellation / Exit / Reset
       if (['cancel', 'exit', 'stop', 'reset'].includes(cmdWord)) {
-        metadata.step = 'IDLE';
-        metadata.pin = null;
-        metadata.idNumber = null;
-        metadata.taxpayerDetails = null;
-        metadata.paymentPhone = null;
-        metadata.suggestedPhone = null;
-
-        await db.ai_conversations?.update({
-          where: { id: conversation.id },
-          data: { metadata },
+        await saveConversationState('IDLE', {
+          activeSession: false,
+          pin: null,
+          idNumber: null,
+          taxpayerDetails: null,
+          paymentPhone: null,
+          suggestedPhone: null,
         });
 
-        nextStep = 'IDLE';
         replyText = `✅ *Session Cancelled*\n\nThe KRA bot is now idle. Send */kra* or */menu* anytime you want to start again.`;
       }
       // B. Menu or Direct Lookup: /kra, /menu, /start, /help, /pin
@@ -156,11 +173,12 @@ export async function handleWhatsAppChat(params: {
           const isId = /^\d{6,9}$/.test(cmdArgs);
 
           if (!isPin && !isId) {
+            await saveConversationState('AWAITING_INPUT', { activeSession: true });
             replyText =
               `⚠️ *Invalid Format*\n\n` +
               `Please provide a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
-              `_Example: /kra 12345678 or /kra A012345678Z_\n` +
-              `Send */cancel* to exit.`;
+              `_Example: 12345678 or A012345678Z_\n` +
+              `Reply *0* or send */cancel* to exit.`;
           } else {
             let taxpayer: any = null;
             try {
@@ -174,27 +192,23 @@ export async function handleWhatsAppChat(params: {
             }
 
             if (!taxpayer || !taxpayer.taxpayerName) {
+              await saveConversationState('AWAITING_INPUT', { activeSession: true });
               replyText =
                 `❌ *No record found* on KRA database for \`${cmdArgs}\`.\n\n` +
-                `Please double-check the number and try again, or send */kra* to view the menu.`;
+                `Please send your correct *National ID Number* or *KRA PIN* to try again, or reply *0* to cancel.`;
             } else {
               const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
-              metadata.taxpayerDetails = taxpayer;
-
               const masked = maskTaxpayerData(taxpayer);
               const detectedPhone = extractKenyanPhone(userPhone) || extractKenyanPhone(taxpayer.phoneNumber || '');
               const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
 
-              nextStep = 'AWAITING_PAYMENT_METHOD';
-              metadata.step = 'AWAITING_PAYMENT_METHOD';
-              metadata.pin = cleanPin;
-              metadata.idNumber = taxpayer.idNumber || cmdArgs;
-              metadata.taxpayerName = taxpayer.taxpayerName;
-              metadata.suggestedPhone = detectedPhone;
-
-              await db.ai_conversations?.update({
-                where: { id: conversation.id },
-                data: { metadata },
+              await saveConversationState('AWAITING_PAYMENT_METHOD', {
+                activeSession: true,
+                pin: cleanPin,
+                idNumber: taxpayer.idNumber || cmdArgs,
+                taxpayerName: taxpayer.taxpayerName,
+                suggestedPhone: detectedPhone,
+                taxpayerDetails: taxpayer,
               });
 
               let menuText = '';
@@ -226,19 +240,15 @@ export async function handleWhatsAppChat(params: {
           }
         } else {
           // Standard menu trigger without args
-          metadata.step = 'AWAITING_INPUT';
-          metadata.pin = null;
-          metadata.idNumber = null;
-          metadata.taxpayerDetails = null;
-          metadata.paymentPhone = null;
-          metadata.suggestedPhone = null;
-
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_INPUT', {
+            activeSession: true,
+            pin: null,
+            idNumber: null,
+            taxpayerDetails: null,
+            paymentPhone: null,
+            suggestedPhone: null,
           });
 
-          nextStep = 'AWAITING_INPUT';
           replyText =
             `👋 *Welcome to Akubrecah KRA Certificate Portal!*\n\n` +
             `I can retrieve and verify your official *KRA PIN Certificate* and *Payment Receipt* right here on WhatsApp.\n\n` +
@@ -258,25 +268,28 @@ export async function handleWhatsAppChat(params: {
           `• */cancel* — Exit bot session`;
       }
     }
-    // 4. Step AWAITING_INPUT: User entered bot mode via /kra or /menu and sends their National ID or PIN
+    // 4. Step AWAITING_INPUT: User entered bot mode via /kra or /menu and sends their National ID or PIN without slashes
     else if (currentStep === 'AWAITING_INPUT') {
       const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(incomingText);
       const isId = /^\d{6,9}$/.test(incomingText);
 
       if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'exit') {
-        metadata.step = 'IDLE';
-        nextStep = 'IDLE';
-        await db.ai_conversations?.update({
-          where: { id: conversation.id },
-          data: { metadata },
+        await saveConversationState('IDLE', {
+          activeSession: false,
+          pin: null,
+          idNumber: null,
+          taxpayerDetails: null,
+          paymentPhone: null,
+          suggestedPhone: null,
         });
         replyText = `✅ *Session Cancelled*\n\nThe KRA bot is now idle. Send */kra* to start again.`;
       } else if (!isPin && !isId) {
+        await saveConversationState('AWAITING_INPUT', { activeSession: true });
         replyText =
           `⚠️ *Invalid Format*\n\n` +
           `Please reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
           `_Example: 12345678 or A012345678Z_\n` +
-          `Send */cancel* to exit bot mode.`;
+          `Reply *0* or send */cancel* to exit bot mode.`;
       } else {
         let taxpayer: any = null;
         try {
@@ -290,27 +303,23 @@ export async function handleWhatsAppChat(params: {
         }
 
         if (!taxpayer || !taxpayer.taxpayerName) {
+          await saveConversationState('AWAITING_INPUT', { activeSession: true });
           replyText =
             `❌ *No record found* on KRA database for \`${incomingText}\`.\n\n` +
-            `Please double-check the number and try again, or send */cancel* to exit.`;
+            `Please check the number and send another National ID Number or KRA PIN, or reply *0* to exit.`;
         } else {
           const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
-          metadata.taxpayerDetails = taxpayer;
-
           const masked = maskTaxpayerData(taxpayer);
           const detectedPhone = extractKenyanPhone(userPhone) || extractKenyanPhone(taxpayer.phoneNumber || '');
           const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
 
-          nextStep = 'AWAITING_PAYMENT_METHOD';
-          metadata.step = 'AWAITING_PAYMENT_METHOD';
-          metadata.pin = cleanPin;
-          metadata.idNumber = taxpayer.idNumber || incomingText;
-          metadata.taxpayerName = taxpayer.taxpayerName;
-          metadata.suggestedPhone = detectedPhone;
-
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PAYMENT_METHOD', {
+            activeSession: true,
+            pin: cleanPin,
+            idNumber: taxpayer.idNumber || incomingText,
+            taxpayerName: taxpayer.taxpayerName,
+            suggestedPhone: detectedPhone,
+            taxpayerDetails: taxpayer,
           });
 
           let menuText = '';
@@ -353,13 +362,15 @@ export async function handleWhatsAppChat(params: {
 
       // A. Cancellation
       if (lowerText === '0' || lowerText === 'cancel') {
-        metadata.step = 'IDLE';
-        nextStep = 'IDLE';
-        await db.ai_conversations?.update({
-          where: { id: conversation.id },
-          data: { metadata },
+        await saveConversationState('IDLE', {
+          activeSession: false,
+          pin: null,
+          idNumber: null,
+          taxpayerDetails: null,
+          paymentPhone: null,
+          suggestedPhone: null,
         });
-        replyText = `Operation cancelled. Reply *MENU* whenever you are ready.`;
+        replyText = `Operation cancelled. Send */kra* or */menu* whenever you want to start again.`;
       }
       // B. User explicitly sent a phone number
       else if (explicitPhone) {
@@ -367,15 +378,16 @@ export async function handleWhatsAppChat(params: {
         const stkData = await triggerMpesaPush(explicitPhone, pinToDownload, downloadFee);
 
         if (!stkData.success) {
+          await saveConversationState('AWAITING_PAYMENT_METHOD', {
+            activeSession: true,
+            paymentPhone: explicitPhone,
+          });
           replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(explicitPhone)}:*\n${stkData.error || 'Please check the number and try again'}.\n\n• Send another number (e.g. *0712345678*)\n• Reply *3* to pay with Card/Bank link\n• Reply *0* to cancel`;
         } else {
-          nextStep = 'AWAITING_PAYMENT';
-          metadata.step = 'AWAITING_PAYMENT';
-          metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
-
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PAYMENT', {
+            activeSession: true,
+            paymentPhone: explicitPhone,
+            checkoutId: stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '',
           });
 
           replyText =
@@ -389,19 +401,19 @@ export async function handleWhatsAppChat(params: {
       else if (lowerText === '1') {
         const targetPhone = metadata.suggestedPhone || metadata.paymentPhone || extractKenyanPhone(userPhone);
         if (targetPhone) {
-          metadata.paymentPhone = targetPhone;
           const stkData = await triggerMpesaPush(targetPhone, pinToDownload, downloadFee);
 
           if (!stkData.success) {
+            await saveConversationState('AWAITING_PAYMENT_METHOD', {
+              activeSession: true,
+              paymentPhone: targetPhone,
+            });
             replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(targetPhone)}:*\n${stkData.error || 'Please check the number and try again'}.\n\n• Send a different Safaricom number (e.g. *0712345678*)\n• Reply *3* for Card/Bank link\n• Reply *0* to cancel`;
           } else {
-            nextStep = 'AWAITING_PAYMENT';
-            metadata.step = 'AWAITING_PAYMENT';
-            metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
-
-            await db.ai_conversations?.update({
-              where: { id: conversation.id },
-              data: { metadata },
+            await saveConversationState('AWAITING_PAYMENT', {
+              activeSession: true,
+              paymentPhone: targetPhone,
+              checkoutId: stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '',
             });
 
             replyText =
@@ -411,11 +423,8 @@ export async function handleWhatsAppChat(params: {
               `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here automatically!`;
           }
         } else {
-          nextStep = 'AWAITING_PHONE_NUMBER';
-          metadata.step = 'AWAITING_PHONE_NUMBER';
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PHONE_NUMBER', {
+            activeSession: true,
           });
           replyText =
             `✏️ *Enter M-Pesa Phone Number*\n\n` +
@@ -425,11 +434,8 @@ export async function handleWhatsAppChat(params: {
       // D. Option 2: Change M-Pesa Number (or Card Link if no phone suggested)
       else if (lowerText === '2') {
         if (metadata.suggestedPhone) {
-          nextStep = 'AWAITING_PHONE_NUMBER';
-          metadata.step = 'AWAITING_PHONE_NUMBER';
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PHONE_NUMBER', {
+            activeSession: true,
           });
           replyText =
             `✏️ *Change M-Pesa Number*\n\n` +
@@ -438,14 +444,12 @@ export async function handleWhatsAppChat(params: {
           // No suggested phone, so option 2 was Card/Bank Link
           const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
           if (!paystackRes.success || !paystackRes.authorizationUrl) {
+            await saveConversationState(currentStep, { activeSession: true });
             replyText = `❌ *Could not generate online checkout link:*\n${paystackRes.error || 'Please try again later'}.`;
           } else {
-            nextStep = 'AWAITING_PAYMENT';
-            metadata.step = 'AWAITING_PAYMENT';
-            metadata.checkoutId = paystackRes.reference || '';
-            await db.ai_conversations?.update({
-              where: { id: conversation.id },
-              data: { metadata },
+            await saveConversationState('AWAITING_PAYMENT', {
+              activeSession: true,
+              checkoutId: paystackRes.reference || '',
             });
             replyText =
               `💳 *Secure Online Payment Link*\n\n` +
@@ -465,14 +469,12 @@ export async function handleWhatsAppChat(params: {
       ) {
         const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
         if (!paystackRes.success || !paystackRes.authorizationUrl) {
+          await saveConversationState(currentStep, { activeSession: true });
           replyText = `❌ *Could not generate online checkout link:*\n${paystackRes.error || 'Please try again later'}.`;
         } else {
-          nextStep = 'AWAITING_PAYMENT';
-          metadata.step = 'AWAITING_PAYMENT';
-          metadata.checkoutId = paystackRes.reference || '';
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PAYMENT', {
+            activeSession: true,
+            checkoutId: paystackRes.reference || '',
           });
           replyText =
             `💳 *Secure Online Payment Link*\n\n` +
@@ -483,6 +485,7 @@ export async function handleWhatsAppChat(params: {
       }
       // F. Fallback guidance
       else {
+        await saveConversationState(currentStep, { activeSession: true });
         replyText =
           `⚠️ *Invalid Selection*\n\n` +
           `• Reply *1* to pay with M-Pesa\n` +
@@ -513,12 +516,9 @@ export async function handleWhatsAppChat(params: {
       }
 
       if (isPaid) {
-        nextStep = 'COMPLETED';
-        metadata.step = 'COMPLETED';
-        metadata.mpesaReceipt = paystackTx.reference;
-        await db.ai_conversations?.update({
-          where: { id: conversation.id },
-          data: { metadata },
+        await saveConversationState('COMPLETED', {
+          activeSession: false,
+          mpesaReceipt: paystackTx.reference,
         });
 
         const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
@@ -535,60 +535,86 @@ export async function handleWhatsAppChat(params: {
         replyText =
           `🎉 *Payment Confirmed!*\n\n` +
           `Your official *KRA PIN Certificate* and *Official Payment Receipt* have been delivered to your chat above.\n\n` +
-          `Reply *MENU* anytime to perform another lookup.`;
+          `Send */kra* or */menu* anytime to perform another lookup.`;
       } else if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'reset' || lowerText === 'menu') {
-        metadata.step = 'IDLE';
-        nextStep = 'IDLE';
-        await db.ai_conversations?.update({
-          where: { id: conversation.id },
-          data: { metadata },
+        await saveConversationState('IDLE', {
+          activeSession: false,
+          pin: null,
+          idNumber: null,
+          taxpayerDetails: null,
+          paymentPhone: null,
+          suggestedPhone: null,
         });
-        replyText = `Session reset. Reply with your *National ID Number* or *KRA PIN* to start a new request.`;
+        replyText = `Session reset. Send */kra* or */menu* whenever you want to perform a new lookup.`;
       } else if (explicitPhone) {
         metadata.paymentPhone = explicitPhone;
         const stkData = await triggerMpesaPush(explicitPhone, pinToDownload, downloadFee);
         if (!stkData.success) {
-          replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(explicitPhone)}:*\n${stkData.error || 'Please try again'}.`;
+          await saveConversationState('AWAITING_PAYMENT', {
+            activeSession: true,
+            paymentPhone: explicitPhone,
+          });
+          replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(explicitPhone)}:*\n${stkData.error || 'Please try again'}.\n\n• Send another number (e.g. *0712345678*)\n• Reply *3* for Card/Bank link\n• Reply *0* to cancel`;
         } else {
-          metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
-          await db.ai_conversations?.update({
-            where: { id: conversation.id },
-            data: { metadata },
+          await saveConversationState('AWAITING_PAYMENT', {
+            activeSession: true,
+            paymentPhone: explicitPhone,
+            checkoutId: stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '',
           });
           replyText =
             `📲 *New M-Pesa STK Push Sent!*\n\n` +
             `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(explicitPhone)}*.\n` +
-            `Please enter your M-Pesa PIN on your phone.`;
+            `Please enter your M-Pesa PIN on your phone.\n\n` +
+            `⏳ Once completed, your documents will be delivered right here in WhatsApp automatically!`;
         }
       } else if (lowerText === 'retry' || lowerText === '1') {
-        const targetPhone = metadata.paymentPhone || metadata.suggestedPhone;
+        const targetPhone = metadata.paymentPhone || metadata.suggestedPhone || extractKenyanPhone(userPhone);
         if (targetPhone) {
           const stkData = await triggerMpesaPush(targetPhone, pinToDownload, downloadFee);
-          replyText = stkData.success
-            ? `📲 *Prompt Resent!*\n\nPlease check *${formatDisplayPhone(targetPhone)}* and enter your M-Pesa PIN.`
-            : `❌ *Could not resend prompt:*\n${stkData.error || 'Please try another number or use card payment'}.`;
+          if (stkData.success) {
+            await saveConversationState('AWAITING_PAYMENT', {
+              activeSession: true,
+              paymentPhone: targetPhone,
+              checkoutId: stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '',
+            });
+            replyText = `📲 *Prompt Resent!*\n\nPlease check *${formatDisplayPhone(targetPhone)}* and enter your M-Pesa PIN.`;
+          } else {
+            await saveConversationState('AWAITING_PAYMENT', {
+              activeSession: true,
+            });
+            replyText = `❌ *Could not resend prompt:*\n${stkData.error || 'Please try another number or use card payment'}.\n\n• Send another number (e.g. *0712345678*)\n• Reply *3* for Card/Bank link\n• Reply *0* to cancel`;
+          }
         } else {
+          await saveConversationState('AWAITING_PHONE_NUMBER', {
+            activeSession: true,
+          });
           replyText = `Please send your Safaricom number (e.g. *0712345678*) to trigger the M-Pesa prompt.`;
         }
       } else if (lowerText === '3' || lowerText.includes('card') || lowerText.includes('bank') || lowerText.includes('link')) {
         const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
         if (paystackRes.success && paystackRes.authorizationUrl) {
+          await saveConversationState('AWAITING_PAYMENT', {
+            activeSession: true,
+            checkoutId: paystackRes.reference || '',
+          });
           replyText =
             `💳 *Online Payment Link:*\n` +
             `👉 ${paystackRes.authorizationUrl}\n\n` +
-            `Once completed, your PDFs will be delivered right here!`;
+            `Once completed, your PDFs will be delivered right here in WhatsApp!`;
         } else {
+          await saveConversationState('AWAITING_PAYMENT', { activeSession: true });
           replyText = `Could not generate online link. Please try again or pay via M-Pesa.`;
         }
       } else {
+        await saveConversationState('AWAITING_PAYMENT', { activeSession: true });
         const paymentPhoneDisplay = metadata.paymentPhone ? formatDisplayPhone(metadata.paymentPhone) : 'your phone';
         replyText =
           `⏳ *Waiting for M-Pesa confirmation...*\n\n` +
           `If you have entered your PIN on *${paymentPhoneDisplay}*, your documents will arrive in this chat shortly.\n\n` +
-          `• Reply *RETRY* to resend the prompt\n` +
+          `• Reply *RETRY* or *1* to resend the prompt\n` +
           `• Send another phone number (e.g. *0712345678*)\n` +
           `• Reply *3* to pay with Card/Bank link\n` +
-          `• Reply *MENU* to restart.`;
+          `• Reply *0* to cancel.`;
       }
     }
     // 6. Step COMPLETED: Silently idle unless a new slash command is issued

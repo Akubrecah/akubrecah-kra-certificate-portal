@@ -126,15 +126,19 @@ export async function POST(req: NextRequest) {
 
           const downloadId = downloadRecord?.id || 'dl_' + Date.now();
 
-          // 3. Update conversation step to COMPLETED
+          // 3. Update conversation step to COMPLETED and end active session
           if (conversation) {
             const meta = (conversation.metadata as any) || {};
             meta.step = 'COMPLETED';
+            meta.activeSession = false;
             meta.mpesaReceipt = mpesaReceipt;
             meta.downloadId = downloadId;
             await db.ai_conversations?.update({
               where: { id: conversation.id },
-              data: { metadata: meta },
+              data: {
+                metadata: meta,
+                updated_at: new Date(),
+              },
             });
           }
 
@@ -185,6 +189,53 @@ export async function POST(req: NextRequest) {
         resultDesc: ResultDesc,
         timestamp: Date.now()
       };
+
+      // If associated with a WhatsApp conversation, notify user and allow retry without slashes
+      (async () => {
+        try {
+          const prismaModule = await import('@/lib/prisma');
+          const db = prismaModule.default as any;
+          const conversations = await db.ai_conversations?.findMany({
+            where: {
+              channel: 'whatsapp',
+              status: 'active',
+            },
+          });
+          const conversation = conversations?.find((c: any) => {
+            const meta = c.metadata as any;
+            return meta?.checkoutId === CheckoutRequestID;
+          });
+
+          if (conversation && conversation.metadata?.activeSession) {
+            const targetPhone = conversation.user_phone;
+            const evolutionUrl = process.env.EVOLUTION_API_URL || 'http://169.58.96.131:8085';
+            const apiKey = process.env.EVOLUTION_API_KEY || '8E3875DCF659-4D88-AC50-F7EB51EFE4A5';
+            const instance = process.env.EVOLUTION_INSTANCE_NAME || 'akubrecah-kra';
+
+            const failMsg =
+              `⚠️ *M-Pesa Payment Not Completed*\n\n` +
+              `${ResultDesc || 'Request cancelled or timed out'}.\n\n` +
+              `• Reply *RETRY* or *1* to resend the prompt\n` +
+              `• Send another phone number (e.g. *0712345678*)\n` +
+              `• Reply *3* to pay with Card/Bank link\n` +
+              `• Reply *0* to cancel.`;
+
+            await fetch(`${evolutionUrl}/message/sendText/${instance}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: apiKey,
+              },
+              body: JSON.stringify({
+                number: targetPhone,
+                text: failMsg,
+              }),
+            });
+          }
+        } catch (err: any) {
+          console.warn('[M-Pesa Callback Fail Notify Notice]:', err.message);
+        }
+      })().catch(() => {});
     }
 
     // Optional: Prune older callbacks from memory to prevent leaks (keeps last 500 records)
