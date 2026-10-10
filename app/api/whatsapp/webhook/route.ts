@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sanitizeWhatsAppPhone } from '@/lib/evolution';
+import { sanitizeWhatsAppPhone, markEvolutionMessageRead } from '@/lib/evolution';
 import { handleWhatsAppChat } from '@/app/api/whatsapp/chat/route';
 
 export const maxDuration = 60;
@@ -59,6 +59,12 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[WhatsApp Webhook Inbound] From: ${userPhone}, Text: "${incomingText}"`);
+
+    // Mark message as read (blue ticks)
+    await markEvolutionMessageRead({
+      remoteJid: rawRemoteJid,
+      messageId: key.id,
+    });
 
     // Execute state machine directly in-process
     const chatResult = await handleWhatsAppChat({

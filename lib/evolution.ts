@@ -58,6 +58,39 @@ export async function sendEvolutionTextMessage(phone: string, text: string): Pro
 }
 
 /**
+ * Mark a message as read (blue ticks)
+ */
+export async function markEvolutionMessageRead({
+  remoteJid,
+  messageId,
+}: {
+  remoteJid: string;
+  messageId?: string;
+}): Promise<void> {
+  try {
+    const url = `${EVOLUTION_API_URL.replace(/\/$/, '')}/chat/markMessageAsRead/${EVOLUTION_INSTANCE}`;
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify({
+        readMessages: [
+          {
+            remoteJid,
+            fromMe: false,
+            id: messageId || '',
+          },
+        ],
+      }),
+    });
+  } catch (err: any) {
+    console.error('[Evolution API] markEvolutionMessageRead error:', err.message);
+  }
+}
+
+/**
  * Send a PDF or binary media document to a WhatsApp user
  */
 export async function sendEvolutionDocument({
