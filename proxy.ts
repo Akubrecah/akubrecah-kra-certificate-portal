@@ -20,7 +20,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/mpesa(.*)',
   '/api/certificate(.*)',
   '/api/generate-certificate(.*)',
-  '/api/paystack(.*)'
+  '/api/paystack(.*)',
+  '/api/whatsapp(.*)'
 ]);
 
 const isAdminRoute = createRouteMatcher([

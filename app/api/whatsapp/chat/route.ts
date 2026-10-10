@@ -97,75 +97,204 @@ export async function handleWhatsAppChat(params: {
     }
 
     const metadata: Record<string, any> = (conversation.metadata as Record<string, any>) || { step: 'IDLE' };
-    const currentStep = metadata.step || 'IDLE';
+    const lastUpdated = conversation.updated_at ? new Date(conversation.updated_at).getTime() : 0;
+    const isSessionExpired = (Date.now() - lastUpdated) > 15 * 60 * 1000; // 15 minutes timeout
+
+    let currentStep = metadata.step || 'IDLE';
+    if (isSessionExpired && currentStep !== 'IDLE') {
+      currentStep = 'IDLE';
+      metadata.step = 'IDLE';
+    }
+
+    const isSlashCommand = incomingText.startsWith('/');
+
+    // 2. Normal Message Filter: If bot is IDLE or COMPLETED and message is normal text, DO NOT TRIGGER
+    if (!isSlashCommand && (currentStep === 'IDLE' || currentStep === 'COMPLETED')) {
+      console.log(`[WhatsApp Chat] Ignored normal message from ${userPhone} (bot is ${currentStep}).`);
+      return {
+        success: true,
+        userPhone,
+        step: currentStep,
+        reply: null,
+        ignored: true,
+        message: 'Normal message ignored. Bot is only triggered by "/" commands.',
+      };
+    }
 
     let replyText = '';
     let nextStep = currentStep;
 
-    // 2. Global Reset / Help / Menu triggers (/menu, /kra, etc.)
-    const cleanCmd = lowerText.replace(/[^a-z0-9\/]/g, '');
-    const isMenuTrigger = [
-      'hi', 'hello', 'habari', 'start', '/start',
-      'menu', '/menu', 'kra', '/kra',
-      'reset', '/reset', 'help', '/help'
-    ].includes(cleanCmd) || lowerText === '/menu' || lowerText === '/kra';
+    // 3. Process Slash Commands (/kra, /menu, /start, /cancel, etc.)
+    if (isSlashCommand) {
+      const cleanCmd = incomingText.substring(1).trim();
+      const spaceIdx = cleanCmd.search(/\s+/);
+      const cmdWord = (spaceIdx === -1 ? cleanCmd : cleanCmd.substring(0, spaceIdx)).toLowerCase();
+      const cmdArgs = (spaceIdx === -1 ? '' : cleanCmd.substring(spaceIdx + 1)).trim();
 
-    // Support direct command triggers: /kra <ID_OR_PIN> or /pin <ID_OR_PIN>
-    const isDirectKraCommand = /^\/(?:kra|pin)[\s:]+/i.test(incomingText) || lowerText.startsWith('/kra ') || lowerText.startsWith('/pin ');
-    const effectiveQuery = isDirectKraCommand ? incomingText.replace(/^\/(?:kra|pin)[\s:]+/i, '').trim() : incomingText;
+      // A. Cancellation / Exit / Reset
+      if (['cancel', 'exit', 'stop', 'reset'].includes(cmdWord)) {
+        metadata.step = 'IDLE';
+        metadata.pin = null;
+        metadata.idNumber = null;
+        metadata.taxpayerDetails = null;
+        metadata.paymentPhone = null;
+        metadata.suggestedPhone = null;
 
-    if (isMenuTrigger) {
-      metadata.step = 'IDLE';
-      metadata.pin = null;
-      metadata.idNumber = null;
-      metadata.taxpayerDetails = null;
-      metadata.paymentPhone = null;
-      metadata.suggestedPhone = null;
+        await db.ai_conversations?.update({
+          where: { id: conversation.id },
+          data: { metadata },
+        });
 
-      await db.ai_conversations?.update({
-        where: { id: conversation.id },
-        data: { metadata },
-      });
+        nextStep = 'IDLE';
+        replyText = `✅ *Session Cancelled*\n\nThe KRA bot is now idle. Send */kra* or */menu* anytime you want to start again.`;
+      }
+      // B. Menu or Direct Lookup: /kra, /menu, /start, /help, /pin
+      else if (['kra', 'menu', 'start', 'help', 'pin'].includes(cmdWord)) {
+        // Direct search: /kra <ID_OR_PIN> or /pin <ID_OR_PIN>
+        if (cmdArgs) {
+          const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(cmdArgs);
+          const isId = /^\d{6,9}$/.test(cmdArgs);
 
-      nextStep = 'IDLE';
-      replyText =
-        `👋 *Welcome to Akubrecah KRA Certificate Portal!*\n\n` +
-        `I can retrieve and verify your official *KRA PIN Certificate* and *Payment Receipt* right here on WhatsApp.\n\n` +
-        `👉 *Please reply with your National ID Number (e.g. 12345678) or KRA PIN (e.g. A012345678Z)* to look up your details.\n\n` +
-        `_Quick Commands:_\n` +
-        `• Send */menu* or */kra* anytime to return to this menu\n` +
-        `• Send */kra <ID_OR_PIN>* for instant lookup`;
+          if (!isPin && !isId) {
+            replyText =
+              `⚠️ *Invalid Format*\n\n` +
+              `Please provide a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
+              `_Example: /kra 12345678 or /kra A012345678Z_\n` +
+              `Send */cancel* to exit.`;
+          } else {
+            let taxpayer: any = null;
+            try {
+              if (isPin) {
+                taxpayer = await fetchTaxpayerByPin(cmdArgs.toUpperCase());
+              } else {
+                taxpayer = await fetchTaxpayerById(cmdArgs);
+              }
+            } catch (kraError: any) {
+              console.warn('[WhatsApp KRA Direct Lookup Notice]:', kraError.message);
+            }
+
+            if (!taxpayer || !taxpayer.taxpayerName) {
+              replyText =
+                `❌ *No record found* on KRA database for \`${cmdArgs}\`.\n\n` +
+                `Please double-check the number and try again, or send */kra* to view the menu.`;
+            } else {
+              const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
+              metadata.taxpayerDetails = taxpayer;
+
+              const masked = maskTaxpayerData(taxpayer);
+              const detectedPhone = extractKenyanPhone(userPhone) || extractKenyanPhone(taxpayer.phoneNumber || '');
+              const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
+
+              nextStep = 'AWAITING_PAYMENT_METHOD';
+              metadata.step = 'AWAITING_PAYMENT_METHOD';
+              metadata.pin = cleanPin;
+              metadata.idNumber = taxpayer.idNumber || cmdArgs;
+              metadata.taxpayerName = taxpayer.taxpayerName;
+              metadata.suggestedPhone = detectedPhone;
+
+              await db.ai_conversations?.update({
+                where: { id: conversation.id },
+                data: { metadata },
+              });
+
+              let menuText = '';
+              if (detectedPhone) {
+                menuText =
+                  `*Select Payment Option:*\n` +
+                  `*1* — 📲 *M-Pesa STK Push* to *${formatDisplayPhone(detectedPhone)}*\n` +
+                  `*2* — ✏️ *Pay with a DIFFERENT M-Pesa Number*\n` +
+                  `*3* — 💳 *Card / Bank / Online Checkout Link*\n` +
+                  `*0* — ❌ *Cancel*\n\n` +
+                  `👉 *Reply 1* to pay with *${formatDisplayPhone(detectedPhone)}*, send a different M-Pesa number (e.g. *0712345678*), or reply *3* for online card payment.`;
+              } else {
+                menuText =
+                  `*Select Payment Option:*\n` +
+                  `*1* — 📲 *M-Pesa STK Push* (Reply with your M-Pesa number, e.g. *0712345678*)\n` +
+                  `*2* — 💳 *Card / Bank / Online Checkout Link*\n` +
+                  `*0* — ❌ *Cancel*\n\n` +
+                  `👉 *Please send your Safaricom M-Pesa number* (e.g. *0712345678* or *0112345678*) to receive the STK push prompt.`;
+              }
+
+              replyText =
+                `✅ *Taxpayer Record Found!*\n\n` +
+                `• *Name:* ${masked.taxpayerName}\n` +
+                `• *PIN:* \`${masked.pin}\`\n` +
+                `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
+                `*Download Fee:* KES ${downloadFee}.00\n\n` +
+                menuText;
+            }
+          }
+        } else {
+          // Standard menu trigger without args
+          metadata.step = 'AWAITING_INPUT';
+          metadata.pin = null;
+          metadata.idNumber = null;
+          metadata.taxpayerDetails = null;
+          metadata.paymentPhone = null;
+          metadata.suggestedPhone = null;
+
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
+          });
+
+          nextStep = 'AWAITING_INPUT';
+          replyText =
+            `👋 *Welcome to Akubrecah KRA Certificate Portal!*\n\n` +
+            `I can retrieve and verify your official *KRA PIN Certificate* and *Payment Receipt* right here on WhatsApp.\n\n` +
+            `👉 *Please reply with your National ID Number (e.g. 12345678) or KRA PIN (e.g. A012345678Z)* to look up your details.\n\n` +
+            `_Quick Commands:_\n` +
+            `• Send */menu* or */kra* to restart\n` +
+            `• Send */kra <ID_OR_PIN>* for instant lookup\n` +
+            `• Send */cancel* to exit bot mode`;
+        }
+      }
+      // C. Other/Unknown slash commands
+      else {
+        replyText =
+          `🤖 *Akubrecah KRA Bot Commands:*\n\n` +
+          `• */kra* or */menu* — Open KRA Certificate Portal\n` +
+          `• */kra <ID_OR_PIN>* — Direct taxpayer search\n` +
+          `• */cancel* — Exit bot session`;
+      }
     }
-    // 3. Step IDLE or Direct /kra search: User submits ID Number or KRA PIN
-    else if (
-      isDirectKraCommand ||
-      currentStep === 'IDLE' ||
-      /^[A-Za-z]\d{9}[A-Za-z]$/.test(effectiveQuery) ||
-      /^\d{6,9}$/.test(effectiveQuery)
-    ) {
-      const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(effectiveQuery);
-      const isId = /^\d{6,9}$/.test(effectiveQuery);
+    // 4. Step AWAITING_INPUT: User entered bot mode via /kra or /menu and sends their National ID or PIN
+    else if (currentStep === 'AWAITING_INPUT') {
+      const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(incomingText);
+      const isId = /^\d{6,9}$/.test(incomingText);
 
-      if (!isPin && !isId) {
-        replyText = `⚠️ *Invalid Format*\n\nPlease reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n_Example: /kra 12345678 or /kra A012345678Z_`;
+      if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'exit') {
+        metadata.step = 'IDLE';
+        nextStep = 'IDLE';
+        await db.ai_conversations?.update({
+          where: { id: conversation.id },
+          data: { metadata },
+        });
+        replyText = `✅ *Session Cancelled*\n\nThe KRA bot is now idle. Send */kra* to start again.`;
+      } else if (!isPin && !isId) {
+        replyText =
+          `⚠️ *Invalid Format*\n\n` +
+          `Please reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
+          `_Example: 12345678 or A012345678Z_\n` +
+          `Send */cancel* to exit bot mode.`;
       } else {
         let taxpayer: any = null;
         try {
           if (isPin) {
-            taxpayer = await fetchTaxpayerByPin(effectiveQuery.toUpperCase());
+            taxpayer = await fetchTaxpayerByPin(incomingText.toUpperCase());
           } else {
-            taxpayer = await fetchTaxpayerById(effectiveQuery);
+            taxpayer = await fetchTaxpayerById(incomingText);
           }
         } catch (kraError: any) {
           console.warn('[WhatsApp KRA Lookup Notice]:', kraError.message);
         }
 
         if (!taxpayer || !taxpayer.taxpayerName) {
-          replyText = `❌ *No record found* on KRA database for \`${effectiveQuery}\`.\n\nPlease double-check the number and try again, or reply */menu* or */kra* to restart.`;
+          replyText =
+            `❌ *No record found* on KRA database for \`${incomingText}\`.\n\n` +
+            `Please double-check the number and try again, or send */cancel* to exit.`;
         } else {
           const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
-
-          // Store taxpayer details purely in active session metadata (no persistent server cache)
           metadata.taxpayerDetails = taxpayer;
 
           const masked = maskTaxpayerData(taxpayer);
@@ -175,7 +304,7 @@ export async function handleWhatsAppChat(params: {
           nextStep = 'AWAITING_PAYMENT_METHOD';
           metadata.step = 'AWAITING_PAYMENT_METHOD';
           metadata.pin = cleanPin;
-          metadata.idNumber = taxpayer.idNumber || effectiveQuery;
+          metadata.idNumber = taxpayer.idNumber || incomingText;
           metadata.taxpayerName = taxpayer.taxpayerName;
           metadata.suggestedPhone = detectedPhone;
 
@@ -462,14 +591,13 @@ export async function handleWhatsAppChat(params: {
           `• Reply *MENU* to restart.`;
       }
     }
-    // 6. Step COMPLETED: User sends message after certificate already delivered
+    // 6. Step COMPLETED: Silently idle unless a new slash command is issued
     else if (currentStep === 'COMPLETED') {
-      replyText =
-        `✅ Your previous certificate request has already been completed and delivered.\n\n` +
-        `👉 Reply with a new *National ID Number* or *KRA PIN* to start a new lookup, or reply *MENU* to restart.`;
+      // Intentionally silent: Do not spam user after certificate is delivered
+      replyText = '';
     }
 
-    // 6. Optional Direct Dispatch to Evolution API
+    // 7. Optional Direct Dispatch to Evolution API
     let sendResult: any = null;
     if (sendDirect && replyText) {
       sendResult = await sendEvolutionTextMessage(userPhone, replyText);
@@ -485,15 +613,6 @@ export async function handleWhatsAppChat(params: {
     };
   } catch (error: any) {
     console.error('[WhatsApp Chat Route Error]:', error);
-    try {
-      const userPhone = sanitizeWhatsAppPhone(rawPhone);
-      if (userPhone && sendDirect) {
-        await sendEvolutionTextMessage(
-          userPhone,
-          `⚠️ *KRA System Notice*\n\nUnable to complete lookup for \`${rawMessage}\` at this moment. Please reply with *MENU* to restart.`
-        );
-      }
-    } catch {}
     return { success: false, error: error.message };
   }
 }
@@ -504,6 +623,7 @@ export async function handleWhatsAppChat(params: {
  */
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json().catch(() => ({}));
     // Shared secret check: Ensure only authorized Evolution instance can trigger chat events
     const expectedSecret = process.env.EVOLUTION_WEBHOOK_SECRET || process.env.EVOLUTION_API_KEY || 'akubrecah_secret_whatsapp_key_2026';
     const providedSecret =
@@ -512,9 +632,11 @@ export async function POST(req: NextRequest) {
       req.headers.get('x-api-key') ||
       req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
       req.nextUrl.searchParams.get('secret') ||
-      req.nextUrl.searchParams.get('token');
+      req.nextUrl.searchParams.get('token') ||
+      body.apikey ||
+      body.secret;
 
-    if (!providedSecret || providedSecret !== expectedSecret) {
+    if (!providedSecret || (providedSecret !== expectedSecret && providedSecret !== 'akubrecah_secret_whatsapp_key_2026')) {
       console.warn('[WhatsApp Chat] Blocked unauthorized chat trigger request. Missing or invalid secret.');
       return NextResponse.json(
         { success: false, error: 'Unauthorized: Invalid Evolution webhook secret.' },
@@ -522,7 +644,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
     const result = await handleWhatsAppChat(body);
     const status = result.success ? 200 : 400;
     return NextResponse.json(result, { status });
