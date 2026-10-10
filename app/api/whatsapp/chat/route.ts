@@ -90,14 +90,45 @@ export async function handleWhatsAppChat(params: {
         replyText = `⚠️ *Invalid Format*\n\nPlease reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).`;
       } else {
         let taxpayer: any = null;
-        if (isPin) {
-          taxpayer = await fetchTaxpayerByPin(incomingText.toUpperCase());
-        } else {
-          taxpayer = await fetchTaxpayerById(incomingText);
+        try {
+          if (isPin) {
+            taxpayer = await fetchTaxpayerByPin(incomingText.toUpperCase());
+          } else {
+            taxpayer = await fetchTaxpayerById(incomingText);
+          }
+        } catch (kraError: any) {
+          console.warn('[WhatsApp KRA Lookup Notice]:', kraError.message);
+          try {
+            if (isPin) {
+              const cached = await db.kra_pin_cache?.findUnique({ where: { pin: incomingText.toUpperCase() } });
+              if (cached) {
+                taxpayer = {
+                  pin: cached.pin,
+                  taxpayerName: cached.name,
+                  idNumber: cached.id_number,
+                  station: cached.station,
+                  email: cached.email,
+                  phoneNumber: cached.phone_number,
+                };
+              }
+            } else {
+              const cached = await db.kra_pin_cache?.findFirst({ where: { id_number: incomingText } });
+              if (cached) {
+                taxpayer = {
+                  pin: cached.pin,
+                  taxpayerName: cached.name,
+                  idNumber: cached.id_number,
+                  station: cached.station,
+                  email: cached.email,
+                  phoneNumber: cached.phone_number,
+                };
+              }
+            }
+          } catch {}
         }
 
         if (!taxpayer || !taxpayer.taxpayerName) {
-          replyText = `❌ *No record found* on KRA database for \`${incomingText}\`.\n\nPlease check the number and try again, or reply *MENU* to restart.`;
+          replyText = `❌ *No record found* on KRA database for \`${incomingText}\`.\n\nPlease double-check the number and try again, or reply *MENU* to restart.`;
         } else {
           const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
 
@@ -249,6 +280,15 @@ export async function handleWhatsAppChat(params: {
     };
   } catch (error: any) {
     console.error('[WhatsApp Chat Route Error]:', error);
+    try {
+      const userPhone = sanitizeWhatsAppPhone(rawPhone);
+      if (userPhone && sendDirect) {
+        await sendEvolutionTextMessage(
+          userPhone,
+          `⚠️ *KRA System Notice*\n\nUnable to complete lookup for \`${rawMessage}\` at this moment. Please reply with *MENU* to restart.`
+        );
+      }
+    } catch {}
     return { success: false, error: error.message };
   }
 }
