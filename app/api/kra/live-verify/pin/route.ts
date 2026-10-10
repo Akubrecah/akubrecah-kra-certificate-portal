@@ -58,54 +58,8 @@ export async function POST(req: NextRequest) {
 
     const taxpayerData = await fetchTaxpayerByPin(cleanPin, engineMode);
 
-    // Cache unmasked record in database for legitimate certificate generation
-    try {
-      const prismaModule = await import('@/lib/prisma');
-      const db = prismaModule.default as any;
-      if (db.kra_pin_cache && cleanPin) {
-        await db.kra_pin_cache.upsert({
-          where: { pin: cleanPin },
-          update: {
-            id_number: taxpayerData.idNumber ? String(taxpayerData.idNumber).trim() : undefined,
-            name: taxpayerData.taxpayerName || '',
-            email: taxpayerData.email || null,
-            building: taxpayerData.building || null,
-            street: taxpayerData.street || null,
-            city: taxpayerData.town || null,
-            county: taxpayerData.county || null,
-            district: taxpayerData.district || null,
-            tax_area: taxpayerData.taxArea || null,
-            po_box: taxpayerData.poBox || null,
-            postal_code: taxpayerData.postalCode || null,
-            station: taxpayerData.station || null,
-            phone_number: taxpayerData.phoneNumber || null,
-            registered_date: taxpayerData.registrationDate || null,
-            updated_at: new Date(),
-          },
-          create: {
-            id: `CACHE_${cleanPin}_${Date.now()}`,
-            pin: cleanPin,
-            id_number: taxpayerData.idNumber ? String(taxpayerData.idNumber).trim() : null,
-            name: taxpayerData.taxpayerName || '',
-            email: taxpayerData.email || null,
-            building: taxpayerData.building || null,
-            street: taxpayerData.street || null,
-            city: taxpayerData.town || null,
-            county: taxpayerData.county || null,
-            district: taxpayerData.district || null,
-            tax_area: taxpayerData.taxArea || null,
-            po_box: taxpayerData.poBox || null,
-            postal_code: taxpayerData.postalCode || null,
-            station: taxpayerData.station || null,
-            phone_number: taxpayerData.phoneNumber || null,
-            registered_date: taxpayerData.registrationDate || null,
-            updated_at: new Date(),
-          },
-        });
-      }
-    } catch (cacheErr: any) {
-      console.warn('[live-verify/pin] kra_pin_cache upsert warning:', cacheErr.message);
-    }
+    // Zero-storage policy: Do not persist taxpayer lookup details into database cache.
+    // Live taxpayer results are processed ephemerally in-memory for the active session.
 
     // Check user subscription status
     const { isSubscribed } = await getUserSubscriptionStatus(clerkId);

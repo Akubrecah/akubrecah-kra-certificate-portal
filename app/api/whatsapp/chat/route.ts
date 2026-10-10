@@ -102,12 +102,25 @@ export async function handleWhatsAppChat(params: {
     let replyText = '';
     let nextStep = currentStep;
 
-    // 2. Global Reset / Help triggers
-    if (['hi', 'hello', 'habari', 'start', 'menu', 'reset', 'help'].includes(lowerText)) {
+    // 2. Global Reset / Help / Menu triggers (/menu, /kra, etc.)
+    const cleanCmd = lowerText.replace(/[^a-z0-9\/]/g, '');
+    const isMenuTrigger = [
+      'hi', 'hello', 'habari', 'start', '/start',
+      'menu', '/menu', 'kra', '/kra',
+      'reset', '/reset', 'help', '/help'
+    ].includes(cleanCmd) || lowerText === '/menu' || lowerText === '/kra';
+
+    // Support direct command triggers: /kra <ID_OR_PIN> or /pin <ID_OR_PIN>
+    const isDirectKraCommand = /^\/(?:kra|pin)[\s:]+/i.test(incomingText) || lowerText.startsWith('/kra ') || lowerText.startsWith('/pin ');
+    const effectiveQuery = isDirectKraCommand ? incomingText.replace(/^\/(?:kra|pin)[\s:]+/i, '').trim() : incomingText;
+
+    if (isMenuTrigger) {
       metadata.step = 'IDLE';
       metadata.pin = null;
       metadata.idNumber = null;
       metadata.taxpayerDetails = null;
+      metadata.paymentPhone = null;
+      metadata.suggestedPhone = null;
 
       await db.ai_conversations?.update({
         where: { id: conversation.id },
@@ -117,107 +130,52 @@ export async function handleWhatsAppChat(params: {
       nextStep = 'IDLE';
       replyText =
         `👋 *Welcome to Akubrecah KRA Certificate Portal!*\n\n` +
-        `I can retrieve and download your official *KRA PIN Certificate* and *Payment Receipt* right here on WhatsApp.\n\n` +
-        `👉 *Please reply with your National ID Number (e.g. 12345678) or KRA PIN (e.g. A012345678Z)* to look up your details.`;
+        `I can retrieve and verify your official *KRA PIN Certificate* and *Payment Receipt* right here on WhatsApp.\n\n` +
+        `👉 *Please reply with your National ID Number (e.g. 12345678) or KRA PIN (e.g. A012345678Z)* to look up your details.\n\n` +
+        `_Quick Commands:_\n` +
+        `• Send */menu* or */kra* anytime to return to this menu\n` +
+        `• Send */kra <ID_OR_PIN>* for instant lookup`;
     }
-    // 3. Step IDLE: User submits ID Number or KRA PIN
-    else if (currentStep === 'IDLE' || /^[A-Za-z]\d{9}[A-Za-z]$/.test(incomingText) || /^\d{6,9}$/.test(incomingText)) {
-      const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(incomingText);
-      const isId = /^\d{6,9}$/.test(incomingText);
+    // 3. Step IDLE or Direct /kra search: User submits ID Number or KRA PIN
+    else if (
+      isDirectKraCommand ||
+      currentStep === 'IDLE' ||
+      /^[A-Za-z]\d{9}[A-Za-z]$/.test(effectiveQuery) ||
+      /^\d{6,9}$/.test(effectiveQuery)
+    ) {
+      const isPin = /^[A-Za-z]\d{9}[A-Za-z]$/.test(effectiveQuery);
+      const isId = /^\d{6,9}$/.test(effectiveQuery);
 
       if (!isPin && !isId) {
-        replyText = `⚠️ *Invalid Format*\n\nPlease reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).`;
+        replyText = `⚠️ *Invalid Format*\n\nPlease reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n_Example: /kra 12345678 or /kra A012345678Z_`;
       } else {
         let taxpayer: any = null;
         try {
           if (isPin) {
-            taxpayer = await fetchTaxpayerByPin(incomingText.toUpperCase());
+            taxpayer = await fetchTaxpayerByPin(effectiveQuery.toUpperCase());
           } else {
-            taxpayer = await fetchTaxpayerById(incomingText);
+            taxpayer = await fetchTaxpayerById(effectiveQuery);
           }
         } catch (kraError: any) {
           console.warn('[WhatsApp KRA Lookup Notice]:', kraError.message);
-          try {
-            if (isPin) {
-              const cached = await db.kra_pin_cache?.findUnique({ where: { pin: incomingText.toUpperCase() } });
-              if (cached) {
-                taxpayer = {
-                  pin: cached.pin,
-                  taxpayerName: cached.name,
-                  idNumber: cached.id_number,
-                  station: cached.station,
-                  email: cached.email,
-                  phoneNumber: cached.phone_number,
-                };
-              }
-            } else {
-              const cached = await db.kra_pin_cache?.findFirst({ where: { id_number: incomingText } });
-              if (cached) {
-                taxpayer = {
-                  pin: cached.pin,
-                  taxpayerName: cached.name,
-                  idNumber: cached.id_number,
-                  station: cached.station,
-                  email: cached.email,
-                  phoneNumber: cached.phone_number,
-                };
-              }
-            }
-          } catch {}
         }
 
         if (!taxpayer || !taxpayer.taxpayerName) {
-          replyText = `❌ *No record found* on KRA database for \`${incomingText}\`.\n\nPlease double-check the number and try again, or reply *MENU* to restart.`;
+          replyText = `❌ *No record found* on KRA database for \`${effectiveQuery}\`.\n\nPlease double-check the number and try again, or reply */menu* or */kra* to restart.`;
         } else {
           const cleanPin = taxpayer.pin ? taxpayer.pin.toUpperCase().trim() : '';
 
-          // Cache in kra_pin_cache
-          if (cleanPin) {
-            await db.kra_pin_cache?.upsert({
-              where: { pin: cleanPin },
-              create: {
-                id: 'cache_' + cleanPin,
-                pin: cleanPin,
-                id_number: taxpayer.idNumber || incomingText,
-                name: taxpayer.taxpayerName,
-                email: taxpayer.email || '',
-                building: taxpayer.building || '',
-                street: taxpayer.street || '',
-                city: taxpayer.town || '',
-                county: taxpayer.county || '',
-                district: taxpayer.district || '',
-                tax_area: taxpayer.taxArea || '',
-                station: taxpayer.station || '',
-                po_box: taxpayer.poBox || '',
-                postal_code: taxpayer.postalCode || '',
-                phone_number: taxpayer.phoneNumber || userPhone,
-                registered_date: taxpayer.registrationDate || '',
-                updated_at: new Date(),
-              },
-              update: {
-                name: taxpayer.taxpayerName,
-                email: taxpayer.email || '',
-                building: taxpayer.building || '',
-                street: taxpayer.street || '',
-                city: taxpayer.town || '',
-                county: taxpayer.county || '',
-                district: taxpayer.district || '',
-                tax_area: taxpayer.taxArea || '',
-                station: taxpayer.station || '',
-                po_box: taxpayer.poBox || '',
-                postal_code: taxpayer.postalCode || '',
-                updated_at: new Date(),
-              },
-            });
-          }
+          // Store taxpayer details purely in active session metadata (no persistent server cache)
+          metadata.taxpayerDetails = taxpayer;
 
           const masked = maskTaxpayerData(taxpayer);
           const detectedPhone = extractKenyanPhone(userPhone) || extractKenyanPhone(taxpayer.phoneNumber || '');
+          const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
 
           nextStep = 'AWAITING_PAYMENT_METHOD';
           metadata.step = 'AWAITING_PAYMENT_METHOD';
           metadata.pin = cleanPin;
-          metadata.idNumber = taxpayer.idNumber || incomingText;
+          metadata.idNumber = taxpayer.idNumber || effectiveQuery;
           metadata.taxpayerName = taxpayer.taxpayerName;
           metadata.suggestedPhone = detectedPhone;
 
@@ -249,7 +207,7 @@ export async function handleWhatsAppChat(params: {
             `• *Name:* ${masked.taxpayerName}\n` +
             `• *PIN:* \`${masked.pin}\`\n` +
             `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
-            `*Download Fee:* KES 30.00\n\n` +
+            `*Download Fee:* KES ${downloadFee}.00\n\n` +
             menuText;
         }
       }
@@ -261,7 +219,7 @@ export async function handleWhatsAppChat(params: {
       currentStep === 'AWAITING_PHONE_NUMBER'
     ) {
       const pinToDownload = metadata.pin;
-      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
+      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
       const explicitPhone = extractKenyanPhone(incomingText);
 
       // A. Cancellation
@@ -407,7 +365,7 @@ export async function handleWhatsAppChat(params: {
     // 5. Step AWAITING_PAYMENT: User messages while waiting
     else if (currentStep === 'AWAITING_PAYMENT') {
       const pinToDownload = metadata.pin;
-      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
+      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
       const explicitPhone = extractKenyanPhone(incomingText);
 
       // Check if payment was completed on Paystack
@@ -442,6 +400,7 @@ export async function handleWhatsAppChat(params: {
           mpesaReceipt: paystackTx.reference,
           amount: paystackTx.amountKes || downloadFee,
           taxpayerName: metadata.taxpayerName,
+          taxpayerDetails: metadata.taxpayerDetails,
         });
 
         replyText =
@@ -541,10 +500,28 @@ export async function handleWhatsAppChat(params: {
 
 /**
  * POST /api/whatsapp/chat
- * Standard HTTP POST endpoint
+ * Standard HTTP POST endpoint protected by shared secret
  */
 export async function POST(req: NextRequest) {
   try {
+    // Shared secret check: Ensure only authorized Evolution instance can trigger chat events
+    const expectedSecret = process.env.EVOLUTION_WEBHOOK_SECRET || process.env.EVOLUTION_API_KEY || 'akubrecah_secret_whatsapp_key_2026';
+    const providedSecret =
+      req.headers.get('x-webhook-secret') ||
+      req.headers.get('apikey') ||
+      req.headers.get('x-api-key') ||
+      req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+      req.nextUrl.searchParams.get('secret') ||
+      req.nextUrl.searchParams.get('token');
+
+    if (!providedSecret || providedSecret !== expectedSecret) {
+      console.warn('[WhatsApp Chat] Blocked unauthorized chat trigger request. Missing or invalid secret.');
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Invalid Evolution webhook secret.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const result = await handleWhatsAppChat(body);
     const status = result.success ? 200 : 400;

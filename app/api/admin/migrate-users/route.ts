@@ -129,14 +129,7 @@ export async function GET() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Write failed results to a log file for diagnosis
-    if (results.failed.length > 0) {
-      const logPath = path.resolve(process.cwd(), "migration-errors.log");
-      const logContent = results.failed.map(f => `Email: ${f.email}\nError: ${f.error}\n`).join("\n");
-      fs.writeFileSync(logPath, logContent, "utf8");
-    }
-
-    // Log the user migration summary to Neon Database
+    // Log the user migration summary and any failure diagnostics to Neon Database system_logs
     await createSystemLog({
       level: results.failed.length > 0 ? "warning" : "info",
       service: "UserMigration",
@@ -146,6 +139,7 @@ export async function GET() {
         successCount: results.success.length,
         skippedCount: results.skipped.length,
         failedCount: results.failed.length,
+        failedUsers: results.failed,
       }
     });
 

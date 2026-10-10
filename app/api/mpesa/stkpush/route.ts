@@ -193,14 +193,19 @@ export async function dispatchMpesaStkPush({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, amount, reference, description } = body;
+    const { phone, reference, description } = body;
 
-    if (!phone || !amount || !reference) {
+    if (!phone || !reference) {
       return NextResponse.json(
-        { success: false, error: 'Phone number, amount, and reference are required' },
+        { success: false, error: 'Phone number and reference are required' },
         { status: 400 }
       );
     }
+
+    // Official KRA Certificate download fee is strictly KES 20.
+    // Enforce server-side pricing to prevent client-side price tampering.
+    const FIXED_CERTIFICATE_FEE_KES = 20;
+    const effectiveAmount = FIXED_CERTIFICATE_FEE_KES;
 
     let userClerkId = 'anonymous';
     let userEmail = 'customer@akubrecah.co.ke';
@@ -223,9 +228,9 @@ export async function POST(req: NextRequest) {
 
     const result = await dispatchMpesaStkPush({
       phone,
-      amount,
+      amount: effectiveAmount,
       reference,
-      description,
+      description: description || `KRA Certificate Payment - KES ${effectiveAmount}`,
       userClerkId,
       userEmail,
     });

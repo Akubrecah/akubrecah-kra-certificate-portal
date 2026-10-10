@@ -290,8 +290,9 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
   mpesaReceipt?: string;
   amount?: number;
   taxpayerName?: string;
+  taxpayerDetails?: any;
 }): Promise<{ success: boolean; error?: string }> {
-  const { phone, pin, checkoutId, amount = 30 } = opts;
+  const { phone, pin, checkoutId, amount = 20 } = opts;
   const db = prisma as any;
   const userPhone = sanitizeWhatsAppPhone(phone);
   const cleanPin = pin ? pin.toUpperCase().trim() : 'KRA_CERT';
@@ -300,21 +301,22 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
   console.log(`[Fulfillment] Initiating WhatsApp document delivery for PIN ${cleanPin} to ${userPhone}`);
 
   try {
-    // 1. Look up cached taxpayer record from DB
-    let cachedRecord: any = null;
-    if (db.kra_pin_cache && cleanPin) {
+    // 1. Resolve taxpayer details: prefer passed in-memory taxpayerDetails
+    let details: any = opts.taxpayerDetails || null;
+    if (!details && db.kra_pin_cache && cleanPin) {
       try {
-        cachedRecord = await db.kra_pin_cache.findFirst({
+        details = await db.kra_pin_cache.findFirst({
           where: { pin: cleanPin },
         });
       } catch (cacheErr: any) {
         console.warn('[Fulfillment] Cache query notice:', cacheErr.message);
       }
     }
+    details = details || {};
 
-    const resolvedName = opts.taxpayerName || cachedRecord?.name || 'Registered Taxpayer';
+    const resolvedName = opts.taxpayerName || details.name || details.taxpayerName || 'Registered Taxpayer';
 
-    // 2. Ensure CertificateDownload record exists
+    // 2. Ensure CertificateDownload record exists in database
     const dbUser = await getOrCreateDbUser(
       'wa_' + userPhone,
       `wa_${userPhone}@akubrecah.co.ke`,
@@ -340,23 +342,23 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       });
     }
 
-    // 3. Generate Certificate PDF Buffer
+    // 3. Generate Certificate PDF Buffer (pure in-memory)
     const certBuffer = await generateCertificatePdfBuffer({
       pin: cleanPin,
       name: resolvedName,
-      idNumber: cachedRecord?.id_number,
-      email: cachedRecord?.email,
-      building: cachedRecord?.building,
-      street: cachedRecord?.street,
-      city: cachedRecord?.city,
-      county: cachedRecord?.county,
-      district: cachedRecord?.district,
-      taxArea: cachedRecord?.tax_area,
-      station: cachedRecord?.station,
-      poBox: cachedRecord?.po_box,
-      postalCode: cachedRecord?.postal_code,
-      registeredDate: cachedRecord?.registered_date,
-      phoneNumber: cachedRecord?.phone_number || userPhone,
+      idNumber: details.id_number || details.idNumber,
+      email: details.email,
+      building: details.building,
+      street: details.street,
+      city: details.city || details.town,
+      county: details.county,
+      district: details.district,
+      taxArea: details.tax_area || details.taxArea,
+      station: details.station,
+      poBox: details.po_box || details.poBox,
+      postalCode: details.postal_code || details.postalCode,
+      registeredDate: details.registered_date || details.registrationDate,
+      phoneNumber: details.phone_number || details.phoneNumber || userPhone,
     });
 
     // 4. Generate Receipt PDF Buffer

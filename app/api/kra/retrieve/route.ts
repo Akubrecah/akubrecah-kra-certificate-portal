@@ -775,54 +775,8 @@ export async function POST(req: NextRequest) {
     const email          = first(man?.email, pc?.email, api?.email, '');
     const phoneNumber    = first(man?.phoneNumber, pc?.phoneNumber, api?.phoneNumber, '');
 
-    // Cache unmasked record in database for legitimate certificate generation
-    try {
-      const prismaModule = await import('@/lib/prisma');
-      const db = prismaModule.default as any;
-      if (db.kra_pin_cache) {
-        await db.kra_pin_cache.upsert({
-          where: { pin: fullPin },
-          update: {
-            id_number: idNumber ? String(idNumber).trim() : undefined,
-            name: name || '',
-            email: email || null,
-            building: building || null,
-            street: street || null,
-            city: town || null,
-            county: county || null,
-            district: district || null,
-            tax_area: taxArea || null,
-            po_box: poBox || null,
-            postal_code: postalCode || null,
-            station: station || null,
-            phone_number: phoneNumber || null,
-            registered_date: registeredDate || null,
-            updated_at: new Date(),
-          },
-          create: {
-            id: `CACHE_${fullPin}_${Date.now()}`,
-            pin: fullPin,
-            id_number: idNumber ? String(idNumber).trim() : null,
-            name: name || '',
-            email: email || null,
-            building: building || null,
-            street: street || null,
-            city: town || null,
-            county: county || null,
-            district: district || null,
-            tax_area: taxArea || null,
-            po_box: poBox || null,
-            postal_code: postalCode || null,
-            station: station || null,
-            phone_number: phoneNumber || null,
-            registered_date: registeredDate || null,
-            updated_at: new Date(),
-          },
-        });
-      }
-    } catch (cacheErr: any) {
-      console.warn('[retrieve] Cache upsert notice:', cacheErr?.message);
-    }
+    // Zero-storage policy: Do not persist taxpayer lookup details into database cache.
+    // Live taxpayer results are processed ephemerally in-memory for the active session.
 
     // Verify user subscription status
     const { isSubscribed } = await getUserSubscriptionStatus(clerkId);

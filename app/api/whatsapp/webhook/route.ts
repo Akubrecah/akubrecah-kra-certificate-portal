@@ -13,6 +13,24 @@ export const maxDuration = 60;
  */
 export async function POST(req: NextRequest) {
   try {
+    // Shared secret check: Ensure only authorized Evolution instance can trigger chat events
+    const expectedSecret = process.env.EVOLUTION_WEBHOOK_SECRET || process.env.EVOLUTION_API_KEY || 'akubrecah_secret_whatsapp_key_2026';
+    const providedSecret =
+      req.headers.get('x-webhook-secret') ||
+      req.headers.get('apikey') ||
+      req.headers.get('x-api-key') ||
+      req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+      req.nextUrl.searchParams.get('secret') ||
+      req.nextUrl.searchParams.get('token');
+
+    if (!providedSecret || providedSecret !== expectedSecret) {
+      console.warn('[WhatsApp Webhook] Blocked unauthorized webhook request. Missing or invalid secret.');
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Invalid Evolution webhook secret.' },
+        { status: 401 }
+      );
+    }
+
     const payload = await req.json();
 
     const rawEvent = String(payload.event || '').toLowerCase().replace(/_/g, '.');

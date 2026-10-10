@@ -146,8 +146,9 @@ export async function POST(req: NextRequest) {
               pin: resolvedPin,
               checkoutId: CheckoutRequestID,
               mpesaReceipt,
-              amount: Number(amount || 30),
+              amount: Number(amount || 20),
               taxpayerName,
+              taxpayerDetails: conversation?.metadata?.taxpayerDetails,
             });
           } catch (fulErr: any) {
             console.error('[M-Pesa Callback] Direct fulfillment error:', fulErr.message);

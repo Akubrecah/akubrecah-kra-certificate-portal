@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
 
 export const maxDuration = 30;
 
 /**
  * POST /api/kra/upload-id
  * Accepts a multipart form with a file field named "idImage".
- * Saves it temporarily to /tmp/kra-ids/<uuid>.<ext> and returns the path.
- * The caller is responsible for deleting the file after use.
+ * Processes upload in-memory with ZERO server disk storage.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -37,19 +32,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const uploadDir = '/tmp/kra-ids';
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    const ext = file.type === 'application/pdf' ? '.pdf' : file.type === 'image/png' ? '.png' : '.jpg';
-    const filename = `${randomUUID()}${ext}`;
-    const filePath = path.join(uploadDir, filename);
-
+    // Zero disk storage policy: Process in-memory buffer without saving to server filesystem
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    return NextResponse.json({ success: true, filePath, filename });
+    return NextResponse.json({
+      success: true,
+      filename: file.name || 'id-document',
+      dataUrl,
+      filePath: null,
+      message: 'ID document verified in-memory. Zero server disk retention enforced.',
+    });
   } catch (error: any) {
     console.error('[upload-id] Error:', error.message);
     return NextResponse.json(
