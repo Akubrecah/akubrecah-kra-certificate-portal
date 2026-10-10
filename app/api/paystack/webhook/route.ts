@@ -77,9 +77,23 @@ export async function POST(req: NextRequest) {
             // Dispatch to WhatsApp if paid by a WhatsApp user
             if (clerkId && clerkId.startsWith('wa_')) {
               const waPhone = clerkId.replace(/^wa_/, '');
+              try {
+                const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
+                await fulfillWhatsAppCertificateDelivery({
+                  phone: waPhone,
+                  pin: pin || 'KRA_CERT',
+                  checkoutId: reference,
+                  mpesaReceipt: `PAYSTACK_${reference}`,
+                  amount: amountKes,
+                  taxpayerName: metadata.customerName || 'WhatsApp Customer',
+                });
+              } catch (fulErr: any) {
+                console.error('[Paystack Webhook] Direct fulfillment error:', fulErr.message);
+              }
+
+              // Optional secondary n8n trigger
               const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
               try {
-                console.log('[Paystack Webhook] Triggering n8n WhatsApp delivery for:', waPhone);
                 await fetch(n8nWebhookUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -89,13 +103,12 @@ export async function POST(req: NextRequest) {
                     amount: amountKes,
                     phone: waPhone,
                     pin: pin || 'KRA_CERT',
-                    downloadId: 'dl_' + Date.now(),
+                    downloadId: existingDownload?.id || 'dl_' + Date.now(),
                     taxpayerName: metadata.customerName || 'WhatsApp Customer',
+                    evolutionUrl: 'http://169.58.96.131:8085',
                   }),
                 });
-              } catch (n8nErr: any) {
-                console.warn('[Paystack Webhook] n8n delivery trigger notice:', n8nErr.message);
-              }
+              } catch {}
             }
           }
         }

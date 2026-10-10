@@ -138,28 +138,39 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // 4. Trigger n8n Workflow for PDF generation and WhatsApp delivery
-          const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
-          const payload = {
-            checkoutId: CheckoutRequestID,
-            mpesaReceipt,
-            amount,
-            phone: targetPhone,
-            pin: resolvedPin,
-            downloadId,
-            taxpayerName,
-          };
-
+          // 4. Trigger direct WhatsApp Document Delivery (Certificate + Receipt)
           try {
-            console.log('[M-Pesa Callback] Triggering n8n delivery webhook:', n8nWebhookUrl);
+            const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
+            await fulfillWhatsAppCertificateDelivery({
+              phone: targetPhone,
+              pin: resolvedPin,
+              checkoutId: CheckoutRequestID,
+              mpesaReceipt,
+              amount: Number(amount || 30),
+              taxpayerName,
+            });
+          } catch (fulErr: any) {
+            console.error('[M-Pesa Callback] Direct fulfillment error:', fulErr.message);
+          }
+
+          // Optional secondary n8n Workflow trigger
+          const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
+          try {
             await fetch(n8nWebhookUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+              body: JSON.stringify({
+                checkoutId: CheckoutRequestID,
+                mpesaReceipt,
+                amount,
+                phone: targetPhone,
+                pin: resolvedPin,
+                downloadId,
+                taxpayerName,
+                evolutionUrl: 'http://169.58.96.131:8085',
+              }),
             });
-          } catch (n8nErr: any) {
-            console.warn('[M-Pesa Callback] n8n trigger warning:', n8nErr.message);
-          }
+          } catch {}
         } catch (dbErr: any) {
           console.error('[M-Pesa Callback DB Handler Error]:', dbErr.message);
         }

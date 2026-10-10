@@ -410,7 +410,45 @@ export async function handleWhatsAppChat(params: {
       const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
       const explicitPhone = extractKenyanPhone(incomingText);
 
-      if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'reset' || lowerText === 'menu') {
+      // Check if payment was completed on Paystack
+      let isPaid = false;
+      let paystackTx: any = null;
+      if (metadata.checkoutId) {
+        try {
+          const { verifyPaystackTransaction } = await import('@/lib/paystack');
+          paystackTx = await verifyPaystackTransaction(metadata.checkoutId);
+          if (paystackTx && paystackTx.status === 'success') {
+            isPaid = true;
+          }
+        } catch (err: any) {
+          console.warn('[WhatsApp Chat] Paystack verify notice:', err.message);
+        }
+      }
+
+      if (isPaid) {
+        nextStep = 'COMPLETED';
+        metadata.step = 'COMPLETED';
+        metadata.mpesaReceipt = paystackTx.reference;
+        await db.ai_conversations?.update({
+          where: { id: conversation.id },
+          data: { metadata },
+        });
+
+        const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
+        await fulfillWhatsAppCertificateDelivery({
+          phone: userPhone,
+          pin: pinToDownload,
+          checkoutId: metadata.checkoutId,
+          mpesaReceipt: paystackTx.reference,
+          amount: paystackTx.amountKes || downloadFee,
+          taxpayerName: metadata.taxpayerName,
+        });
+
+        replyText =
+          `🎉 *Payment Confirmed!*\n\n` +
+          `Your official *KRA PIN Certificate* and *Official Payment Receipt* have been delivered to your chat above.\n\n` +
+          `Reply *MENU* anytime to perform another lookup.`;
+      } else if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'reset' || lowerText === 'menu') {
         metadata.step = 'IDLE';
         nextStep = 'IDLE';
         await db.ai_conversations?.update({
@@ -464,6 +502,12 @@ export async function handleWhatsAppChat(params: {
           `• Reply *3* to pay with Card/Bank link\n` +
           `• Reply *MENU* to restart.`;
       }
+    }
+    // 6. Step COMPLETED: User sends message after certificate already delivered
+    else if (currentStep === 'COMPLETED') {
+      replyText =
+        `✅ Your previous certificate request has already been completed and delivered.\n\n` +
+        `👉 Reply with a new *National ID Number* or *KRA PIN* to start a new lookup, or reply *MENU* to restart.`;
     }
 
     // 6. Optional Direct Dispatch to Evolution API
