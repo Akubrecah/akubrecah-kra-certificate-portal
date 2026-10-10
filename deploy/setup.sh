@@ -5,29 +5,17 @@ echo "=========================================================="
 echo "  Akubrecah KRA Portal - VPS Evolution API Installer"
 echo "=========================================================="
 
-APP_DIR="${HOME}/evolution-whatsapp"
+APP_DIR="/evolution-whatsapp"
 mkdir -p "$APP_DIR"
 cd "$APP_DIR"
 
-# Generate or read API Key
-if [ ! -f .env ]; then
-  GENERATED_KEY=$(openssl rand -hex 16)
-  cat <<EOF > .env
-EVOLUTION_API_KEY=${GENERATED_KEY}
-SERVER_URL=http://localhost:8080
-VERCEL_WEBHOOK_URL=https://akubrecah-kra-certificate-portal.vercel.app/api/whatsapp/webhook
-EOF
-  echo "Created fresh .env with API Key: ${GENERATED_KEY}"
-else
-  source .env
-  echo "Using existing .env configuration"
-fi
+EVOLUTION_API_KEY="akubrecah_secret_whatsapp_key_2026"
+INSTANCE_NAME="akubrecah-kra"
+SERVER_URL="http://localhost:8080"
+VERCEL_WEBHOOK_URL="https://akubrecah-kra-certificate-portal.vercel.app/api/whatsapp/webhook"
 
-# Copy docker-compose if in repo, otherwise write it
-if [ ! -f docker-compose.yml ]; then
-  cat <<'EOF' > docker-compose.yml
-version: '3.8'
-
+echo "Writing clean docker-compose.yml..."
+cat <<EOF > docker-compose.yml
 services:
   evolution_redis:
     image: redis:7-alpine
@@ -81,18 +69,20 @@ networks:
   evolution_net:
     driver: bridge
 EOF
-fi
 
-echo "Starting Docker containers..."
+echo "Cleaning up any old or conflicting containers..."
+docker rm -f evolution_redis evolution_api 2>/dev/null || true
+
+echo "Pulling official Evolution API image..."
 docker compose pull
-docker compose down || true
+
+echo "Starting containers..."
 docker compose up -d
 
-echo "Waiting for Evolution API to initialize..."
-sleep 5
+echo "Waiting for Evolution API to initialize (10 seconds)..."
+sleep 10
 
-INSTANCE_NAME="nunge-returns"
-echo "Creating WhatsApp Instance '${INSTANCE_NAME}'..."
+echo "Registering WhatsApp instance '${INSTANCE_NAME}'..."
 curl -s -X POST "http://localhost:8080/instance/create" \
   -H "apikey: ${EVOLUTION_API_KEY}" \
   -H "Content-Type: application/json" \
@@ -105,17 +95,17 @@ curl -s -X POST "http://localhost:8080/instance/create" \
 
 echo ""
 echo "=========================================================="
-echo "  Evolution API is now LIVE on your VPS!"
+echo "  Akubrecah KRA Evolution API is now LIVE on your VPS!"
 echo "=========================================================="
-echo "  API URL:      http://<YOUR_VPS_IP>:8080"
-echo "  API Key:      ${EVOLUTION_API_KEY}"
-echo "  Instance:     ${INSTANCE_NAME}"
+echo "  API URL:       http://<YOUR_VPS_IP>:8080"
+echo "  API Key:       ${EVOLUTION_API_KEY}"
+echo "  Instance Name: ${INSTANCE_NAME}"
 echo ""
-echo "  To connect WhatsApp (Scan QR Code):"
+echo "  To link WhatsApp (Scan QR Code):"
 echo "  Visit in browser: http://<YOUR_VPS_IP>:8080/instance/connect/${INSTANCE_NAME}"
 echo ""
-echo "  Add these to your Vercel Environment Variables:"
-echo "  EVOLUTION_API_URL=http://<YOUR_VPS_IP>:8080 (or your https domain)"
+echo "  Add these 4 variables in your Vercel Dashboard Settings:"
+echo "  EVOLUTION_API_URL=http://<YOUR_VPS_IP>:8080"
 echo "  EVOLUTION_API_KEY=${EVOLUTION_API_KEY}"
 echo "  EVOLUTION_INSTANCE_NAME=${INSTANCE_NAME}"
 echo "  N8N_KRA_DELIVERY_WEBHOOK=https://n8n.vybeafrica.org/webhook/kra-delivery"
