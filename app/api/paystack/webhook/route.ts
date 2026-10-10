@@ -75,22 +75,53 @@ export async function POST(req: NextRequest) {
             console.log(`[Paystack Webhook] Download recorded for PIN ${pin}`);
 
             // Dispatch to WhatsApp if paid by a WhatsApp user
-            if (clerkId && clerkId.startsWith('wa_')) {
-              const waPhone = clerkId.replace(/^wa_/, '');
+            let waTargetPhone: string | null = null;
+            let taxpayerName = metadata.customerName || 'WhatsApp Customer';
+            let taxpayerDetails: any = null;
+            let targetPin = pin || 'KRA_CERT';
+
+            try {
+              const conversations = await db.ai_conversations?.findMany({
+                where: {
+                  channel: 'whatsapp',
+                  status: 'active',
+                },
+              });
+              const conversation = conversations?.find((c: any) => {
+                const meta = c.metadata as any;
+                return meta?.checkoutId === reference;
+              });
+
+              if (conversation) {
+                waTargetPhone = conversation.user_phone;
+                targetPin = conversation.metadata?.pin || targetPin;
+                taxpayerName = conversation.metadata?.taxpayerName || taxpayerName;
+                taxpayerDetails = conversation.metadata?.taxpayerDetails;
+              } else if (clerkId && clerkId.startsWith('wa_')) {
+                waTargetPhone = clerkId.replace(/^wa_/, '');
+              }
+            } catch (convErr: any) {
+              console.warn('[Paystack Webhook] Conversation lookup notice:', convErr.message);
+              if (clerkId && clerkId.startsWith('wa_')) {
+                waTargetPhone = clerkId.replace(/^wa_/, '');
+              }
+            }
+
+            if (waTargetPhone) {
               try {
                 const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
                 await fulfillWhatsAppCertificateDelivery({
-                  phone: waPhone,
-                  pin: pin || 'KRA_CERT',
+                  phone: waTargetPhone,
+                  pin: targetPin,
                   checkoutId: reference,
                   mpesaReceipt: `PAYSTACK_${reference}`,
                   amount: amountKes,
-                  taxpayerName: metadata.customerName || 'WhatsApp Customer',
+                  taxpayerName,
+                  taxpayerDetails,
                 });
               } catch (fulErr: any) {
                 console.error('[Paystack Webhook] Direct fulfillment error:', fulErr.message);
               }
-
               // Optional secondary n8n trigger
               const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
               try {
@@ -101,10 +132,10 @@ export async function POST(req: NextRequest) {
                     checkoutId: reference,
                     mpesaReceipt: `PAYSTACK_${reference}`,
                     amount: amountKes,
-                    phone: waPhone,
-                    pin: pin || 'KRA_CERT',
+                    phone: waTargetPhone,
+                    pin: targetPin,
                     downloadId: existingDownload?.id || 'dl_' + Date.now(),
-                    taxpayerName: metadata.customerName || 'WhatsApp Customer',
+                    taxpayerName,
                     evolutionUrl: 'http://169.58.96.131:8085',
                   }),
                 });

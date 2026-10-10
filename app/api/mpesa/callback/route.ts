@@ -73,46 +73,51 @@ export async function POST(req: NextRequest) {
         timestamp: Date.now()
       };
 
-      // Asynchronously process database record and dispatch to n8n for WhatsApp delivery
-      (async () => {
+      // Process database record and deliver WhatsApp documents
+      try {
+        const prismaModule = await import('@/lib/prisma');
+        const db = prismaModule.default as any;
+        const { getOrCreateDbUser } = await import('@/lib/subscription');
+
+        // 1. Look up any WhatsApp conversation awaiting payment with this checkoutId
+        let conversation: any = null;
         try {
-          const prismaModule = await import('@/lib/prisma');
-          const db = prismaModule.default as any;
-          const { getOrCreateDbUser } = await import('@/lib/subscription');
+          const conversations = await db.ai_conversations?.findMany({
+            where: {
+              channel: 'whatsapp',
+              status: 'active',
+            },
+          });
+          conversation = conversations?.find((c: any) => {
+            const meta = c.metadata as any;
+            return meta?.checkoutId === CheckoutRequestID || meta?.paymentPhone === phoneNumber;
+          });
+        } catch (e: any) {
+          console.warn('[M-Pesa Callback] Conversation lookup notice:', e.message);
+        }
 
-          // 1. Look up any WhatsApp conversation awaiting payment with this checkoutId
-          let conversation: any = null;
-          try {
-            const conversations = await db.ai_conversations?.findMany({
-              where: {
-                channel: 'whatsapp',
-                status: 'active',
-              },
-            });
-            conversation = conversations?.find((c: any) => {
-              const meta = c.metadata as any;
-              return meta?.checkoutId === CheckoutRequestID || meta?.paymentPhone === phoneNumber;
-            });
-          } catch (e: any) {
-            console.warn('[M-Pesa Callback] Conversation lookup notice:', e.message);
-          }
+        const resolvedPin = conversation?.metadata?.pin || 'KRA_CERT';
+        const targetPhone = conversation?.user_phone || phoneNumber;
+        const taxpayerName = conversation?.metadata?.taxpayerName || '';
 
-          const resolvedPin = conversation?.metadata?.pin || 'KRA_CERT';
-          const targetPhone = conversation?.user_phone || phoneNumber;
-          const taxpayerName = conversation?.metadata?.taxpayerName || '';
-
-          // 2. Create CertificateDownload record
-          const dbUser = await getOrCreateDbUser(
+        // 2. Create CertificateDownload record safely
+        let dbUser: any = null;
+        try {
+          dbUser = await getOrCreateDbUser(
             'wa_' + targetPhone,
             `wa_${targetPhone}@akubrecah.co.ke`,
             taxpayerName || 'WhatsApp Taxpayer'
           );
+        } catch (uErr: any) {
+          console.warn('[M-Pesa Callback] User lookup notice:', uErr.message);
+        }
 
-          let downloadRecord: any = null;
-          if (db.certificateDownload) {
+        let downloadRecord: any = null;
+        if (db.certificateDownload) {
+          try {
             downloadRecord = await db.certificateDownload.create({
               data: {
-                userId: dbUser.id,
+                userId: dbUser?.id || ('wa_' + targetPhone),
                 clerkId: 'wa_' + targetPhone,
                 pin: resolvedPin.toUpperCase(),
                 downloadType: 'pay_per_download',
@@ -122,64 +127,66 @@ export async function POST(req: NextRequest) {
                 checkoutId: CheckoutRequestID,
               },
             });
+          } catch (dlErr: any) {
+            console.warn('[M-Pesa Callback] Download record creation notice:', dlErr.message);
           }
+        }
 
-          const downloadId = downloadRecord?.id || 'dl_' + Date.now();
+        const downloadId = downloadRecord?.id || 'dl_' + Date.now();
 
-          // 3. Update conversation step to COMPLETED and end active session
-          if (conversation) {
-            const meta = (conversation.metadata as any) || {};
-            meta.step = 'COMPLETED';
-            meta.activeSession = false;
-            meta.mpesaReceipt = mpesaReceipt;
-            meta.downloadId = downloadId;
-            await db.ai_conversations?.update({
-              where: { id: conversation.id },
-              data: {
-                metadata: meta,
-                updated_at: new Date(),
-              },
-            });
-          }
+        // 3. Update conversation step to COMPLETED and end active session
+        if (conversation) {
+          const meta = (conversation.metadata as any) || {};
+          meta.step = 'COMPLETED';
+          meta.activeSession = false;
+          meta.mpesaReceipt = mpesaReceipt;
+          meta.downloadId = downloadId;
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: {
+              metadata: meta,
+              updated_at: new Date(),
+            },
+          });
+        }
 
-          // 4. Trigger direct WhatsApp Document Delivery (Certificate + Receipt)
-          try {
-            const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
-            await fulfillWhatsAppCertificateDelivery({
-              phone: targetPhone,
-              pin: resolvedPin,
+        // 4. Trigger direct WhatsApp Document Delivery (Certificate + Receipt)
+        try {
+          const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
+          await fulfillWhatsAppCertificateDelivery({
+            phone: targetPhone,
+            pin: resolvedPin,
+            checkoutId: CheckoutRequestID,
+            mpesaReceipt,
+            amount: Number(amount || 20),
+            taxpayerName,
+            taxpayerDetails: conversation?.metadata?.taxpayerDetails,
+          });
+        } catch (fulErr: any) {
+          console.error('[M-Pesa Callback] Direct fulfillment error:', fulErr.message);
+        }
+
+        // Optional secondary n8n Workflow trigger
+        const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
+        try {
+          await fetch(n8nWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               checkoutId: CheckoutRequestID,
               mpesaReceipt,
-              amount: Number(amount || 20),
+              amount,
+              phone: targetPhone,
+              pin: resolvedPin,
+              downloadId,
               taxpayerName,
-              taxpayerDetails: conversation?.metadata?.taxpayerDetails,
-            });
-          } catch (fulErr: any) {
-            console.error('[M-Pesa Callback] Direct fulfillment error:', fulErr.message);
-          }
-
-          // Optional secondary n8n Workflow trigger
-          const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
-          try {
-            await fetch(n8nWebhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                checkoutId: CheckoutRequestID,
-                mpesaReceipt,
-                amount,
-                phone: targetPhone,
-                pin: resolvedPin,
-                downloadId,
-                taxpayerName,
-                evolutionUrl: 'http://169.58.96.131:8085',
-              }),
-            });
-          } catch {}
-        } catch (dbErr: any) {
-          console.error('[M-Pesa Callback DB Handler Error]:', dbErr.message);
-        }
-      })().catch((err) => console.error('[M-Pesa Callback Async Error]:', err));
+              evolutionUrl: 'http://169.58.96.131:8085',
+            }),
+          });
+        } catch {}
+      } catch (dbErr: any) {
+        console.error('[M-Pesa Callback DB Handler Error]:', dbErr.message);
+      }
     } else {
       console.warn(`[M-Pesa Callback] Payment Failed! Code: ${ResultCode}, Desc: ${ResultDesc}`);
 

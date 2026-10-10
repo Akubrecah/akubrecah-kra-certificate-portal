@@ -394,7 +394,8 @@ export async function handleWhatsAppChat(params: {
             `📲 *M-Pesa STK Push Sent!*\n\n` +
             `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(explicitPhone)}*.\n` +
             `Please check your phone screen and enter your M-Pesa PIN.\n\n` +
-            `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here in WhatsApp automatically!`;
+            `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here automatically!\n` +
+            `_(You can also reply *PAID* or *1* anytime to verify immediately)_`;
         }
       }
       // C. Option 1: Trigger STK Push to default number (or prompt for one)
@@ -420,7 +421,8 @@ export async function handleWhatsAppChat(params: {
               `📲 *M-Pesa STK Push Sent!*\n\n` +
               `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(targetPhone)}*.\n` +
               `Please check your phone screen and enter your M-Pesa PIN.\n\n` +
-              `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here automatically!`;
+              `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here automatically!\n` +
+              `_(You can also reply *PAID* or *1* anytime to verify immediately)_`;
           }
         } else {
           await saveConversationState('AWAITING_PHONE_NUMBER', {

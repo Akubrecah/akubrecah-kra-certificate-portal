@@ -412,13 +412,30 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
     );
 
     // 8. Update conversation step to COMPLETED and end active session
-    const conversation = await db.ai_conversations?.findFirst({
+    let conversation = await db.ai_conversations?.findFirst({
       where: {
         channel: 'whatsapp',
         user_phone: userPhone,
         status: 'active',
       },
     });
+
+    if (!conversation && checkoutId) {
+      try {
+        const convs = await db.ai_conversations?.findMany({
+          where: {
+            channel: 'whatsapp',
+            status: 'active',
+          },
+        });
+        conversation = convs?.find((c: any) => {
+          const meta = c.metadata as any;
+          return meta?.checkoutId === checkoutId;
+        });
+      } catch (findErr: any) {
+        console.warn('[Fulfillment] Conversation checkoutId fallback lookup notice:', findErr.message);
+      }
+    }
 
     if (conversation) {
       const meta = (conversation.metadata as any) || {};

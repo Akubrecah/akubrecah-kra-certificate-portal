@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { sanitizeWhatsAppPhone, markEvolutionMessageRead } from '@/lib/evolution';
 import { handleWhatsAppChat } from '@/app/api/whatsapp/chat/route';
 
@@ -108,6 +108,60 @@ export async function POST(req: NextRequest) {
       message: incomingText,
       sendDirect: true,
     });
+
+    const pendingCheckoutId = (chatResult as any)?.metadata?.checkoutId;
+    const isAwaitingPayment = (chatResult as any)?.step === 'AWAITING_PAYMENT';
+
+    // If an STK push was just dispatched and we are waiting for payment,
+    // actively monitor Paystack in background so delivery happens AUTOMATICALLY
+    // the moment the user enters their PIN on phone!
+    if (isAwaitingPayment && pendingCheckoutId && pendingCheckoutId.startsWith('PSTK-')) {
+      after(async () => {
+        console.log(`[WhatsApp Webhook after] Actively monitoring Paystack payment for ${pendingCheckoutId}`);
+        const { verifyPaystackTransaction } = await import('@/lib/paystack');
+        const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
+        const prismaModule = await import('@/lib/prisma');
+        const db = prismaModule.default as any;
+
+        const maxDurationMs = 50000; // 50 seconds active monitoring
+        const intervalMs = 3000; // poll every 3 seconds
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < maxDurationMs) {
+          await new Promise((r) => setTimeout(r, intervalMs));
+          try {
+            const conv = await db.ai_conversations?.findFirst({
+              where: {
+                channel: 'whatsapp',
+                user_phone: userPhone,
+              },
+            });
+
+            if (conv && conv.metadata?.step === 'COMPLETED') {
+              console.log(`[WhatsApp Webhook after] Session already COMPLETED for ${pendingCheckoutId}. Exiting.`);
+              break;
+            }
+
+            const tx = await verifyPaystackTransaction(pendingCheckoutId);
+            if (tx && tx.status === 'success') {
+              console.log(`[WhatsApp Webhook after] Payment verified for ${pendingCheckoutId}! Initiating PDF delivery.`);
+              await fulfillWhatsAppCertificateDelivery({
+                phone: userPhone,
+                pin: conv?.metadata?.pin || (chatResult as any)?.metadata?.pin || 'KRA_CERT',
+                checkoutId: pendingCheckoutId,
+                mpesaReceipt: tx.reference || `PAYSTACK_${pendingCheckoutId}`,
+                amount: tx.amountKes || 20,
+                taxpayerName: conv?.metadata?.taxpayerName || (chatResult as any)?.metadata?.taxpayerName,
+                taxpayerDetails: conv?.metadata?.taxpayerDetails || (chatResult as any)?.metadata?.taxpayerDetails,
+              });
+              break;
+            }
+          } catch (pollErr: any) {
+            console.warn('[WhatsApp Webhook after polling notice]:', pollErr.message);
+          }
+        }
+      });
+    }
 
     return NextResponse.json(chatResult);
   } catch (error: any) {
