@@ -4,7 +4,7 @@
  */
 
 export function getEvolutionApiUrl(): string {
-  const envUrl = (process.env.EVOLUTION_API_URL || '').trim();
+  let envUrl = (process.env.EVOLUTION_API_URL || '').trim();
   // If undefined, empty, localhost/127.0.0.1, or placeholder from setup script, use production VPS IP
   if (
     !envUrl ||
@@ -13,6 +13,14 @@ export function getEvolutionApiUrl(): string {
     envUrl.includes('<YOUR_VPS_IP>')
   ) {
     return 'http://169.58.96.131:8085';
+  }
+  // Host port on VPS is 8085 (mapped to internal container 8080)
+  if (envUrl.includes(':8080')) {
+    envUrl = envUrl.replace(':8080', ':8085');
+  }
+  // Raw IP does not have TLS certificate, must use http
+  if (envUrl.startsWith('https://169.58.96.131')) {
+    envUrl = envUrl.replace('https://', 'http://');
   }
   return envUrl;
 }
