@@ -1,0 +1,10 @@
+# Optional Caddy Reverse Proxy for Free Auto-SSL
+# Replace wa.yourdomain.com with your actual subdomain (e.g., wa.vybeafrica.org)
+wa.vybeafrica.org {
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
