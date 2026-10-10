@@ -40,7 +40,7 @@ services:
       - evolution_net
 
   evolution:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:latest
     container_name: evolution_api
     restart: unless-stopped
     ports:
