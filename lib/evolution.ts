@@ -165,3 +165,52 @@ export async function sendEvolutionDocument({
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Send an image buffer (e.g. Verification QR Code PNG) to a WhatsApp user
+ */
+export async function sendEvolutionImage({
+  phone,
+  imageBuffer,
+  fileName = 'verification_qr.png',
+  caption,
+}: {
+  phone: string;
+  imageBuffer: Buffer;
+  fileName?: string;
+  caption?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const baseUrl = getEvolutionApiUrl();
+    const formattedPhone = sanitizeWhatsAppPhone(phone);
+    const base64Data = imageBuffer.toString('base64');
+    const url = `${baseUrl.replace(/\/$/, '')}/message/sendMedia/${EVOLUTION_INSTANCE}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify({
+        number: formattedPhone,
+        mediatype: 'image',
+        mimetype: 'image/png',
+        caption: caption || fileName,
+        media: base64Data,
+        fileName: fileName,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Evolution API] Failed to send image:', response.status, errText);
+      return { success: false, error: `Evolution API returned ${response.status}: ${errText}` };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Evolution API Exception] sendEvolutionImage:', error.message);
+    return { success: false, error: error.message };
+  }
+}

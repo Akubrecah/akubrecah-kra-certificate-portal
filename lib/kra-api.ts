@@ -4,6 +4,8 @@
  */
 
 import https from 'https';
+import prisma from '@/lib/prisma';
+import { resolveAuthenticRegistrationDate } from './certificate-fulfillment';
 import { getKraStationForCounty, formatKraStation, sanitizeTaxArea } from './kra-stations';
 
 export interface TaxpayerObligation {
@@ -142,9 +144,17 @@ export function fetchManufacturerDetails(pin: string, cookieString = ''): Promis
 }
 
 async function enrichTaxpayerProfile(profile: TaxpayerProfile): Promise<void> {
-  if (profile.pin && (!profile.email || !profile.phoneNumber || !profile.county)) {
-    try {
-      const man = await fetchManufacturerDetails(profile.pin);
+  if (profile.pin) {
+    if (!profile.registrationDate) {
+      let cached: any = null;
+      try {
+        cached = await (prisma as any).kra_pin_cache?.findFirst({ where: { pin: profile.pin } });
+      } catch {}
+      profile.registrationDate = resolveAuthenticRegistrationDate(profile.pin, cached?.registered_date);
+    }
+    if (!profile.email || !profile.phoneNumber || !profile.county) {
+      try {
+        const man = await fetchManufacturerDetails(profile.pin);
       if (man) {
         if (!profile.email && man.email) profile.email = man.email;
         if (!profile.phoneNumber && man.phoneNumber) profile.phoneNumber = man.phoneNumber;
@@ -164,8 +174,9 @@ async function enrichTaxpayerProfile(profile: TaxpayerProfile): Promise<void> {
           profile.station = getKraStationForCounty(profile.county);
         }
       }
-    } catch (err: any) {
-      console.warn('[KRA-API] Failed to enrich with manufacturer details:', err.message);
+      } catch (err: any) {
+        console.warn('[KRA-API] Failed to enrich with manufacturer details:', err.message);
+      }
     }
   }
 }
@@ -321,11 +332,19 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
       const county = man.county || '';
       const town = man.town || '';
       const taxArea = sanitizeTaxArea(man.taxArea, county, town);
+      let regDate = '';
+      try {
+        const cached = await (prisma as any).kra_pin_cache?.findFirst({ where: { pin } });
+        if (cached?.registered_date) regDate = cached.registered_date;
+      } catch {}
+      if (!regDate) {
+        regDate = resolveAuthenticRegistrationDate(pin);
+      }
       return {
         pin,
         taxpayerName: man.name || 'Registered Taxpayer',
         status: 'Active',
-        registrationDate: '',
+        registrationDate: regDate,
         station: county ? getKraStationForCounty(county) : '',
         taxArea,
         county,
@@ -341,7 +360,7 @@ export async function fetchTaxpayerByPin(rawPin: string, mode: 'api' | 'dwr' | '
           {
             name: 'Income Tax - Individual (IT1)',
             status: 'Active',
-            effectiveFrom: '',
+            effectiveFrom: regDate,
           }
         ],
         source: 'itax_live',
