@@ -3,18 +3,60 @@ import prisma from '@/lib/prisma';
 import { sanitizeWhatsAppPhone, sendEvolutionTextMessage } from '@/lib/evolution';
 import { fetchTaxpayerById, fetchTaxpayerByPin } from '@/lib/kra-api';
 import { maskTaxpayerData } from '@/lib/masking';
+import { initializePaystackTransaction } from '@/lib/paystack';
 
 export const maxDuration = 60;
 
-function normalizePhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
-  if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
-    return '254' + cleaned;
+function extractKenyanPhone(text: string): string | null {
+  if (!text) return null;
+  const cleaned = text.replace(/[\s\-\+\(\)]/g, '');
+  const match = cleaned.match(/(?:254|\+254|0)?([71]\d{8})/);
+  if (match && match[1]) {
+    return '254' + match[1];
   }
-  if ((cleaned.startsWith('07') || cleaned.startsWith('01')) && cleaned.length === 10) {
-    return '254' + cleaned.substring(1);
+  return null;
+}
+
+function formatDisplayPhone(phone: string): string {
+  if (!phone) return '';
+  if (phone.startsWith('254') && phone.length === 12) {
+    return '0' + phone.substring(3);
   }
-  return cleaned;
+  return phone;
+}
+
+async function triggerMpesaPush(phone: string, pin: string, amount: number) {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+  const stkRes = await fetch(`${appUrl}/api/mpesa/stkpush`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone,
+      amount,
+      reference: pin,
+      description: `KRA Cert: ${pin}`,
+    }),
+  });
+  return await stkRes.json();
+}
+
+async function createPaystackLink(userPhone: string, pin: string, amount: number, customerName?: string) {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+  const reference = `PSTK-CERT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+  return await initializePaystackTransaction({
+    email: `wa_${userPhone.replace(/[^a-zA-Z0-9]/g, '')}@akubrecah.co.ke`,
+    amountKes: amount,
+    reference,
+    callbackUrl: `${appUrl}/checkout/success?ref=${reference}&pin=${pin}`,
+    metadata: {
+      clerkId: 'wa_' + userPhone,
+      type: 'pay_per_download',
+      pin,
+      amountKes: amount,
+      phone: userPhone,
+      customerName: customerName || 'WhatsApp Customer',
+    },
+  });
 }
 
 export async function handleWhatsAppChat(params: {
@@ -173,16 +215,37 @@ export async function handleWhatsAppChat(params: {
           }
 
           const masked = maskTaxpayerData(taxpayer);
-          nextStep = 'AWAITING_CONFIRMATION';
-          metadata.step = 'AWAITING_CONFIRMATION';
+          const detectedPhone = extractKenyanPhone(userPhone) || extractKenyanPhone(taxpayer.phoneNumber || '');
+
+          nextStep = 'AWAITING_PAYMENT_METHOD';
+          metadata.step = 'AWAITING_PAYMENT_METHOD';
           metadata.pin = cleanPin;
           metadata.idNumber = taxpayer.idNumber || incomingText;
           metadata.taxpayerName = taxpayer.taxpayerName;
+          metadata.suggestedPhone = detectedPhone;
 
           await db.ai_conversations?.update({
             where: { id: conversation.id },
             data: { metadata },
           });
+
+          let menuText = '';
+          if (detectedPhone) {
+            menuText =
+              `*Select Payment Option:*\n` +
+              `*1* — 📲 *M-Pesa STK Push* to *${formatDisplayPhone(detectedPhone)}*\n` +
+              `*2* — ✏️ *Pay with a DIFFERENT M-Pesa Number*\n` +
+              `*3* — 💳 *Card / Bank / Online Checkout Link*\n` +
+              `*0* — ❌ *Cancel*\n\n` +
+              `👉 *Reply 1* to pay with *${formatDisplayPhone(detectedPhone)}*, send a different M-Pesa number (e.g. *0712345678*), or reply *3* for online card payment.`;
+          } else {
+            menuText =
+              `*Select Payment Option:*\n` +
+              `*1* — 📲 *M-Pesa STK Push* (Reply with your M-Pesa number, e.g. *0712345678*)\n` +
+              `*2* — 💳 *Card / Bank / Online Checkout Link*\n` +
+              `*0* — ❌ *Cancel*\n\n` +
+              `👉 *Please send your Safaricom M-Pesa number* (e.g. *0712345678* or *0112345678*) to receive the STK push prompt.`;
+          }
 
           replyText =
             `✅ *Taxpayer Record Found!*\n\n` +
@@ -190,15 +253,21 @@ export async function handleWhatsAppChat(params: {
             `• *PIN:* \`${masked.pin}\`\n` +
             `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
             `*Download Fee:* KES 30.00\n\n` +
-            `To proceed with payment and instant PDF delivery, reply:\n` +
-            `*1* — Pay with this WhatsApp number (*${userPhone}*)\n` +
-            `*OR* send another M-Pesa number (e.g. *0712345678*)\n` +
-            `*0* — Cancel`;
+            menuText;
         }
       }
     }
-    // 4. Step AWAITING_CONFIRMATION: User confirms & triggers STK Push
-    else if (currentStep === 'AWAITING_CONFIRMATION') {
+    // 4. Step AWAITING_PAYMENT_METHOD / AWAITING_CONFIRMATION / AWAITING_PHONE_NUMBER
+    else if (
+      currentStep === 'AWAITING_PAYMENT_METHOD' ||
+      currentStep === 'AWAITING_CONFIRMATION' ||
+      currentStep === 'AWAITING_PHONE_NUMBER'
+    ) {
+      const pinToDownload = metadata.pin;
+      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
+      const explicitPhone = extractKenyanPhone(incomingText);
+
+      // A. Cancellation
       if (lowerText === '0' || lowerText === 'cancel') {
         metadata.step = 'IDLE';
         nextStep = 'IDLE';
@@ -207,42 +276,44 @@ export async function handleWhatsAppChat(params: {
           data: { metadata },
         });
         replyText = `Operation cancelled. Reply *MENU* whenever you are ready.`;
-      } else {
-        let mpesaPhone = userPhone;
-        if (lowerText !== '1') {
-          const potentialPhone = normalizePhoneNumber(incomingText);
-          if (/^254(7|1)\d{8}$/.test(potentialPhone)) {
-            mpesaPhone = potentialPhone;
-          } else {
-            replyText = `⚠️ Please reply *1* to pay with ${userPhone}, or send a valid 10-digit Safaricom number (e.g. 0712345678).`;
-          }
-        }
+      }
+      // B. User explicitly sent a phone number
+      else if (explicitPhone) {
+        metadata.paymentPhone = explicitPhone;
+        const stkData = await triggerMpesaPush(explicitPhone, pinToDownload, downloadFee);
 
-        if (!replyText) {
-          const pinToDownload = metadata.pin;
-          const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app';
+        if (!stkData.success) {
+          replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(explicitPhone)}:*\n${stkData.error || 'Please check the number and try again'}.\n\n• Send another number (e.g. *0712345678*)\n• Reply *3* to pay with Card/Bank link\n• Reply *0* to cancel`;
+        } else {
+          nextStep = 'AWAITING_PAYMENT';
+          metadata.step = 'AWAITING_PAYMENT';
+          metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
 
-          const stkRes = await fetch(`${appUrl.replace(/\/$/, '')}/api/mpesa/stkpush`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone: mpesaPhone,
-              amount: downloadFee,
-              reference: pinToDownload,
-              description: `KRA Cert: ${pinToDownload}`,
-            }),
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
           });
 
-          const stkData = await stkRes.json();
+          replyText =
+            `📲 *M-Pesa STK Push Sent!*\n\n` +
+            `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(explicitPhone)}*.\n` +
+            `Please check your phone screen and enter your M-Pesa PIN.\n\n` +
+            `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here in WhatsApp automatically!`;
+        }
+      }
+      // C. Option 1: Trigger STK Push to default number (or prompt for one)
+      else if (lowerText === '1') {
+        const targetPhone = metadata.suggestedPhone || metadata.paymentPhone || extractKenyanPhone(userPhone);
+        if (targetPhone) {
+          metadata.paymentPhone = targetPhone;
+          const stkData = await triggerMpesaPush(targetPhone, pinToDownload, downloadFee);
 
           if (!stkData.success) {
-            replyText = `❌ *Could not initiate M-Pesa STK push:*\n${stkData.error || 'Please try again later'}.`;
+            replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(targetPhone)}:*\n${stkData.error || 'Please check the number and try again'}.\n\n• Send a different Safaricom number (e.g. *0712345678*)\n• Reply *3* for Card/Bank link\n• Reply *0* to cancel`;
           } else {
             nextStep = 'AWAITING_PAYMENT';
             metadata.step = 'AWAITING_PAYMENT';
-            metadata.checkoutId = stkData.checkoutRequestId || stkData.data?.checkoutRequestId || '';
-            metadata.paymentPhone = mpesaPhone;
+            metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
 
             await db.ai_conversations?.update({
               where: { id: conversation.id },
@@ -250,20 +321,152 @@ export async function handleWhatsAppChat(params: {
             });
 
             replyText =
-              `📲 *M-Pesa STK Prompt Sent!*\n\n` +
-              `A prompt for *KES ${downloadFee}.00* has been sent to *${mpesaPhone}*.\n` +
-              `Please enter your M-Pesa PIN on your phone.\n\n` +
+              `📲 *M-Pesa STK Push Sent!*\n\n` +
+              `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(targetPhone)}*.\n` +
+              `Please check your phone screen and enter your M-Pesa PIN.\n\n` +
               `⏳ Once completed, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here automatically!`;
           }
+        } else {
+          nextStep = 'AWAITING_PHONE_NUMBER';
+          metadata.step = 'AWAITING_PHONE_NUMBER';
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
+          });
+          replyText =
+            `✏️ *Enter M-Pesa Phone Number*\n\n` +
+            `Please send the 10-digit Safaricom phone number you want to pay with (e.g. *0712345678* or *0112345678*):`;
         }
+      }
+      // D. Option 2: Change M-Pesa Number (or Card Link if no phone suggested)
+      else if (lowerText === '2') {
+        if (metadata.suggestedPhone) {
+          nextStep = 'AWAITING_PHONE_NUMBER';
+          metadata.step = 'AWAITING_PHONE_NUMBER';
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
+          });
+          replyText =
+            `✏️ *Change M-Pesa Number*\n\n` +
+            `Please send the Safaricom phone number you want to pay with (e.g. *0712345678* or *0112345678*):`;
+        } else {
+          // No suggested phone, so option 2 was Card/Bank Link
+          const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
+          if (!paystackRes.success || !paystackRes.authorizationUrl) {
+            replyText = `❌ *Could not generate online checkout link:*\n${paystackRes.error || 'Please try again later'}.`;
+          } else {
+            nextStep = 'AWAITING_PAYMENT';
+            metadata.step = 'AWAITING_PAYMENT';
+            metadata.checkoutId = paystackRes.reference || '';
+            await db.ai_conversations?.update({
+              where: { id: conversation.id },
+              data: { metadata },
+            });
+            replyText =
+              `💳 *Secure Online Payment Link*\n\n` +
+              `Click the link below to pay *KES ${downloadFee}.00* with *Debit/Credit Card (Visa, Mastercard)*, *Bank*, or *Apple Pay*:\n` +
+              `👉 ${paystackRes.authorizationUrl}\n\n` +
+              `⚡ Once payment is approved, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here in WhatsApp automatically!`;
+          }
+        }
+      }
+      // E. Option 3 / Card / Bank / Online Link
+      else if (
+        lowerText === '3' ||
+        lowerText.includes('card') ||
+        lowerText.includes('bank') ||
+        lowerText.includes('link') ||
+        lowerText.includes('paystack')
+      ) {
+        const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
+        if (!paystackRes.success || !paystackRes.authorizationUrl) {
+          replyText = `❌ *Could not generate online checkout link:*\n${paystackRes.error || 'Please try again later'}.`;
+        } else {
+          nextStep = 'AWAITING_PAYMENT';
+          metadata.step = 'AWAITING_PAYMENT';
+          metadata.checkoutId = paystackRes.reference || '';
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
+          });
+          replyText =
+            `💳 *Secure Online Payment Link*\n\n` +
+            `Click the link below to pay *KES ${downloadFee}.00* with *Debit/Credit Card (Visa, Mastercard)*, *Bank*, or *Apple Pay*:\n` +
+            `👉 ${paystackRes.authorizationUrl}\n\n` +
+            `⚡ Once payment is approved, your *KRA PIN Certificate* and *Official Payment Receipt* PDFs will be delivered right here in WhatsApp automatically!`;
+        }
+      }
+      // F. Fallback guidance
+      else {
+        replyText =
+          `⚠️ *Invalid Selection*\n\n` +
+          `• Reply *1* to pay with M-Pesa\n` +
+          `• Send a 10-digit phone number (e.g. *0712345678*)\n` +
+          `• Reply *3* to pay with Card/Bank link\n` +
+          `• Reply *0* to cancel.`;
       }
     }
     // 5. Step AWAITING_PAYMENT: User messages while waiting
     else if (currentStep === 'AWAITING_PAYMENT') {
-      replyText =
-        `⏳ *Waiting for M-Pesa confirmation...*\n\n` +
-        `If you have entered your PIN, your documents will arrive in this chat shortly.\n` +
-        `Reply *RESET* to start a new request.`;
+      const pinToDownload = metadata.pin;
+      const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 30);
+      const explicitPhone = extractKenyanPhone(incomingText);
+
+      if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'reset' || lowerText === 'menu') {
+        metadata.step = 'IDLE';
+        nextStep = 'IDLE';
+        await db.ai_conversations?.update({
+          where: { id: conversation.id },
+          data: { metadata },
+        });
+        replyText = `Session reset. Reply with your *National ID Number* or *KRA PIN* to start a new request.`;
+      } else if (explicitPhone) {
+        metadata.paymentPhone = explicitPhone;
+        const stkData = await triggerMpesaPush(explicitPhone, pinToDownload, downloadFee);
+        if (!stkData.success) {
+          replyText = `❌ *Could not initiate M-Pesa STK push to ${formatDisplayPhone(explicitPhone)}:*\n${stkData.error || 'Please try again'}.`;
+        } else {
+          metadata.checkoutId = stkData.checkoutRequestId || stkData.CheckoutRequestID || stkData.MerchantRequestID || '';
+          await db.ai_conversations?.update({
+            where: { id: conversation.id },
+            data: { metadata },
+          });
+          replyText =
+            `📲 *New M-Pesa STK Push Sent!*\n\n` +
+            `A payment prompt for *KES ${downloadFee}.00* has been sent to *${formatDisplayPhone(explicitPhone)}*.\n` +
+            `Please enter your M-Pesa PIN on your phone.`;
+        }
+      } else if (lowerText === 'retry' || lowerText === '1') {
+        const targetPhone = metadata.paymentPhone || metadata.suggestedPhone;
+        if (targetPhone) {
+          const stkData = await triggerMpesaPush(targetPhone, pinToDownload, downloadFee);
+          replyText = stkData.success
+            ? `📲 *Prompt Resent!*\n\nPlease check *${formatDisplayPhone(targetPhone)}* and enter your M-Pesa PIN.`
+            : `❌ *Could not resend prompt:*\n${stkData.error || 'Please try another number or use card payment'}.`;
+        } else {
+          replyText = `Please send your Safaricom number (e.g. *0712345678*) to trigger the M-Pesa prompt.`;
+        }
+      } else if (lowerText === '3' || lowerText.includes('card') || lowerText.includes('bank') || lowerText.includes('link')) {
+        const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
+        if (paystackRes.success && paystackRes.authorizationUrl) {
+          replyText =
+            `💳 *Online Payment Link:*\n` +
+            `👉 ${paystackRes.authorizationUrl}\n\n` +
+            `Once completed, your PDFs will be delivered right here!`;
+        } else {
+          replyText = `Could not generate online link. Please try again or pay via M-Pesa.`;
+        }
+      } else {
+        const paymentPhoneDisplay = metadata.paymentPhone ? formatDisplayPhone(metadata.paymentPhone) : 'your phone';
+        replyText =
+          `⏳ *Waiting for M-Pesa confirmation...*\n\n` +
+          `If you have entered your PIN on *${paymentPhoneDisplay}*, your documents will arrive in this chat shortly.\n\n` +
+          `• Reply *RETRY* to resend the prompt\n` +
+          `• Send another phone number (e.g. *0712345678*)\n` +
+          `• Reply *3* to pay with Card/Bank link\n` +
+          `• Reply *MENU* to restart.`;
+      }
     }
 
     // 6. Optional Direct Dispatch to Evolution API

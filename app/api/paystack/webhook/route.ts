@@ -73,6 +73,30 @@ export async function POST(req: NextRequest) {
               },
             });
             console.log(`[Paystack Webhook] Download recorded for PIN ${pin}`);
+
+            // Dispatch to WhatsApp if paid by a WhatsApp user
+            if (clerkId && clerkId.startsWith('wa_')) {
+              const waPhone = clerkId.replace(/^wa_/, '');
+              const n8nWebhookUrl = process.env.N8N_KRA_DELIVERY_WEBHOOK || 'https://n8n.vybeafrica.org/webhook/kra-delivery';
+              try {
+                console.log('[Paystack Webhook] Triggering n8n WhatsApp delivery for:', waPhone);
+                await fetch(n8nWebhookUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    checkoutId: reference,
+                    mpesaReceipt: `PAYSTACK_${reference}`,
+                    amount: amountKes,
+                    phone: waPhone,
+                    pin: pin || 'KRA_CERT',
+                    downloadId: 'dl_' + Date.now(),
+                    taxpayerName: metadata.customerName || 'WhatsApp Customer',
+                  }),
+                });
+              } catch (n8nErr: any) {
+                console.warn('[Paystack Webhook] n8n delivery trigger notice:', n8nErr.message);
+              }
+            }
           }
         }
 
