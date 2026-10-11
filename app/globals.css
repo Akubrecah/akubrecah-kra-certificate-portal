@@ -281,3 +281,185 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── Rich Markdown Reader Styling ─── */
+.markdown-reader {
+  color: var(--on-surface);
+  line-height: 1.75;
+  font-size: 0.95rem;
+}
+.markdown-reader h1 {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--on-surface);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+  border-bottom: 1px solid var(--outline-variant);
+  padding-bottom: 0.75rem;
+}
+.markdown-reader h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--on-surface);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+  border-bottom: 1px solid var(--outline-variant);
+  padding-bottom: 0.5rem;
+}
+.markdown-reader h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--on-surface);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-reader h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-reader p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: var(--on-surface-variant);
+  line-height: 1.7;
+}
+.markdown-reader a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown-reader a:hover {
+  opacity: 0.85;
+}
+.markdown-reader pre {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background-color: var(--surface-container);
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--on-surface);
+  overflow-x: auto;
+  border: 1px solid var(--outline-variant);
+  margin: 1.25rem 0;
+}
+.markdown-reader code:not(pre code) {
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background-color: var(--surface-container);
+  color: var(--primary);
+  font-weight: 600;
+  border: 1px solid var(--outline-variant);
+}
+.markdown-reader table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  display: block;
+}
+@media (min-width: 640px) {
+  .markdown-reader table {
+    display: table;
+  }
+}
+.markdown-reader th {
+  background-color: var(--surface-container);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.markdown-reader td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.markdown-reader tr:nth-child(even) td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.markdown-reader img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--outline-variant);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem auto;
+  display: block;
+}
+.markdown-reader blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-style: italic;
+  color: var(--on-surface-variant);
+  margin: 1rem 0;
+  background-color: rgba(186, 26, 26, 0.04);
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+.markdown-reader ul {
+  list-style-type: disc;
+  list-style-position: inside;
+  margin: 0.75rem 0;
+  color: var(--on-surface-variant);
+  padding-left: 0.5rem;
+}
+.markdown-reader ol {
+  list-style-type: decimal;
+  list-style-position: inside;
+  margin: 0.75rem 0;
+  color: var(--on-surface-variant);
+  padding-left: 0.5rem;
+}
+.markdown-reader hr {
+  border: none;
+  border-top: 1px solid var(--outline-variant);
+  margin: 2rem 0;
+}
+.markdown-reader .github-alert {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.markdown-reader .alert-title {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.markdown-reader .alert-note {
+  border-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+.markdown-reader .alert-tip {
+  border-color: rgba(16, 185, 129, 0.3);
+  background-color: rgba(16, 185, 129, 0.05);
+}
+.markdown-reader .alert-important {
+  border-color: rgba(245, 158, 11, 0.3);
+  background-color: rgba(245, 158, 11, 0.05);
+}
+.markdown-reader .alert-warning {
+  border-color: rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.05);
+}

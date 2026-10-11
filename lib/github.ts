@@ -189,3 +189,88 @@ export async function getAllGithubRepos(username = DEFAULT_USERNAME): Promise<{
     },
   };
 }
+
+/**
+ * Fetches and resolves the raw README markdown for a given GitHub repository.
+ * Rewrites relative images and document links so they render seamlessly.
+ */
+export async function getRepoReadme(repoName: string, defaultBranch = 'main'): Promise<{
+  content: string;
+  hasReadme: boolean;
+}> {
+  const token = process.env.GITHUB_TOKEN;
+  const headers: Record<string, string> = {
+    'User-Agent': 'Akubrecah-Portfolio',
+    Accept: 'application/vnd.github.v3.raw',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let raw = '';
+
+  // 1. Try official GitHub API readme endpoint
+  try {
+    const res = await fetch(`https://api.github.com/repos/Akubrecah/${encodeURIComponent(repoName)}/readme`, {
+      headers,
+      next: { revalidate: 3600 },
+    });
+    if (res.ok) {
+      raw = await res.text();
+    }
+  } catch (err: any) {
+    console.warn(`[GitHub Readme API Error for ${repoName}]:`, err.message);
+  }
+
+  // 2. Fallback to raw.githubusercontent.com on main / master
+  if (!raw || raw.startsWith('{"message":')) {
+    const branches = [defaultBranch, 'main', 'master'];
+    for (const b of branches) {
+      if (raw && !raw.startsWith('{"message":')) break;
+      try {
+        const rawRes = await fetch(
+          `https://raw.githubusercontent.com/Akubrecah/${encodeURIComponent(repoName)}/${b}/README.md`,
+          { next: { revalidate: 3600 } }
+        );
+        if (rawRes.ok) {
+          const txt = await rawRes.text();
+          if (txt && !txt.includes('404: Not Found') && !txt.startsWith('{"message":')) {
+            raw = txt;
+            break;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (!raw || raw.includes('404: Not Found') || raw.startsWith('{"message":')) {
+    return { content: '', hasReadme: false };
+  }
+
+  const rawBase = `https://raw.githubusercontent.com/Akubrecah/${repoName}/${defaultBranch}`;
+  const blobBase = `https://github.com/Akubrecah/${repoName}/blob/${defaultBranch}`;
+
+  let processed = raw;
+
+  // Rewrite relative markdown image syntax ![alt](relative-path)
+  processed = processed.replace(
+    /!\[([^\]]*)\]\((?!https?:\/\/|data:|\/|#)([^)]+)\)/g,
+    `![$1](${rawBase}/$2)`
+  );
+
+  // Rewrite HTML <img ... src="relative-path" ...>
+  processed = processed.replace(
+    /<img\s+([^>]*?)src=["'](?!https?:\/\/|data:|\/|#)([^"']+)["']([^>]*?)>/gi,
+    `<img $1src="${rawBase}/$2"$3>`
+  );
+
+  // Rewrite relative markdown links [text](relative-file.md)
+  processed = processed.replace(
+    /\[([^\]]+)\]\((?!https?:\/\/|mailto:|#|\/)([^)]+)\)/g,
+    `[$1](${blobBase}/$2)`
+  );
+
+  return {
+    content: processed,
+    hasReadme: true,
+  };
+}
+

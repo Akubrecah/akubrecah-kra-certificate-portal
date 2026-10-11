@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { getPublishedArticles } from '@/lib/cms';
-import { BookOpen, Clock, ArrowRight, Tag, Sparkles } from 'lucide-react';
+import { BookOpen, Clock, ArrowRight, Tag, Sparkles, Calendar } from 'lucide-react';
 
 export const revalidate = 60;
 
 export const metadata = {
   title: 'Engineering Articles & Technical Tutorials | Akubrecah',
-  description: 'Deep dives on software architecture, fintech payment engineering, and statutory compliance automation by Akubrecah.',
+  description: 'Deep dives on software architecture, mobility platforms, AI audio pipelines, and statutory compliance automation by Akubrecah.',
 };
 
 export default async function ArticlesPage() {
@@ -26,13 +26,13 @@ export default async function ArticlesPage() {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-xs font-black text-primary uppercase tracking-widest shadow-xs">
               <BookOpen className="w-3.5 h-3.5" />
-              Engineering Field Notes
+              Engineering Field Notes & Product Specs
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tight leading-tight">
               Architectural Insights & <span className="text-primary">Deep Dives.</span>
             </h1>
             <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl leading-relaxed">
-              Pragmatic engineering tutorials, payment gateway integration patterns, and statutory automation write-ups from real production systems.
+              Pragmatic engineering tutorials, real-time mobility state machines, AI audio processing pipelines, and statutory automation write-ups from products built by Akubrecah.
             </p>
           </div>
         </div>
@@ -46,44 +46,59 @@ export default async function ArticlesPage() {
               key={article.id}
               className="p-6 sm:p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all shadow-soft group"
             >
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
-                  <span className="px-3 py-1 rounded-full font-bold bg-primary/10 text-primary border border-primary/20">
-                    {article.category}
-                  </span>
-                  <span className="flex items-center gap-1 font-mono">
-                    <Clock className="w-3.5 h-3.5" />
-                    {article.readingTimeMinutes} min read
-                  </span>
-                  <span>•</span>
-                  <span>{new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                </div>
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {article.featuredImage && (
+                  <div className="w-full md:w-56 h-44 shrink-0 rounded-2xl overflow-hidden border border-outline-variant bg-surface-container">
+                    <img
+                      src={article.featuredImage}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
 
-                <h2 className="text-2xl sm:text-3xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">
-                  <Link href={`/articles/${article.slug}`}>
-                    {article.title}
-                  </Link>
-                </h2>
-
-                <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
-                  {article.excerpt}
-                </p>
-
-                <div className="flex items-center justify-between pt-4 border-t border-outline-variant/60 flex-wrap gap-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    {article.tags.map((tag) => (
-                      <span key={tag} className="text-xs font-mono text-on-surface-variant bg-surface-container px-2.5 py-0.5 rounded-lg border border-outline-variant/60">
-                        #{tag}
-                      </span>
-                    ))}
+                <div className="space-y-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
+                    <span className="px-3 py-1 rounded-full font-bold bg-primary/10 text-primary border border-primary/20">
+                      {article.category}
+                    </span>
+                    <span className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5" />
+                      {article.readingTimeMinutes} min read
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
                   </div>
 
-                  <Link
-                    href={`/articles/${article.slug}`}
-                    className="inline-flex items-center gap-1 text-xs font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
-                  >
-                    Read Article <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <h2 className="text-2xl sm:text-3xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">
+                    <Link href={`/articles/${article.slug}`}>
+                      {article.title}
+                    </Link>
+                  </h2>
+
+                  <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed line-clamp-3">
+                    {article.excerpt}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-outline-variant/60 flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {article.tags.map((tag: string) => (
+                        <span key={tag} className="text-xs font-mono text-on-surface-variant bg-surface-container px-2.5 py-0.5 rounded-lg border border-outline-variant/60">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <Link
+                      href={`/articles/${article.slug}`}
+                      className="inline-flex items-center gap-1 text-xs font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
+                    >
+                      Read Full Article <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </article>
