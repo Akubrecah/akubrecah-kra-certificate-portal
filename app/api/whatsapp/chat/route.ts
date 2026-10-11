@@ -67,12 +67,16 @@ async function handleAdminBotCommand({
   metadata,
   saveConversationState,
   db,
+  authorPhone,
+  isFromBotOwner,
 }: {
   incomingText: string;
   userPhone: string;
   metadata: Record<string, any>;
   saveConversationState: (step: string, extra?: Record<string, any>) => Promise<void>;
   db: any;
+  authorPhone?: string;
+  isFromBotOwner?: boolean;
 }): Promise<string | null> {
   const trimmed = incomingText.trim();
   const lower = trimmed.toLowerCase();
@@ -85,26 +89,53 @@ async function handleAdminBotCommand({
     lower.startsWith('/logs') ||
     lower.startsWith('/bot') ||
     lower.startsWith('/link') ||
-    lower === 'admin';
+    lower.startsWith('/lock') ||
+    lower === 'admin' ||
+    lower === 'stats' ||
+    lower === 'revenue' ||
+    lower === 'logs' ||
+    lower === 'bot' ||
+    lower === 'link' ||
+    lower === 'lock' ||
+    lower === 'help' ||
+    lower === 'menu';
 
   if (!isAdminTrigger) return null;
 
-  const adminNumbersEnv = process.env.ADMIN_WHATSAPP_NUMBERS || process.env.SUPER_ADMIN_PHONE || '254712345678,254700000000';
-  const adminList = adminNumbersEnv.split(',').map((s) => s.replace(/[^0-9]/g, '').trim()).filter(Boolean);
-  const isWhitelisted = adminList.includes(userPhone) || adminList.some((p) => userPhone.endsWith(p) || p.endsWith(userPhone));
+  const BOT_NUMBER = '254791497858';
+  const effectivePhone = authorPhone || userPhone;
+  const isOwner = Boolean(
+    isFromBotOwner ||
+    effectivePhone === BOT_NUMBER ||
+    userPhone === BOT_NUMBER ||
+    effectivePhone.endsWith(BOT_NUMBER) ||
+    BOT_NUMBER.endsWith(effectivePhone)
+  );
+
+  const adminNumbersEnv = process.env.ADMIN_WHATSAPP_NUMBERS || process.env.SUPER_ADMIN_PHONE || '';
+  const configuredAdmins = adminNumbersEnv.split(',').map((s) => s.replace(/[^0-9]/g, '').trim()).filter(Boolean);
+  const adminList = Array.from(new Set([BOT_NUMBER, ...configuredAdmins]));
+
+  const isWhitelisted =
+    isOwner ||
+    adminList.includes(effectivePhone) ||
+    adminList.some((p) => effectivePhone.endsWith(p) || p.endsWith(effectivePhone));
 
   const expectedPin = process.env.ADMIN_BOT_PIN || '8426';
-  const isAdminAuthenticated = Boolean(
+  const hasActivePinSession = Boolean(
     metadata.isAdminAuthenticated && metadata.adminAuthExpiry && Date.now() < metadata.adminAuthExpiry
   );
+
+  // The bot number itself and whitelisted admin phones are ALWAYS pre-authenticated without requiring PIN entry!
+  const isAdminAuthenticated = isWhitelisted || hasActivePinSession;
 
   const clean = trimmed.replace(/^[\!\/]/, '').trim();
   const parts = clean.split(/\s+/);
   const cmd = parts[0]?.toLowerCase() || '';
   const arg = parts.slice(1).join(' ').trim();
 
-  // Authentication command: !admin <PIN> or !auth <PIN>
-  if (cmd === 'admin' || cmd === 'auth' || cmd === 'login') {
+  // Authentication command or menu request: !admin, !auth, !login, !help, !menu, admin, help, menu
+  if (cmd === 'admin' || cmd === 'auth' || cmd === 'login' || cmd === 'help' || cmd === 'menu') {
     if (arg === expectedPin) {
       await saveConversationState(metadata.step || 'IDLE', {
         isAdminAuthenticated: true,
@@ -123,7 +154,18 @@ async function handleAdminBotCommand({
         `• *!link* — 1-Click Web Dashboard Login Link\n` +
         `• *!lock* — Lock admin session`
       );
-    } else if (!isAdminAuthenticated && !isWhitelisted) {
+    } else if (isAdminAuthenticated) {
+      return (
+        `👑 *AKUBRECAH KRA — ADMIN COMMAND CENTER*\n\n` +
+        `• *!stats* — Real-time Executive KPIs (Revenue, Users, PC vs Mobile)\n` +
+        `• *!revenue* — Revenue Breakdown (Today, 7d, Gateways)\n` +
+        `• *!logs* — Last 5 Transactions & Receipts\n` +
+        `• *!bot* — WhatsApp Bot Adoption & Stats\n` +
+        `• *!link* — 1-Click Web Dashboard Login Link\n` +
+        `• *!lock* — Lock session\n\n` +
+        `_Reply with any command (e.g. *!stats*) to run immediately._`
+      );
+    } else {
       return (
         `🔐 *Admin Verification Required*\n\n` +
         `To unlock the Admin Command Center, enter your PIN:\n` +
@@ -133,8 +175,8 @@ async function handleAdminBotCommand({
     }
   }
 
-  // Enforce authentication
-  if (!isAdminAuthenticated && !isWhitelisted) {
+  // Enforce authentication for non-whitelisted numbers
+  if (!isAdminAuthenticated) {
     return (
       `🔐 *Admin Access Restricted*\n\n` +
       `Your phone is not yet unlocked for admin operations.\n` +
@@ -322,8 +364,10 @@ export async function handleWhatsAppChat(params: {
   phone: string;
   message: string;
   sendDirect?: boolean;
+  authorPhone?: string;
+  isFromBotOwner?: boolean;
 }) {
-  const { phone: rawPhone, message: rawMessage, sendDirect = true } = params;
+  const { phone: rawPhone, message: rawMessage, sendDirect = true, authorPhone, isFromBotOwner } = params;
 
   if (!rawPhone || !rawMessage) {
     return { success: false, error: 'Both phone and message are required.' };
@@ -398,6 +442,8 @@ export async function handleWhatsAppChat(params: {
       metadata,
       saveConversationState,
       db,
+      authorPhone,
+      isFromBotOwner,
     });
 
     if (adminReply) {

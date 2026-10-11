@@ -60,19 +60,11 @@ export async function POST(req: NextRequest) {
     }
 
     const key = data.key || {};
-    if (key.fromMe) {
-      return NextResponse.json({ success: true, message: 'Ignored outbound message' });
-    }
-
     const rawRemoteJid = key.remoteJid || data.remoteJid || payload.sender || '';
-    if (!rawRemoteJid || rawRemoteJid.includes('@g.us')) {
+
+    if (rawRemoteJid && rawRemoteJid.includes('@g.us')) {
       // Ignore group messages
       return NextResponse.json({ success: true, message: 'Ignored group message' });
-    }
-
-    const userPhone = sanitizeWhatsAppPhone(rawRemoteJid);
-    if (!userPhone) {
-      return NextResponse.json({ success: false, error: 'Could not resolve sender phone' }, { status: 400 });
     }
 
     // Extract incoming message text robustly
@@ -87,6 +79,12 @@ export async function POST(req: NextRequest) {
       incomingText = data.text;
     } else if (typeof payload.text === 'string') {
       incomingText = payload.text;
+    } else if (data.message?.buttonsResponseMessage?.selectedButtonId) {
+      incomingText = data.message.buttonsResponseMessage.selectedButtonId;
+    } else if (data.message?.listResponseMessage?.singleSelectReply?.selectedRowId) {
+      incomingText = data.message.listResponseMessage.singleSelectReply.selectedRowId;
+    } else if (data.message?.templateButtonReplyMessage?.selectedId) {
+      incomingText = data.message.templateButtonReplyMessage.selectedId;
     }
 
     incomingText = incomingText.trim();
@@ -94,11 +92,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Empty text' });
     }
 
-    console.log(`[WhatsApp Webhook Inbound] From: ${userPhone}, Text: "${incomingText}"`);
+    const trimmed = incomingText.trim();
+    const lower = trimmed.toLowerCase();
+
+    // Check if this is an admin trigger or bot command
+    const isAdminTrigger =
+      trimmed.startsWith('!') ||
+      lower.startsWith('/admin') ||
+      lower.startsWith('/stats') ||
+      lower.startsWith('/revenue') ||
+      lower.startsWith('/logs') ||
+      lower.startsWith('/bot') ||
+      lower.startsWith('/link') ||
+      lower.startsWith('/lock') ||
+      lower === 'admin' ||
+      lower === 'stats' ||
+      lower === 'revenue' ||
+      lower === 'logs' ||
+      lower === 'bot' ||
+      lower === 'link' ||
+      lower === 'lock' ||
+      lower === 'help' ||
+      lower === 'menu';
+
+    // If message was sent from the bot account (fromMe = true):
+    // Only process if it is an admin command. All regular outbound bot replies / customer chats are ignored to prevent loops.
+    if (key.fromMe && !isAdminTrigger) {
+      return NextResponse.json({ success: true, message: 'Ignored normal outbound message' });
+    }
+
+    const BOT_OWNER_NUMBER = '254791497858';
+    let userPhone = sanitizeWhatsAppPhone(rawRemoteJid);
+
+    // If sent from the bot device itself, default to BOT_OWNER_NUMBER if remoteJid was empty or self
+    if (key.fromMe) {
+      if (!userPhone || userPhone === BOT_OWNER_NUMBER) {
+        userPhone = BOT_OWNER_NUMBER;
+      }
+    } else if (!userPhone) {
+      return NextResponse.json({ success: false, error: 'Could not resolve sender phone' }, { status: 400 });
+    }
+
+    console.log(`[WhatsApp Webhook Inbound] From: ${userPhone} (fromMe: ${Boolean(key.fromMe)}), Text: "${incomingText}"`);
 
     // Mark message as read (blue ticks)
     await markEvolutionMessageRead({
-      remoteJid: rawRemoteJid,
+      remoteJid: rawRemoteJid || `${userPhone}@s.whatsapp.net`,
       messageId: key.id,
     });
 
@@ -107,6 +146,8 @@ export async function POST(req: NextRequest) {
       phone: userPhone,
       message: incomingText,
       sendDirect: true,
+      authorPhone: key.fromMe ? BOT_OWNER_NUMBER : userPhone,
+      isFromBotOwner: Boolean(key.fromMe || userPhone === BOT_OWNER_NUMBER),
     });
 
     const pendingCheckoutId = (chatResult as any)?.metadata?.checkoutId;
