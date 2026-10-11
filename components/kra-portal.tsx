@@ -103,7 +103,6 @@ export function KRAPortal() {
   // Payment gate state
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [accessInfo, setAccessInfo] = useState<{ access: string; feeKes: number; subscription: any } | null>(null)
-  const [paymentPhone, setPaymentPhone] = useState("")
   const [paymentStep, setPaymentStep] = useState<"confirm" | "waiting" | "done" | "error">("confirm")
   const [paymentCheckoutId, setPaymentCheckoutId] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -432,7 +431,6 @@ export function KRAPortal() {
       if (!data.success) throw new Error(data.error || 'Access check failed')
       setAccessInfo(data)
       setIsSubscribed(data.access === 'subscription' || data.access === 'admin')
-      setPaymentPhone(formData.phoneNumber && !formData.phoneNumber.includes('•') ? formData.phoneNumber : "")
       setPaymentStep("confirm")
       setPaymentError(null)
       setPaymentCheckoutId(null)
@@ -518,88 +516,6 @@ export function KRAPortal() {
     }
   }
 
-  // Initiates M-Pesa STK push and polls for result
-  const handleMpesaPayment = async () => {
-    if (!paymentPhone.trim()) {
-      setPaymentError("Please enter your M-Pesa phone number.")
-      return
-    }
-    setPaymentStep("waiting")
-    setPaymentError(null)
-
-    try {
-      const certPin = formData.rawPin || formData.pin
-      trackEvent({ activityType: 'click_stk_mpesa', pin: certPin })
-      // Initiate STK Push with strict 20 bob fee
-      const stkRes = await fetch('/api/mpesa/stkpush', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: paymentPhone,
-          amount: accessInfo?.feeKes || 20,
-          reference: `CERT-${certPin}`,
-          description: `KRA Certificate - ${certPin}`,
-        }),
-      })
-      const stkData = await stkRes.json()
-      if (!stkData.success) throw new Error(stkData.error || 'M-Pesa request failed')
-
-      const checkoutId = stkData.CheckoutRequestID
-      setPaymentCheckoutId(checkoutId)
-
-      // Poll for payment status (max 60s)
-      let attempts = 0
-      const maxAttempts = 30
-      const pollInterval = setInterval(async () => {
-        attempts++
-        try {
-          // For mock/simulated flow, auto-confirm after a short delay
-          const simulate = stkData.isSimulated ? 'success' : undefined
-          const statusUrl = `/api/mpesa/status/${encodeURIComponent(checkoutId)}${simulate ? '?simulate=' + simulate : ''}`
-          const statusRes = await fetch(statusUrl)
-          const statusData = await statusRes.json()
-
-          if (statusData.status === 'success') {
-            clearInterval(pollInterval)
-            // Record download server-side
-            const recordRes = await fetch('/api/certificate/record-download', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                pin: certPin,
-                downloadType: 'pay_per_download',
-                checkoutId,
-              }),
-            })
-            const recordData = await recordRes.json()
-            if (!recordData.success) throw new Error(recordData.error || 'Failed to record download')
-            setVerifiedDownloadId(recordData.downloadId)
-            setVerifiedReceipt(checkoutId)
-            setPaymentStep("done")
-            setShowPaymentModal(false)
-            setCurrentStep(4)
-            toast.success("Payment received! Downloading certificate...", { duration: 4000 })
-            await executeDownload(recordData.downloadId)
-          } else if (statusData.status === 'failed') {
-            clearInterval(pollInterval)
-            setPaymentError(`Payment failed: ${statusData.resultDesc || 'Transaction declined'}`)
-            setPaymentStep("error")
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval)
-            setPaymentError("Payment timed out. Please try again.")
-            setPaymentStep("error")
-          }
-        } catch (pollErr: any) {
-          clearInterval(pollInterval)
-          setPaymentError(pollErr.message || 'Error checking payment status')
-          setPaymentStep("error")
-        }
-      }, 2000)
-    } catch (err: any) {
-      setPaymentError(err.message || 'Failed to initiate payment')
-      setPaymentStep("error")
-    }
-  }
 
   // Retries recording download if payment checkoutId already exists
   const retryConfirmDownload = async () => {
@@ -1450,102 +1366,44 @@ export function KRAPortal() {
                     </div>
                   </div>
 
-                  {/* Segmented Gateway Toggle */}
-                  <div className="grid grid-cols-2 gap-1.5 bg-surface-container p-1 rounded-2xl border border-outline-variant/60">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('paystack')}
-                      className={cn(
-                        "py-2.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2",
-                        paymentMethod === 'paystack'
-                          ? "bg-surface text-primary shadow-sm font-bold ring-1 ring-primary/20"
-                          : "text-on-surface-variant hover:text-on-surface"
-                      )}
-                    >
-                      <CreditCard className="w-4 h-4" /> Paystack (Card / M-Pesa)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('mpesa')}
-                      className={cn(
-                        "py-2.5 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2",
-                        paymentMethod === 'mpesa'
-                          ? "bg-surface text-primary shadow-sm font-bold ring-1 ring-primary/20"
-                          : "text-on-surface-variant hover:text-on-surface"
-                      )}
-                    >
-                      <Smartphone className="w-4 h-4" /> Direct M-Pesa STK
-                    </button>
+                  {/* Paystack Official Payment Section */}
+                  <div className="space-y-4 pt-1">
+                    {/* Provider Trust Badges */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-[11px] text-on-surface-variant">
+                      <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">M-Pesa</span>
+                      <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Visa / Mastercard</span>
+                      <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Apple Pay</span>
+                      <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/80 ml-1">
+                        <Lock className="w-3 h-3 text-emerald-600" /> 256-Bit SSL Secured
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-on-surface-variant text-center leading-relaxed">
+                      Pay securely via Paystack. Supports instant <strong>M-Pesa STK prompt</strong>, Debit/Credit Cards, and mobile money.
+                    </p>
+
+                    {paymentError && (
+                      <p className="text-xs text-red-500 text-center font-medium bg-red-500/10 py-1.5 px-3 rounded-lg">{paymentError}</p>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+                      <button
+                        type="button"
+                        className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20 h-11")}
+                        onClick={() => handlePaystackPayment('pay_per_download')}
+                        disabled={isInitializingPaystack}
+                      >
+                        {isInitializingPaystack ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4" /> Pay KES 20 via Paystack
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Paystack Checkout */}
-                  {paymentMethod === 'paystack' && (
-                    <div className="space-y-3 pt-1">
-                      {/* Provider Trust Badges */}
-                      <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-[11px] text-on-surface-variant">
-                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Visa / Mastercard</span>
-                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">M-Pesa</span>
-                        <span className="bg-surface-container px-2.5 py-1 rounded-lg font-semibold text-[10px]">Apple Pay</span>
-                        <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/80 ml-1">
-                          <Lock className="w-3 h-3 text-emerald-600" /> 256-Bit SSL Secured
-                        </span>
-                      </div>
-
-                      {paymentError && (
-                        <p className="text-xs text-red-500 text-center font-medium bg-red-500/10 py-1.5 px-3 rounded-lg">{paymentError}</p>
-                      )}
-
-                      <div className="flex gap-3 pt-2">
-                        <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                        <button
-                          type="button"
-                          className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20 h-11")}
-                          onClick={() => handlePaystackPayment('pay_per_download')}
-                          disabled={isInitializingPaystack}
-                        >
-                          {isInitializingPaystack ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <CreditCard className="w-4 h-4" /> Pay KES 20 & Download
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Direct M-Pesa STK Flow */}
-                  {paymentMethod === 'mpesa' && (
-                    <div className="space-y-4 pt-1">
-                      <div>
-                        <label className={labelClass}>M-Pesa Phone Number</label>
-                        <div className="relative mt-1">
-                          <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant w-4 h-4" />
-                          <input
-                            className={cn(inputClass, "pl-10 text-sm")}
-                            placeholder="07XXXXXXXX or 01XXXXXXXX"
-                            value={paymentPhone}
-                            onChange={(e) => setPaymentPhone(e.target.value)}
-                          />
-                        </div>
-                        <p className="text-[11px] text-on-surface-variant mt-1.5">
-                          An STK push payment prompt of <strong>KES 20</strong> will be sent to this phone.
-                        </p>
-                      </div>
-
-                      {paymentError && (
-                        <p className="text-xs text-red-500 font-medium bg-red-500/10 py-1.5 px-3 rounded-lg">{paymentError}</p>
-                      )}
-
-                      <div className="flex gap-3 pt-2">
-                        <button className={secondaryButtonClass + " flex-1"} onClick={() => setShowPaymentModal(false)}>Cancel</button>
-                        <button className={cn(primaryButtonClass, "flex-1 font-bold shadow-md shadow-primary/20 h-11")} onClick={handleMpesaPayment}>
-                          <Smartphone className="w-4 h-4" /> Send STK Prompt (KES 20)
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
