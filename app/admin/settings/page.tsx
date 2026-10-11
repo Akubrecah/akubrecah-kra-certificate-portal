@@ -69,7 +69,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6 pb-12">
+    <div className="w-full max-w-4xl space-y-6 pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight">

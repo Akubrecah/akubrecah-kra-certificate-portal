@@ -125,7 +125,7 @@ export default function SystemLogsPage() {
   });
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
+    <div className="w-full max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

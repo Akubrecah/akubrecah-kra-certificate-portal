@@ -186,7 +186,7 @@ export default function UserManagementPage() {
   const inputCls = "w-full rounded-xl border border-outline-variant bg-surface px-4 py-2.5 text-on-surface text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all";
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
+    <div className="w-full max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

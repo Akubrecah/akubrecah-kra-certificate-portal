@@ -45,7 +45,7 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   }, [pathname, router, user, isLoaded, isProfileComplete])
 
   if (isAuthPage) {
-    return <main className="flex-grow flex w-full">{children}</main>
+    return <main className="flex-grow flex flex-col w-full min-h-screen min-w-0">{children}</main>
   }
 
   return (

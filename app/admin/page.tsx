@@ -346,7 +346,7 @@ export default function AdminOverviewPage() {
 
   if (loading && !data) {
     return (
-      <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 animate-pulse text-on-surface">
+      <div className="w-full p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 animate-pulse text-on-surface">
         {/* Header Skeleton */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant/60">
           <div className="space-y-2.5">
@@ -418,7 +418,7 @@ export default function AdminOverviewPage() {
   const txs = data?.transactions;
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 text-on-surface relative">
+    <div className="w-full p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 text-on-surface relative">
       {/* Subtle ambient red spotlight blur matching the website hero */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full filter blur-[120px] pointer-events-none" />
 

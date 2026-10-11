@@ -66,7 +66,7 @@ export default function GlobalConfigPage() {
   const labelCls = "block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5";
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
+    <div className="w-full max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

@@ -270,7 +270,7 @@ export default function KraRetrievalsAdminPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <div className="w-full space-y-6 max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
 
       {/* Top Banner & Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant shadow-sm">

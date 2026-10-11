@@ -98,7 +98,7 @@ export default function SystemHealthPage() {
   const avgLoad = Math.round(loadHistory.reduce((a, b) => a + b, 0) / loadHistory.length);
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
+    <div className="w-full max-w-[1280px] mx-auto space-y-6 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

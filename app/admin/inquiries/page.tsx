@@ -33,7 +33,7 @@ const statusOptions = [
   { value: "all", label: "All Inquiries" },
   { value: "new", label: "New", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   { value: "contacted", label: "Contacted", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { value: "qualified", label: "Qualified", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  { value: "qualified", label: "Qualified", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
   { value: "proposal_sent", label: "Proposal Sent", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
   { value: "won", label: "Won / Active", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
   { value: "lost", label: "Lost", color: "bg-neutral-500/10 text-neutral-600 border-neutral-500/20" },
@@ -158,7 +158,7 @@ export default function AdminInquiriesPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -185,7 +185,7 @@ export default function AdminInquiriesPage() {
           { label: "Total Received", val: stats.total, color: "text-on-surface" },
           { label: "New (Action Required)", val: stats.new, color: "text-blue-600 dark:text-blue-400" },
           { label: "In Contact", val: stats.contacted, color: "text-amber-600 dark:text-amber-400" },
-          { label: "Qualified Leads", val: stats.qualified, color: "text-purple-600 dark:text-purple-400" },
+          { label: "Qualified Leads", val: stats.qualified, color: "text-teal-600 dark:text-teal-400" },
           { label: "Won Deals", val: stats.won, color: "text-emerald-600 dark:text-emerald-400" },
         ].map((kpi) => (
           <div key={kpi.label} className="p-4 rounded-2xl bg-surface-container border border-outline-variant">

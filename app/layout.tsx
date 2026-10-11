@@ -52,7 +52,7 @@ export default async function RootLayout({
             enableSystem
           >
             <TooltipProviderWrapper>
-              <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">                
+              <div className="relative flex min-h-screen w-full min-w-0 flex-col overflow-hidden bg-background">                
                 <KRAAnnouncementBanner />
                 <AdminLayoutWrapper>
                   {children}

@@ -186,7 +186,7 @@ function AdminProjectsContent() {
   );
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
       {/* Primary Tab Navigation */}
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-surface-container border border-outline-variant w-fit flex-wrap">
         <button

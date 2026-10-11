@@ -88,7 +88,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const storedWidth = localStorage.getItem("admin-sidebar-width");
     if (storedWidth) {
-      setSidebarWidth(parseInt(storedWidth, 10));
+      const parsed = parseInt(storedWidth, 10);
+      if (!isNaN(parsed) && parsed >= 180 && parsed <= 320) {
+        setSidebarWidth(parsed);
+      } else {
+        setSidebarWidth(256);
+        localStorage.setItem("admin-sidebar-width", "256");
+      }
     }
   }, []);
 
@@ -115,8 +121,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleMouseMove = (e: MouseEvent) => {
       const clientX = e.clientX;
-      const minW = Math.max(180, window.innerWidth * 0.12);
-      const maxW = Math.min(420, window.innerWidth * 0.30);
+      const minW = 200;
+      const maxW = Math.min(320, window.innerWidth * 0.25);
       if (clientX >= minW && clientX <= maxW) {
         setSidebarWidth(clientX);
         localStorage.setItem("admin-sidebar-width", String(clientX));
@@ -126,8 +132,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 0) return;
       const clientX = e.touches[0].clientX;
-      const minW = Math.max(180, window.innerWidth * 0.12);
-      const maxW = Math.min(420, window.innerWidth * 0.30);
+      const minW = 200;
+      const maxW = Math.min(320, window.innerWidth * 0.25);
       if (clientX >= minW && clientX <= maxW) {
         setSidebarWidth(clientX);
         localStorage.setItem("admin-sidebar-width", String(clientX));
@@ -230,9 +236,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Render seamless skeleton shell during initial check (NO distorted text ligatures, NO layout jump)
   if (!isLoaded || checkingAuth) {
     return (
-      <div className="min-h-screen flex bg-surface-container-lowest text-on-surface">
+      <div className="min-h-screen w-full flex bg-surface-container-lowest text-on-surface">
         {/* Desktop Sidebar Skeleton */}
-        <aside className="hidden md:flex flex-col w-64 border-r border-outline-variant/60 p-5 space-y-6 bg-surface animate-pulse">
+        <aside className="hidden md:flex flex-col w-64 border-r border-outline-variant/60 p-5 space-y-6 bg-surface animate-pulse shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-surface-container-high" />
             <div className="space-y-1.5 flex-1">
@@ -286,7 +292,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Master Admin Passcode Gate (if unauthenticated)
   if (!isSuperAdmin && !hasMagicAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest p-4 relative overflow-hidden font-sans">
+      <div className="min-h-screen w-full flex items-center justify-center bg-surface-container-lowest p-4 relative overflow-hidden font-sans">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[130px] pointer-events-none" />
 
         <div className="w-full max-w-md bg-surface border border-outline-variant p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
@@ -360,7 +366,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div 
-      className="min-h-screen flex bg-surface-container-lowest text-on-surface font-sans antialiased overflow-x-hidden"
+      className="min-h-screen w-full flex bg-surface-container-lowest text-on-surface font-sans antialiased overflow-x-hidden"
       style={{
         ["--sidebar-width" as any]: isCollapsed ? "80px" : `${sidebarWidth}px`
       }}
@@ -387,7 +393,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           DESKTOP & TABLET SIDEBAR
           ========================================================= */}
       <aside 
-        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-30 select-none overflow-hidden ${
+        className={`hidden md:flex flex-col sticky top-0 h-screen shrink-0 bg-surface border-r border-outline-variant z-30 select-none overflow-hidden ${
           isResizing ? "" : "transition-all duration-200 ease-out"
         } ${isCollapsed ? "px-2.5 py-5" : "px-4 py-5"}`}
         style={{ width: "var(--sidebar-width)" }}
@@ -596,9 +602,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           MAIN APPLICATION AREA (Responsive Layout)
           ========================================================= */}
       <div 
-        className={`flex-1 flex flex-col min-h-screen min-w-0 ${
+        className={`flex-1 flex flex-col min-h-screen min-w-0 w-full ${
           isResizing ? "" : "transition-all duration-200 ease-out"
-        } md:ml-[var(--sidebar-width)]`}
+        }`}
       >
         {/* Top Header */}
         <header className="sticky top-0 z-20 h-16 bg-surface/95 backdrop-blur-md border-b border-outline-variant/80 flex items-center justify-between px-4 sm:px-6">
@@ -657,7 +663,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto bg-surface-bright min-w-0">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto bg-surface-bright min-w-0 w-full">
           {children}
         </main>
       </div>

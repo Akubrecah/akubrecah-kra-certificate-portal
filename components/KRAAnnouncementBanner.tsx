@@ -2,8 +2,10 @@
 
 import { AlertCircle } from "lucide-react"
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 
 export default function KRAAnnouncementBanner() {
+  const pathname = usePathname()
   const [announcement, setAnnouncement] = useState<string | null>(null)
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function KRAAnnouncementBanner() {
     }
   }, [])
 
-  if (!announcement) return null
+  if (!announcement || pathname?.startsWith('/admin')) return null
 
   return (
     <div role="alert" aria-live="polite" className="sticky top-0 z-[60] w-full bg-primary text-white border-b border-white/10 shadow-none">
