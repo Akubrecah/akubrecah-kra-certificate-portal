@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 import { useUser } from "@clerk/nextjs"
 import { maskPin, maskEmail, maskPhone } from "@/lib/masking"
+import { trackEvent } from "@/lib/analytics"
 
 export function KRAPortal() {
   const { isLoaded: authLoaded, isSignedIn, user } = useUser()
@@ -118,6 +119,7 @@ export function KRAPortal() {
   const [isInitializingPaystack, setIsInitializingPaystack] = useState(false)
 
   useEffect(() => {
+    trackEvent({ activityType: 'page_view' });
     loadCaptcha()
 
     // Restore formData and active state from sessionStorage if returning from Paystack or refresh
@@ -194,6 +196,7 @@ export function KRAPortal() {
 
     setIdSearchStatus("searching")
     setError(null)
+    trackEvent({ activityType: "search_pin", pin: formData.pin || formData.idNumber })
 
     try {
       const response = await fetch('/api/kra/retrieve', {
@@ -258,6 +261,7 @@ export function KRAPortal() {
       setCaptchaImage(null)
       setCaptchaAnswer("")
       setCurrentStep(4)
+      trackEvent({ activityType: "view_masked", pin: result.data?.pin || formData.pin })
       toast.success("KRA Taxpayer Details Found!")
     } else {
       setIdSearchStatus("idle")
@@ -325,6 +329,8 @@ export function KRAPortal() {
     setPaymentStep("waiting")
 
     try {
+      const certPin = formData.rawPin || formData.pin
+      trackEvent({ activityType: 'click_paystack', pin: certPin })
       const res = await fetch('/api/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -468,6 +474,7 @@ export function KRAPortal() {
         downloadId: targetDownloadId,
       }
 
+      trackEvent({ activityType: 'download_certificate', pin: payload.pin })
       const response = await fetch('/api/generate-certificate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -515,6 +522,7 @@ export function KRAPortal() {
 
     try {
       const certPin = formData.rawPin || formData.pin
+      trackEvent({ activityType: 'click_stk_mpesa', pin: certPin })
       // Initiate STK Push with strict 20 bob fee
       const stkRes = await fetch('/api/mpesa/stkpush', {
         method: 'POST',

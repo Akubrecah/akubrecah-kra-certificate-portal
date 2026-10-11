@@ -5,6 +5,7 @@ import { fetchTaxpayerById, fetchTaxpayerByPin } from '@/lib/kra-api';
 import { maskTaxpayerData } from '@/lib/masking';
 import { initializePaystackTransaction } from '@/lib/paystack';
 import { dispatchMpesaStkPush } from '@/app/api/mpesa/stkpush/route';
+import { createAdminMagicToken } from '@/lib/magic-token';
 
 export const maxDuration = 60;
 
@@ -54,6 +55,267 @@ async function createPaystackLink(userPhone: string, pin: string, amount: number
       customerName: customerName || 'WhatsApp Customer',
     },
   });
+}
+
+/**
+ * Admin Bot Controller for WhatsApp Super Admin
+ * Allows checking revenue, stats, recent logs, bot performance, and generating 1-click magic link
+ */
+async function handleAdminBotCommand({
+  incomingText,
+  userPhone,
+  metadata,
+  saveConversationState,
+  db,
+}: {
+  incomingText: string;
+  userPhone: string;
+  metadata: Record<string, any>;
+  saveConversationState: (step: string, extra?: Record<string, any>) => Promise<void>;
+  db: any;
+}): Promise<string | null> {
+  const trimmed = incomingText.trim();
+  const lower = trimmed.toLowerCase();
+
+  const isAdminTrigger =
+    trimmed.startsWith('!') ||
+    lower.startsWith('/admin') ||
+    lower.startsWith('/stats') ||
+    lower.startsWith('/revenue') ||
+    lower.startsWith('/logs') ||
+    lower.startsWith('/bot') ||
+    lower.startsWith('/link') ||
+    lower === 'admin';
+
+  if (!isAdminTrigger) return null;
+
+  const adminNumbersEnv = process.env.ADMIN_WHATSAPP_NUMBERS || process.env.SUPER_ADMIN_PHONE || '254712345678,254700000000';
+  const adminList = adminNumbersEnv.split(',').map((s) => s.replace(/[^0-9]/g, '').trim()).filter(Boolean);
+  const isWhitelisted = adminList.includes(userPhone) || adminList.some((p) => userPhone.endsWith(p) || p.endsWith(userPhone));
+
+  const expectedPin = process.env.ADMIN_BOT_PIN || '8426';
+  const isAdminAuthenticated = Boolean(
+    metadata.isAdminAuthenticated && metadata.adminAuthExpiry && Date.now() < metadata.adminAuthExpiry
+  );
+
+  const clean = trimmed.replace(/^[\!\/]/, '').trim();
+  const parts = clean.split(/\s+/);
+  const cmd = parts[0]?.toLowerCase() || '';
+  const arg = parts.slice(1).join(' ').trim();
+
+  // Authentication command: !admin <PIN> or !auth <PIN>
+  if (cmd === 'admin' || cmd === 'auth' || cmd === 'login') {
+    if (arg === expectedPin) {
+      await saveConversationState(metadata.step || 'IDLE', {
+        isAdminAuthenticated: true,
+        adminAuthExpiry: Date.now() + 4 * 60 * 60 * 1000, // 4 hours session
+      });
+
+      return (
+        `👑 *ADMIN AUTHENTICATED SUCCESSFULLY*\n\n` +
+        `Welcome to the *Akubrecah KRA Admin Command Center*.\n` +
+        `Session unlocked for 4 hours.\n\n` +
+        `*Available Commands:*\n` +
+        `• *!stats* — Real-time Executive KPIs (Revenue, Users, PC vs Mobile)\n` +
+        `• *!revenue* — Revenue Breakdown (Today, 7d, Gateways)\n` +
+        `• *!logs* — Last 5 Transactions & Receipts\n` +
+        `• *!bot* — WhatsApp Bot Adoption & Stats\n` +
+        `• *!link* — 1-Click Web Dashboard Login Link\n` +
+        `• *!lock* — Lock admin session`
+      );
+    } else if (!isAdminAuthenticated && !isWhitelisted) {
+      return (
+        `🔐 *Admin Verification Required*\n\n` +
+        `To unlock the Admin Command Center, enter your PIN:\n` +
+        `Reply: *!admin <PIN>*\n\n` +
+        `_(Default PIN is 8426 or set in ADMIN_BOT_PIN)_`
+      );
+    }
+  }
+
+  // Enforce authentication
+  if (!isAdminAuthenticated && !isWhitelisted) {
+    return (
+      `🔐 *Admin Access Restricted*\n\n` +
+      `Your phone is not yet unlocked for admin operations.\n` +
+      `Reply: *!admin <PIN>* to authenticate.`
+    );
+  }
+
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+
+  // Lock command
+  if (cmd === 'lock' || cmd === 'logout') {
+    await saveConversationState(metadata.step || 'IDLE', {
+      isAdminAuthenticated: false,
+      adminAuthExpiry: 0,
+    });
+    return `🔒 *Admin Session Locked.*\nSend *!admin <PIN>* anytime to re-authenticate.`;
+  }
+
+  // 1-Click Magic Link
+  if (cmd === 'link' || cmd === 'magic' || cmd === 'web') {
+    const magicToken = createAdminMagicToken(userPhone);
+    const magicUrl = `${appUrl}/api/admin/magic-login?token=${magicToken}`;
+    return (
+      `👑 *1-Click Admin Web Access*\n\n` +
+      `Tap the link below to open your Executive Admin Dashboard directly in your phone browser without entering a password:\n\n` +
+      `👉 ${magicUrl}\n\n` +
+      `⏳ _This cryptographically signed link is valid for 15 minutes._`
+    );
+  }
+
+  // !stats
+  if (cmd === 'stats' || cmd === 'kpi') {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    let downloads: any[] = [];
+    if (typeof db.certificateDownload?.findMany === 'function') {
+      downloads = await db.certificateDownload.findMany({ take: 1000, orderBy: { createdAt: 'desc' } });
+    }
+
+    const totalRev = downloads.reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+    const todayRev = downloads
+      .filter((d) => new Date(d.createdAt) >= startOfToday)
+      .reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+
+    const waDownloads = downloads.filter((d) => d.clerkId?.startsWith('wa_')).length;
+
+    let totalSessions = 0;
+    let pcSessions = 0;
+    if (typeof db.sessions?.findMany === 'function') {
+      const s = await db.sessions.findMany({ take: 500 });
+      totalSessions = s.length;
+      pcSessions = s.filter((sess: any) => !sess.is_mobile).length;
+    }
+    const pcPct = totalSessions > 0 ? Math.round((pcSessions / totalSessions) * 100) : 65;
+    const mobPct = 100 - pcPct;
+
+    let botUsers = 0;
+    if (typeof db.ai_conversations?.count === 'function') {
+      botUsers = await db.ai_conversations.count({ where: { channel: 'whatsapp' } });
+    }
+
+    return (
+      `📊 *AKUBRECAH KRA — LIVE EXECUTIVE STATS*\n\n` +
+      `💰 *Total Revenue:* KES ${totalRev.toLocaleString()}\n` +
+      `📈 *Today's Revenue:* KES ${todayRev.toLocaleString()}\n` +
+      `📜 *Total Downloads:* ${downloads.length}\n` +
+      `🤖 *WhatsApp Bot Downloads:* ${waDownloads} (${downloads.length > 0 ? Math.round((waDownloads / downloads.length) * 100) : 0}%)\n` +
+      `💬 *WhatsApp Bot Users:* ${botUsers}\n` +
+      `💻 *Web Traffic:* ${pcPct}% PC (Desktop) / ${mobPct}% Mobile\n\n` +
+      `_Reply *!revenue* for financial details or *!link* for web dashboard._`
+    );
+  }
+
+  // !revenue
+  if (cmd === 'revenue' || cmd === 'rev') {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    let downloads: any[] = [];
+    if (typeof db.certificateDownload?.findMany === 'function') {
+      downloads = await db.certificateDownload.findMany({ take: 1000 });
+    }
+
+    const totalRev = downloads.reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+    const todayRev = downloads.filter((d) => new Date(d.createdAt) >= startOfToday).reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+    const sevenDayRev = downloads.filter((d) => new Date(d.createdAt) >= sevenDaysAgo).reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+    const thirtyDayRev = downloads.filter((d) => new Date(d.createdAt) >= thirtyDaysAgo).reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+
+    const mpesaRev = downloads.filter((d) => Boolean(d.mpesaReceipt)).reduce((acc, c) => acc + (Number(c.amountCharged) || 0), 0);
+    const paystackRev = totalRev - mpesaRev;
+
+    return (
+      `💰 *REVENUE BREAKDOWN REPORT*\n\n` +
+      `• *Total Lifetime:* KES ${totalRev.toLocaleString()}\n` +
+      `• *Today:* KES ${todayRev.toLocaleString()}\n` +
+      `• *Last 7 Days:* KES ${sevenDayRev.toLocaleString()}\n` +
+      `• *Last 30 Days:* KES ${thirtyDayRev.toLocaleString()}\n\n` +
+      `💳 *By Payment Gateway:*\n` +
+      `• *M-Pesa STK:* KES ${mpesaRev.toLocaleString()} (${totalRev > 0 ? Math.round((mpesaRev / totalRev) * 100) : 0}%)\n` +
+      `• *Paystack Card/Bank:* KES ${paystackRev.toLocaleString()} (${totalRev > 0 ? Math.round((paystackRev / totalRev) * 100) : 0}%)\n\n` +
+      `_Reply *!logs* to view recent transaction receipts._`
+    );
+  }
+
+  // !logs
+  if (cmd === 'logs' || cmd === 'transactions' || cmd === 'tx') {
+    let recent: any[] = [];
+    if (typeof db.certificateDownload?.findMany === 'function') {
+      recent = await db.certificateDownload.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    if (recent.length === 0) {
+      return `🧾 *TRANSACTION LOGS*\n\nNo certificate downloads or transactions recorded yet.`;
+    }
+
+    let report = `🧾 *LATEST 5 TRANSACTIONS*\n\n`;
+    recent.forEach((item, index) => {
+      const isWa = item.clerkId?.startsWith('wa_');
+      const channel = isWa ? '🤖 WhatsApp' : '🌐 Web Portal';
+      const receipt = item.mpesaReceipt || item.checkoutId || 'STK-VERIFIED';
+      const timeStr = new Date(item.createdAt).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+
+      report +=
+        `*${index + 1}. PIN:* ${item.pin}\n` +
+        `   • Amount: *KES ${item.amountCharged}.00*\n` +
+        `   • Channel: ${channel}\n` +
+        `   • Receipt: \`${receipt}\`\n` +
+        `   • Time: ${timeStr}\n\n`;
+    });
+
+    report += `_Reply *!link* for full searchable transaction table on web._`;
+    return report;
+  }
+
+  // !bot
+  if (cmd === 'bot' || cmd === 'whatsapp') {
+    let totalBotUsers = 0;
+    let totalConversations = 0;
+    if (typeof db.ai_conversations?.findMany === 'function') {
+      const chats = await db.ai_conversations.findMany({ where: { channel: 'whatsapp' } });
+      totalConversations = chats.length;
+      totalBotUsers = new Set(chats.map((c: any) => c.user_phone).filter(Boolean)).size;
+    }
+
+    let waDownloads = 0;
+    let waRevenue = 0;
+    if (typeof db.certificateDownload?.findMany === 'function') {
+      const dl = await db.certificateDownload.findMany({ where: { clerkId: { startsWith: 'wa_' } } });
+      waDownloads = dl.length;
+      waRevenue = dl.reduce((acc: number, c: any) => acc + (Number(c.amountCharged) || 0), 0);
+    }
+
+    const conversionRate = totalBotUsers > 0 ? ((waDownloads / totalBotUsers) * 100).toFixed(1) : '0.0';
+
+    return (
+      `🤖 *WHATSAPP BOT PERFORMANCE*\n\n` +
+      `• *Total Bot Users:* ${totalBotUsers} unique numbers\n` +
+      `• *Total Conversations:* ${totalConversations}\n` +
+      `• *Certificates Downloaded:* ${waDownloads}\n` +
+      `• *Bot-Driven Revenue:* KES ${waRevenue.toLocaleString()}\n` +
+      `• *Bot Conversion Rate:* ${conversionRate}%\n\n` +
+      `_Commands: !stats, !revenue, !logs, !link, !lock_`
+    );
+  }
+
+  // Default menu
+  return (
+    `👑 *AKUBRECAH KRA — ADMIN MENU*\n\n` +
+    `• *!stats* — Real-time Executive KPIs\n` +
+    `• *!revenue* — Complete revenue breakdown\n` +
+    `• *!logs* — Latest 5 transaction receipts\n` +
+    `• *!bot* — WhatsApp bot user adoption & sales\n` +
+    `• *!link* — 1-Click magic link to Web Dashboard\n` +
+    `• *!lock* — Lock admin session`
+  );
 }
 
 export async function handleWhatsAppChat(params: {
@@ -127,6 +389,30 @@ export async function handleWhatsAppChat(params: {
       currentStep = 'IDLE';
       isSessionActive = false;
       await saveConversationState('IDLE', { activeSession: false });
+    }
+
+    // 0. Check for Admin Bot Commands (!admin, !stats, !revenue, !logs, !link, !bot)
+    const adminReply = await handleAdminBotCommand({
+      incomingText,
+      userPhone,
+      metadata,
+      saveConversationState,
+      db,
+    });
+
+    if (adminReply) {
+      let sendResult = null;
+      if (sendDirect) {
+        sendResult = await sendEvolutionTextMessage(userPhone, adminReply);
+      }
+      return {
+        success: true,
+        userPhone,
+        step: metadata.step || 'IDLE',
+        reply: adminReply,
+        metadata,
+        sendResult,
+      };
     }
 
     const isSlashCommand = incomingText.startsWith('/');

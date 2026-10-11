@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 
 const navLinks = [
+  { href: "/admin", label: "Executive Overview", icon: "insights" },
   { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: "badge" },
   { href: "/admin/system-health", label: "System Health", icon: "monitor_heart" },
   { href: "/admin/user-management", label: "User Management", icon: "group" },
@@ -116,12 +117,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Enforce Super Admin check (dynamic configuration & Clerk metadata roles)
+  const [hasMagicAuth, setHasMagicAuth] = useState(false);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.cookie.includes('admin_magic_auth=')) {
+      setHasMagicAuth(true);
+    }
+  }, []);
+
+  // Enforce Super Admin check (dynamic configuration & Clerk metadata roles + WhatsApp Magic link)
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
   const userRole = user?.publicMetadata?.role as string;
   const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
 
   const isSuperAdmin = 
+    hasMagicAuth ||
     userEmail === "poweldayck@gmail.com" || 
     userEmail === configPublicAdminEmail ||
     userRole === "Super Admin" ||
@@ -131,10 +141,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     userEmail,
     userRole,
     isSuperAdmin,
+    hasMagicAuth,
     userId: user?.id
   });
 
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !hasMagicAuth) {
     if (typeof window !== "undefined") {
       router.push("/dashboard");
     }
@@ -250,7 +261,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Nav Links */}
         <ul className="flex flex-col gap-1 flex-grow">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+            const isActive = link.href === "/admin" ? pathname === "/admin" : pathname === link.href || pathname?.startsWith(link.href + "/");
             return (
               <li key={link.href}>
                 <Link
@@ -402,7 +413,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {mobileOpen && (
               <ul className="flex flex-col gap-1 mt-2.5 pb-1 animate-in fade-in duration-200">
                 {navLinks.map((link) => {
-                  const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                  const isActive = link.href === "/admin" ? pathname === "/admin" : pathname === link.href || pathname?.startsWith(link.href + "/");
                   return (
                     <li key={link.href}>
                       <Link
