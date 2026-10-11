@@ -15,7 +15,8 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     pathname?.startsWith('/sign-in') || 
     pathname?.startsWith('/sign-up') || 
     pathname?.startsWith('/onboarding') || 
-    pathname?.startsWith('/admin')
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/dashboard')
 
   const hasName = !!(user?.firstName && user?.lastName) || !!user?.fullName
   const hasPhone = (user?.phoneNumbers && user?.phoneNumbers.length > 0) || !!user?.publicMetadata?.phoneNumber

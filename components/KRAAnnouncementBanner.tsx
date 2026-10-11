@@ -21,7 +21,7 @@ export default function KRAAnnouncementBanner() {
     }
   }, [])
 
-  if (!announcement || pathname?.startsWith('/admin')) return null
+  if (!announcement || pathname?.startsWith('/admin') || pathname?.startsWith('/dashboard')) return null
 
   return (
     <div role="alert" aria-live="polite" className="sticky top-0 z-[60] w-full bg-primary text-white border-b border-white/10 shadow-none">
