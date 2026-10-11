@@ -91,23 +91,27 @@ export async function POST(req: NextRequest) {
       : null;
 
     if (!downloadRecord && isServiceAuthorized) {
-      // Auto-provision download record for internal service dispatch (e.g. n8n workflow)
-      const effectivePin = String(pin || 'KRA_CERT').toUpperCase().trim();
-      const dbUser = await getOrCreateDbUser('service_n8n', 'service@akubrecah.co.ke', 'n8n Dispatcher');
-      downloadRecord = await db.certificateDownload?.create({
-        data: {
-          id: downloadId || ('dl_svc_' + Date.now()),
-          userId: dbUser.id,
-          clerkId: 'service_n8n',
-          pin: effectivePin,
-          downloadType: 'service_dispatch',
-          amountCharged: 0,
-          currency: 'KES',
-        },
-      });
+      // Try to auto-provision download record for internal service dispatch (e.g. n8n workflow)
+      try {
+        const effectivePin = String(pin || 'KRA_CERT').toUpperCase().trim();
+        const dbUser = await getOrCreateDbUser('service_n8n', 'service@akubrecah.co.ke', 'n8n Dispatcher');
+        downloadRecord = await db.certificateDownload?.create({
+          data: {
+            id: downloadId || ('dl_svc_' + Date.now()),
+            userId: dbUser.id,
+            clerkId: 'service_n8n',
+            pin: effectivePin,
+            downloadType: 'service_dispatch',
+            amountCharged: 0,
+            currency: 'KES',
+          },
+        });
+      } catch (err: any) {
+        console.warn('[generate-certificate] Service record creation note:', err.message);
+      }
     }
 
-    if (!downloadRecord) {
+    if (!downloadRecord && !isServiceAuthorized) {
       return NextResponse.json(
         { success: false, error: 'Invalid or unauthorized download. Please retry the payment flow.' },
         { status: 403 }
@@ -115,12 +119,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve or auto-provision DB user
-    const effectiveClerkId = userId || downloadRecord.clerkId || 'guest_user';
-    const dbUser = await getOrCreateDbUser(effectiveClerkId, 'guest@akubrecah.co.ke', 'Guest Taxpayer');
+    const effectiveClerkId = userId || downloadRecord?.clerkId || 'guest_user';
+    let dbUser: any = null;
+    try {
+      dbUser = await getOrCreateDbUser(effectiveClerkId, 'guest@akubrecah.co.ke', 'Guest Taxpayer');
+    } catch {}
 
     // Prioritize clean unmasked PIN from download record, fallback to payload
     let cleanPin = '';
-    if (downloadRecord.pin && !downloadRecord.pin.includes('*') && downloadRecord.pin !== 'KRA_CERT') {
+    if (downloadRecord?.pin && !downloadRecord.pin.includes('*') && downloadRecord.pin !== 'KRA_CERT') {
       cleanPin = downloadRecord.pin.toUpperCase().trim();
     } else if (pin && !pin.includes('*')) {
       cleanPin = pin.toUpperCase().trim();
@@ -236,7 +243,7 @@ export async function POST(req: NextRequest) {
       message: `Compliance certificate generated for PIN ${resolvedPin}`,
       actor: userEmail,
       ip,
-      details: { pin: resolvedPin, downloadId, downloadType: downloadRecord.downloadType },
+      details: { pin: resolvedPin, downloadId, downloadType: downloadRecord?.downloadType || 'service_dispatch' },
     });
 
     return new NextResponse(Buffer.from(outBytes), {
