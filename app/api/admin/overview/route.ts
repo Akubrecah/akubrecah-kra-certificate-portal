@@ -2,6 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAdminMagicToken } from "@/lib/magic-token";
+import { getPaystackBalances, getPaystackLiveTransactions, getPaystackPayouts } from "@/lib/paystack";
 
 export const maxDuration = 30;
 
@@ -287,7 +288,24 @@ export async function GET(req: NextRequest) {
     const paginatedTransactions = formattedTransactions.slice(skip, skip + limit);
 
     // -------------------------------------------------------------
-    // 6. RESPONSE PAYLOAD
+    // 6. PAYSTACK LIVE GATEWAY RECONCILIATION
+    // -------------------------------------------------------------
+    const [paystackBalance, paystackLiveTx, paystackPayouts] = await Promise.all([
+      getPaystackBalances().catch(() => ({ success: false, currency: 'KES', balanceKes: 0 })),
+      getPaystackLiveTransactions(100).catch(() => ({ success: false, total: 0, items: [] })),
+      getPaystackPayouts(50).catch(() => ({ success: false, total: 0, items: [] })),
+    ]);
+
+    const livePaystackTxTotal = (paystackLiveTx.items || [])
+      .filter((t: any) => t.status === 'success')
+      .reduce((acc: number, curr: any) => acc + (Number(curr.amountKes) || 0), 0);
+
+    const livePaystackPayoutsTotal = (paystackPayouts.items || [])
+      .filter((p: any) => p.status === 'success')
+      .reduce((acc: number, curr: any) => acc + (Number(curr.amountKes) || 0), 0);
+
+    // -------------------------------------------------------------
+    // 7. RESPONSE PAYLOAD
     // -------------------------------------------------------------
     return NextResponse.json({
       success: true,
@@ -308,6 +326,16 @@ export async function GET(req: NextRequest) {
         averageTransactionValue: completedDownloadsCount > 0 
           ? Math.round(totalRevenue / completedDownloadsCount) 
           : 0,
+      },
+      paystackLive: {
+        balanceKes: paystackBalance.balanceKes || 0,
+        currency: paystackBalance.currency || "KES",
+        liveTransactionsTotalKes: livePaystackTxTotal,
+        livePayoutsTotalKes: livePaystackPayoutsTotal,
+        transactions: paystackLiveTx.items || [],
+        payouts: paystackPayouts.items || [],
+        totalLiveTx: paystackLiveTx.total || 0,
+        totalPayouts: paystackPayouts.total || 0,
       },
       deviceUsage: {
         totalSessions,

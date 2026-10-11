@@ -285,6 +285,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
                     {link.label}
                   </span>
+
+                  {isActive && !isCollapsed && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+                  )}
                   
                   {/* Tooltip for collapsed mode */}
                   {isCollapsed && (

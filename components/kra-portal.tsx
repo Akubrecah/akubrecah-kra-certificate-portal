@@ -122,26 +122,33 @@ export function KRAPortal() {
     trackEvent({ activityType: 'page_view' });
     loadCaptcha()
 
-    // Restore formData and active state from sessionStorage if returning from Paystack or refresh
+    // Only restore formData if actively returning from a Paystack redirect callback
     if (typeof window !== "undefined") {
-      try {
-        const savedForm = sessionStorage.getItem("kra_active_form_data")
-        if (savedForm) {
-          const parsed = JSON.parse(savedForm)
-          if (parsed && (parsed.pin || parsed.fullName || parsed.idNumber)) {
-            setFormData(prev => ({ ...prev, ...parsed }))
-            setIsVerified(true)
-            setIdSearchStatus("found")
-            setCurrentStep(4)
-          }
-        }
-      } catch (e) {
-        console.warn("Failed to restore saved form state:", e)
-      }
-
       const urlParams = new URLSearchParams(window.location.search)
       const paystackRef = urlParams.get("paystack_ref") || urlParams.get("reference")
       const payType = urlParams.get("type")
+
+      if (paystackRef) {
+        try {
+          const savedForm = sessionStorage.getItem("kra_active_form_data")
+          if (savedForm) {
+            const parsed = JSON.parse(savedForm)
+            if (parsed && (parsed.pin || parsed.fullName || parsed.idNumber)) {
+              setFormData(prev => ({ ...prev, ...parsed }))
+              setIsVerified(true)
+              setIdSearchStatus("found")
+              setCurrentStep(4)
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to restore saved form state:", e)
+        }
+      } else {
+        // Ephemeral session: clear previous data so user always searches for another PIN fresh
+        try {
+          sessionStorage.removeItem("kra_active_form_data")
+        } catch {}
+      }
 
       if (paystackRef) {
         handleVerifyPaystackReference(paystackRef, payType)

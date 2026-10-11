@@ -283,3 +283,137 @@ export async function chargePaystackMpesa(opts: {
   }
 }
 
+/**
+ * Fetches real-time account balances from Paystack API (in KES).
+ */
+export async function getPaystackBalances(): Promise<{
+  success: boolean;
+  currency: string;
+  balanceKes: number;
+  rawBalances?: any[];
+  error?: string;
+}> {
+  const secretKey = getPaystackSecretKey();
+  if (!secretKey) {
+    return { success: false, currency: 'KES', balanceKes: 0, error: 'PAYSTACK_SECRET_KEY missing' };
+  }
+
+  try {
+    const res = await fetch('https://api.paystack.co/balance', {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await res.json();
+    if (!res.ok || !data.status) {
+      return { success: false, currency: 'KES', balanceKes: 0, error: data.message };
+    }
+    const balances = Array.isArray(data.data) ? data.data : [];
+    const kesBalance = balances.find((b: any) => b.currency === 'KES');
+    return {
+      success: true,
+      currency: 'KES',
+      balanceKes: kesBalance ? Number(kesBalance.balance || 0) / 100 : 0,
+      rawBalances: balances,
+    };
+  } catch (err: any) {
+    return { success: false, currency: 'KES', balanceKes: 0, error: err.message };
+  }
+}
+
+/**
+ * Fetches real-time transaction list from Paystack API.
+ */
+export async function getPaystackLiveTransactions(limit = 50, page = 1): Promise<{
+  success: boolean;
+  total: number;
+  items: any[];
+  error?: string;
+}> {
+  const secretKey = getPaystackSecretKey();
+  if (!secretKey) {
+    return { success: false, total: 0, items: [], error: 'PAYSTACK_SECRET_KEY missing' };
+  }
+
+  try {
+    const res = await fetch(`https://api.paystack.co/transaction?perPage=${limit}&page=${page}`, {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await res.json();
+    if (!res.ok || !data.status) {
+      return { success: false, total: 0, items: [], error: data.message };
+    }
+    const items = (data.data || []).map((t: any) => ({
+      id: t.id,
+      reference: t.reference,
+      amountKes: (Number(t.amount) || 0) / 100,
+      feesKes: (Number(t.fees) || 0) / 100,
+      netKes: ((Number(t.amount) || 0) - (Number(t.fees) || 0)) / 100,
+      status: t.status,
+      channel: t.channel,
+      currency: t.currency,
+      customerEmail: t.customer?.email,
+      customerPhone: t.customer?.phone || t.metadata?.phone || null,
+      pin: t.metadata?.pin || null,
+      paidAt: t.paid_at || t.createdAt,
+      createdAt: t.createdAt,
+    }));
+    return {
+      success: true,
+      total: data.meta?.total || items.length,
+      items,
+    };
+  } catch (err: any) {
+    return { success: false, total: 0, items: [], error: err.message };
+  }
+}
+
+/**
+ * Fetches real-time payout/transfer history from Paystack API.
+ */
+export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
+  success: boolean;
+  total: number;
+  items: any[];
+  error?: string;
+}> {
+  const secretKey = getPaystackSecretKey();
+  if (!secretKey) {
+    return { success: false, total: 0, items: [], error: 'PAYSTACK_SECRET_KEY missing' };
+  }
+
+  try {
+    const res = await fetch(`https://api.paystack.co/transfer?perPage=${limit}&page=${page}`, {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await res.json();
+    if (!res.ok || !data.status) {
+      return { success: false, total: 0, items: [], error: data.message };
+    }
+    const items = (data.data || []).map((tr: any) => ({
+      id: tr.id,
+      transferCode: tr.transfer_code,
+      amountKes: (Number(tr.amount) || 0) / 100,
+      currency: tr.currency,
+      status: tr.status,
+      reason: tr.reason || 'Payout to settlement account',
+      recipientName: tr.recipient?.name || 'Bank/M-Pesa Account',
+      createdAt: tr.createdAt,
+    }));
+    return {
+      success: true,
+      total: data.meta?.total || items.length,
+      items,
+    };
+  } catch (err: any) {
+    return { success: false, total: 0, items: [], error: err.message };
+  }
+}
+
