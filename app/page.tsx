@@ -819,23 +819,23 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08)_0%,transparent_60%)] pointer-events-none" />
           <div className="relative z-10 space-y-4">
             <h2 className="text-3xl sm:text-4xl font-black leading-tight">
-              Ready to Build Your Next<br />Digital System?
+              Ready to Build Your Next Digital System?
             </h2>
-            <p className="text-white/80 text-sm max-w-lg mx-auto">
+            <p className="text-white/85 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
               Our engineering team is ready to scope, architect, and deliver your product — 
               from MVP to enterprise scale.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Link href="/contact">
-                <Button size="lg" className="h-13 px-7 rounded-xl bg-white text-primary font-bold text-sm hover:bg-white/92 flex items-center gap-2 group">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
+              <Button asChild size="lg" className="h-12 px-8 rounded-xl bg-white text-primary font-bold text-sm hover:bg-white/90 shadow-md shadow-black/10 flex items-center gap-2 group">
+                <Link href="/contact">
                   Start a Project <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/products">
-                <Button variant="outline" size="lg" className="h-13 px-7 rounded-xl border-white/40 text-white font-bold text-sm hover:bg-white/10 flex items-center gap-2">
+                </Link>
+              </Button>
+              <Button asChild size="lg" className="h-12 px-8 rounded-xl border border-white/40 bg-transparent text-white font-bold text-sm hover:bg-white/15 hover:text-white backdrop-blur-sm transition-colors flex items-center gap-2">
+                <Link href="/products">
                   View In-House Products
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
