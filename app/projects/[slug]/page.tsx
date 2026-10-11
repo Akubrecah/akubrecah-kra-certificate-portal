@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: Props) {
   }
 
   return {
-    title: project.seoTitle || `${project.title} | Akubrecah Deep Case Study`,
-    description: project.seoDescription || project.summary,
+    title: (project as any).seoTitle || `${project.title} | Akubrecah Deep Case Study`,
+    description: (project as any).seoDescription || project.summary,
   };
 }
 
