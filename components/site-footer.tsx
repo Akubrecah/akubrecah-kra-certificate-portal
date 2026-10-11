@@ -121,15 +121,9 @@ export function SiteFooter(): JSX.Element {
                 </Link>
               </li>
               <li>
-                <Link href="/projects" className="hover:text-primary transition-colors flex items-center justify-between">
-                  <span>GitHub Repositories</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold">102</span>
+                <Link href="/projects" className="hover:text-primary transition-colors">
+                  Projects & Solutions
                 </Link>
-              </li>
-              <li>
-                <a href="https://github.com/Akubrecah" target="_blank" rel="noreferrer" className="hover:text-primary transition-colors">
-                  GitHub Profile (@Akubrecah)
-                </a>
               </li>
               <li>
                 <Link href="/articles" className="hover:text-primary transition-colors">

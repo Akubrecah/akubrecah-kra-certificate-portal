@@ -215,7 +215,7 @@ function AdminProjectsContent() {
           <Github className="w-4 h-4" />
           GitHub Repositories Visibility
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-mono font-bold">
-            102 Repos
+            Public Repos
           </span>
         </button>
       </div>

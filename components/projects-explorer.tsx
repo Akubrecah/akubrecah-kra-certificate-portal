@@ -41,10 +41,7 @@ export function ProjectsExplorer({
             }`}
           >
             <Github className="w-4 h-4" />
-            All GitHub Repositories
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-black">
-              {githubStats.totalRepos}
-            </span>
+            All Repositories
           </button>
 
           <button
@@ -57,15 +54,7 @@ export function ProjectsExplorer({
           >
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             Flagship Case Studies
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-mono font-black">
-              {curatedProjects.length}
-            </span>
           </button>
-        </div>
-
-        <div className="text-xs text-on-surface-variant flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Synced live from GitHub API (@Akubrecah)</span>
         </div>
       </div>
 

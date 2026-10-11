@@ -136,13 +136,13 @@ export function GithubReposShowcase({ initialRepos, stats: initialStats }: Githu
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-black text-primary uppercase tracking-wider">
               <Github className="w-3.5 h-3.5" />
-              Verified Open-Source Portfolio · @Akubrecah
+              Verified Open-Source Portfolio
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight">
               All Public Code Repositories & Implementations
             </h2>
             <p className="text-sm text-on-surface-variant leading-relaxed">
-              Real-time synchronization with GitHub API. Inspect {stats.totalRepos} production web platforms, API microservices, automation bots, and Python frameworks engineered by Akubrecah.
+              Real-time synchronization with GitHub API. Inspect production web platforms, API microservices, automation bots, and software frameworks.
             </p>
             {syncMessage && (
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -170,7 +170,7 @@ export function GithubReposShowcase({ initialRepos, stats: initialStats }: Githu
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white hover:bg-primary/90 font-bold text-xs transition-all shadow-xs"
             >
               <Github className="w-4 h-4" />
-              github.com/Akubrecah
+              View on GitHub
               <ArrowUpRight className="w-3.5 h-3.5 opacity-80" />
             </a>
           </div>
