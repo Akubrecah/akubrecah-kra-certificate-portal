@@ -34,22 +34,7 @@ export interface GithubUserStats {
   languages: { name: string; count: number; percentage: number }[];
 }
 
-export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
-  TypeScript: '#3178c6',
-  JavaScript: '#f7df1e',
-  Python: '#3572A5',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Shell: '#89e051',
-  PHP: '#4F5D95',
-  Rust: '#dea584',
-  Go: '#00ADD8',
-  Java: '#b07219',
-  'C++': '#f34b7d',
-  C: '#555555',
-  Vue: '#41b883',
-  Dart: '#00B4AB',
-};
+export { GITHUB_LANGUAGE_COLORS } from './github-constants';
 
 const DEFAULT_USERNAME = 'Akubrecah';
 

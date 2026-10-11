@@ -27,7 +27,8 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { GITHUB_LANGUAGE_COLORS, GithubRepo } from "@/lib/github"
+import { GITHUB_LANGUAGE_COLORS } from "@/lib/github-constants"
+import type { GithubRepo } from "@/lib/github"
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
@@ -500,7 +501,7 @@ export default function Home() {
               </a>
               <Link href="/projects">
                 <Button size="sm" className="h-10 px-5 rounded-xl bg-primary text-white font-bold text-xs gap-2 hover:bg-primary/90 shadow-md shadow-primary/20">
-                  Explore Repositories <ArrowRight className="h-3.5 w-3.5" />
+                  Explore Architectures <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             </div>
@@ -661,15 +662,16 @@ export default function Home() {
             <div className="space-y-1 text-center sm:text-left">
               <h3 className="text-base font-black text-on-surface">Looking for a specific bot, microservice, or API SDK?</h3>
               <p className="text-xs text-on-surface-variant max-w-xl">
-                Browse through public repositories with instant full-text search, language filtering (Python, TypeScript, JavaScript, HTML), and sorting by stars or updates.
+                Inspect our public open-source codebases directly on GitHub, featuring Python bots, TypeScript microservices, and fintech integrations.
               </p>
             </div>
-            <Link href="/projects" className="shrink-0">
+            <a href="https://github.com/Akubrecah" target="_blank" rel="noopener noreferrer" className="shrink-0">
               <Button className="h-11 px-6 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary/90 flex items-center gap-2 shadow-md shadow-primary/20">
-                <span>Browse All Repositories</span>
+                <Github className="w-3.5 h-3.5" />
+                <span>View on GitHub</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
-            </Link>
+            </a>
           </div>
         </section>
 

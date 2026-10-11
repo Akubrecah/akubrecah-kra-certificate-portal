@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { getPublishedProjects } from '@/lib/cms';
-import { getPublicGithubRepos } from '@/lib/github';
 import { ProjectsExplorer } from '@/components/projects-explorer';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,15 +7,12 @@ import { Button } from '@/components/ui/button';
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'Engineering Projects & GitHub Repositories | Akubrecah',
-  description: 'Explore all 100+ public GitHub repositories, open-source codebases, GovTech compliance portals, and fintech architectures engineered by Akubrecah.',
+  title: 'Engineering Projects & Architectures | Akubrecah',
+  description: 'Explore verified GovTech compliance portals, enterprise software, and fintech architectures engineered by Akubrecah.',
 };
 
 export default async function ProjectsPage() {
-  const [curatedProjects, githubData] = await Promise.all([
-    getPublishedProjects(),
-    getPublicGithubRepos('Akubrecah'),
-  ]);
+  const curatedProjects = await getPublishedProjects();
 
   return (
     <div className="min-h-screen bg-background text-on-background">
@@ -32,24 +28,22 @@ export default async function ProjectsPage() {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-xs font-black text-primary uppercase tracking-widest shadow-xs">
               <Sparkles className="w-3.5 h-3.5" />
-              Verified Production Architectures & Open-Source
+              Verified Production Architectures
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tight leading-tight">
               Systems Built for <span className="text-primary">Scale & Rigor.</span>
             </h1>
             <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl leading-relaxed">
-              Explore our mission-critical web applications, statutory compliance portals, and {githubData.stats.totalRepos}+ open-source GitHub repositories engineered for resilience.
+              Explore our mission-critical web applications, statutory compliance portals, and enterprise engineering architectures designed for resilience.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Main Grid & GitHub Repositories Explorer */}
+      {/* Main Grid Explorer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 space-y-16">
         <ProjectsExplorer
           curatedProjects={curatedProjects}
-          githubRepos={githubData.repos}
-          githubStats={githubData.stats}
         />
 
         {/* Bottom CTA Banner */}
