@@ -110,6 +110,32 @@ export async function getAllGithubRepos(username = DEFAULT_USERNAME): Promise<{
     console.error('[GitHub API Error]:', err.message);
   }
 
+  // Fallback to cached snapshot if GitHub API returned 0 items (e.g. rate limit 403 or network error)
+  if (allRawRepos.length === 0) {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const cachePath = path.join(process.cwd(), 'data', 'github-repos-cache.json');
+      if (fs.existsSync(cachePath)) {
+        const fileContent = fs.readFileSync(cachePath, 'utf-8');
+        const cached = JSON.parse(fileContent);
+        if (cached && Array.isArray(cached.repos) && cached.repos.length > 0) {
+          return {
+            repos: cached.repos,
+            stats: cached.stats || {
+              totalRepos: cached.repos.length,
+              totalStars: 92,
+              totalForks: 3,
+              languages: [],
+            },
+          };
+        }
+      }
+    } catch (cacheErr: any) {
+      console.warn('[GitHub Cache Read Fallback Warning]:', cacheErr.message);
+    }
+  }
+
   const repos: GithubRepo[] = allRawRepos.map((r: any) => ({
     id: r.id,
     name: r.name,

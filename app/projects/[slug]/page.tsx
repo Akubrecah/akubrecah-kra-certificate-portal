@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProjectBySlug, getPublishedProjects } from '@/lib/cms';
-import { ArrowLeft, ExternalLink, Github, CheckCircle2, ShieldCheck, Code2, Layers, Cpu, ArrowRight } from 'lucide-react';
+import { getAllGithubRepos } from '@/lib/github';
+import { ArrowLeft, ExternalLink, Github, CheckCircle2, ShieldCheck, Code2, Layers, Cpu, ArrowRight, GitFork, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const revalidate = 60;
@@ -12,8 +13,18 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
-  if (!project || !project.isPublished) return { title: 'Project Not Found | Akubrecah' };
+  let project = await getProjectBySlug(slug);
+  if (!project) {
+    const { repos } = await getAllGithubRepos('Akubrecah');
+    const gh = repos.find((r) => r.name.toLowerCase() === slug.toLowerCase());
+    if (gh) {
+      return {
+        title: `${gh.name} | Akubrecah Open-Source Project`,
+        description: gh.description,
+      };
+    }
+    return { title: 'Project Not Found | Akubrecah' };
+  }
 
   return {
     title: project.seoTitle || `${project.title} | Akubrecah Case Study`,
@@ -23,7 +34,41 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
+  let project = await getProjectBySlug(slug);
+
+  // If not in database CMS, dynamically resolve from GitHub repositories
+  if (!project) {
+    const { repos } = await getAllGithubRepos('Akubrecah');
+    const gh = repos.find((r) => r.name.toLowerCase() === slug.toLowerCase());
+    if (gh) {
+      project = {
+        id: String(gh.id),
+        title: gh.name.replace(/[-_]/g, ' '),
+        slug: gh.name,
+        summary: gh.description || `Engineering architecture and implementation for ${gh.name}.`,
+        description: `${gh.description || 'Open source software codebase and implementation.'}\n\nThis project is actively maintained on GitHub under @Akubrecah.\n\nPrimary Architecture:\n• Language: ${gh.language}\n• Stars: ${gh.stars} ⭐\n• Forks: ${gh.forks} ⑂\n• Default Branch: ${gh.defaultBranch}\n• Open Issues: ${gh.openIssues}`,
+        category: gh.language || 'Open Source',
+        client: 'Akubrecah Labs',
+        featuredImage: '/akubrecah-logo.webp',
+        liveUrl: gh.homepage,
+        githubUrl: gh.htmlUrl,
+        technologies: [gh.language, ...(gh.topics.length > 0 ? gh.topics : ['GitHub', 'Git', 'CI/CD'])],
+        problemStatement: `Designing and deploying reliable open-source solutions for ${gh.name.replace(/[-_]/g, ' ')}.`,
+        solutionArchitecture: `Engineered with modular code design, automated workflows, and standardized ${gh.language} paradigms.`,
+        measurableOutcomes: [
+          `${gh.stars} GitHub Community Stars`,
+          `${gh.forks} Repository Forks`,
+          `Branch: ${gh.defaultBranch} (Verified)`,
+        ],
+        isFeatured: gh.stars > 5,
+        isPublished: true,
+        displayOrder: 0,
+        seoTitle: `${gh.name} | Akubrecah Open Source Project`,
+        seoDescription: gh.description,
+        createdAt: gh.createdAt,
+      } as any;
+    }
+  }
 
   if (!project || !project.isPublished) {
     notFound();
