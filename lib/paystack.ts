@@ -283,8 +283,15 @@ export async function chargePaystackMpesa(opts: {
   }
 }
 
+interface PaystackCacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const paystackMemoryCache: Record<string, PaystackCacheEntry<any>> = {};
+const PAYSTACK_CACHE_TTL_MS = 30 * 1000; // 30 seconds
+
 /**
- * Fetches real-time account balances from Paystack API (in KES).
+ * Fetches real-time account balances from Paystack API (in KES) with in-memory caching.
  */
 export async function getPaystackBalances(): Promise<{
   success: boolean;
@@ -293,37 +300,53 @@ export async function getPaystackBalances(): Promise<{
   rawBalances?: any[];
   error?: string;
 }> {
+  const cacheKey = 'balances';
+  const cached = paystackMemoryCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < PAYSTACK_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const secretKey = getPaystackSecretKey();
   if (!secretKey) {
     return { success: false, currency: 'KES', balanceKes: 0, error: 'PAYSTACK_SECRET_KEY missing' };
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
     const res = await fetch('https://api.paystack.co/balance', {
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
     const data = await res.json();
     if (!res.ok || !data.status) {
+      if (cached) return cached.data;
       return { success: false, currency: 'KES', balanceKes: 0, error: data.message };
     }
     const balances = Array.isArray(data.data) ? data.data : [];
     const kesBalance = balances.find((b: any) => b.currency === 'KES');
-    return {
+    const result = {
       success: true,
       currency: 'KES',
       balanceKes: kesBalance ? Number(kesBalance.balance || 0) / 100 : 0,
       rawBalances: balances,
     };
+    paystackMemoryCache[cacheKey] = { data: result, timestamp: Date.now() };
+    return result;
   } catch (err: any) {
+    if (cached) return cached.data;
     return { success: false, currency: 'KES', balanceKes: 0, error: err.message };
   }
 }
 
 /**
- * Fetches real-time transaction list from Paystack API.
+ * Fetches real-time transaction list from Paystack API with in-memory caching.
  */
 export async function getPaystackLiveTransactions(limit = 50, page = 1): Promise<{
   success: boolean;
@@ -331,20 +354,33 @@ export async function getPaystackLiveTransactions(limit = 50, page = 1): Promise
   items: any[];
   error?: string;
 }> {
+  const cacheKey = `transactions_${limit}_${page}`;
+  const cached = paystackMemoryCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < PAYSTACK_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const secretKey = getPaystackSecretKey();
   if (!secretKey) {
     return { success: false, total: 0, items: [], error: 'PAYSTACK_SECRET_KEY missing' };
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
     const res = await fetch(`https://api.paystack.co/transaction?perPage=${limit}&page=${page}`, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
     const data = await res.json();
     if (!res.ok || !data.status) {
+      if (cached) return cached.data;
       return { success: false, total: 0, items: [], error: data.message };
     }
     const items = (data.data || []).map((t: any) => ({
@@ -362,18 +398,21 @@ export async function getPaystackLiveTransactions(limit = 50, page = 1): Promise
       paidAt: t.paid_at || t.createdAt,
       createdAt: t.createdAt,
     }));
-    return {
+    const result = {
       success: true,
       total: data.meta?.total || items.length,
       items,
     };
+    paystackMemoryCache[cacheKey] = { data: result, timestamp: Date.now() };
+    return result;
   } catch (err: any) {
+    if (cached) return cached.data;
     return { success: false, total: 0, items: [], error: err.message };
   }
 }
 
 /**
- * Fetches real-time payout/transfer history from Paystack API.
+ * Fetches real-time payout/transfer history from Paystack API with in-memory caching.
  */
 export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
   success: boolean;
@@ -381,20 +420,31 @@ export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
   items: any[];
   error?: string;
 }> {
+  const cacheKey = `payouts_${limit}_${page}`;
+  const cached = paystackMemoryCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < PAYSTACK_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const secretKey = getPaystackSecretKey();
   if (!secretKey) {
     return { success: false, total: 0, items: [], error: 'PAYSTACK_SECRET_KEY missing' };
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
     // 1. Fetch official merchant settlements (automated bank/m-pesa payouts)
     const settlementRes = await fetch(`https://api.paystack.co/settlement?perPage=${limit}&page=${page}`, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
     const settlementData = await settlementRes.json();
+    clearTimeout(timeoutId);
 
     if (settlementRes.ok && settlementData.status && Array.isArray(settlementData.data) && settlementData.data.length > 0) {
       const items = settlementData.data.map((s: any) => ({
@@ -407,22 +457,31 @@ export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
         recipientName: 'Registered Bank / M-Pesa Account',
         createdAt: s.settlement_date || s.createdAt,
       }));
-      return {
+      const result = {
         success: true,
         total: settlementData.meta?.total || items.length,
         items,
       };
+      paystackMemoryCache[cacheKey] = { data: result, timestamp: Date.now() };
+      return result;
     }
 
     // 2. Fallback to transfer endpoint
+    const transferController = new AbortController();
+    const transferTimeoutId = setTimeout(() => transferController.abort(), 4000);
+
     const res = await fetch(`https://api.paystack.co/transfer?perPage=${limit}&page=${page}`, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
       },
+      signal: transferController.signal,
     });
+    clearTimeout(transferTimeoutId);
+
     const data = await res.json();
     if (!res.ok || !data.status) {
+      if (cached) return cached.data;
       return { success: false, total: 0, items: [], error: data.message };
     }
     const items = (data.data || []).map((tr: any) => ({
@@ -435,12 +494,15 @@ export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
       recipientName: tr.recipient?.name || 'Bank/M-Pesa Account',
       createdAt: tr.createdAt,
     }));
-    return {
+    const result = {
       success: true,
       total: data.meta?.total || items.length,
       items,
     };
+    paystackMemoryCache[cacheKey] = { data: result, timestamp: Date.now() };
+    return result;
   } catch (err: any) {
+    if (cached) return cached.data;
     return { success: false, total: 0, items: [], error: err.message };
   }
 }

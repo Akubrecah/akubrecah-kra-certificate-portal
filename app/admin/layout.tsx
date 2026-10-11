@@ -4,49 +4,91 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import {
+  LayoutDashboard,
+  Mail,
+  FolderGit2,
+  BookOpen,
+  FileCheck2,
+  Activity,
+  Users,
+  ShieldCheck,
+  Terminal,
+  Settings,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  ArrowLeft,
+  LogOut,
+  Search,
+  Bell,
+  HelpCircle,
+  Shield,
+  KeyRound,
+  Lock,
+  ExternalLink,
+  Sparkles
+} from "lucide-react";
 
-const navLinks = [
-  { href: "/admin", label: "Executive Overview", icon: "insights" },
-  { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: "contact_mail" },
-  { href: "/admin/projects", label: "Projects & Case Studies", icon: "folder_open" },
-  { href: "/admin/articles", label: "Articles & Field Notes", icon: "edit_note" },
-  { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: "badge" },
-  { href: "/admin/system-health", label: "System Health", icon: "monitor_heart" },
-  { href: "/admin/user-management", label: "User Management", icon: "group" },
-  { href: "/admin/role-access", label: "Role Access", icon: "admin_panel_settings" },
-  { href: "/admin/system-logs", label: "System Logs", icon: "terminal" },
-  { href: "/admin/settings", label: "Website Settings", icon: "tune" },
+interface NavLinkItem {
+  href: string;
+  label: string;
+  icon: any;
+  badge?: string;
+}
+
+const navLinks: NavLinkItem[] = [
+  { href: "/admin", label: "Executive Overview", icon: LayoutDashboard },
+  { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: Mail },
+  { href: "/admin/projects", label: "Projects & Case Studies", icon: FolderGit2 },
+  { href: "/admin/articles", label: "Articles & Field Notes", icon: BookOpen },
+  { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: FileCheck2 },
+  { href: "/admin/system-health", label: "System Health", icon: Activity },
+  { href: "/admin/user-management", label: "User Management", icon: Users },
+  { href: "/admin/role-access", label: "Role Access", icon: ShieldCheck },
+  { href: "/admin/system-logs", label: "System Logs", icon: Terminal },
+  { href: "/admin/settings", label: "Website Settings", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoaded } = useUser();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Load and persist sidebar state (collapsed & width)
+  const [hasMagicAuth, setHasMagicAuth] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [pathname]);
+
+  // Load and persist sidebar state
   useEffect(() => {
     setIsMounted(true);
     const storedCollapsed = localStorage.getItem("admin-sidebar-collapsed");
     if (storedCollapsed) {
       setIsCollapsed(storedCollapsed === "true");
-    } else {
+    } else if (typeof window !== "undefined") {
       const width = window.innerWidth;
       if (width >= 768 && width < 1024) {
-        setIsCollapsed(true); // Slim on tablets by default
+        setIsCollapsed(true); // Slim by default on tablets
       }
     }
 
     const storedWidth = localStorage.getItem("admin-sidebar-width");
     if (storedWidth) {
       setSidebarWidth(parseInt(storedWidth, 10));
-    } else {
-      const defaultWidth = Math.min(Math.max(window.innerWidth * 0.18, 220), 320);
-      setSidebarWidth(defaultWidth);
     }
   }, []);
 
@@ -67,13 +109,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     localStorage.setItem("admin-sidebar-width", String(defaultWidth));
   };
 
+  // Draggable sidebar resizer
   useEffect(() => {
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const clientX = e.clientX;
       const minW = Math.max(180, window.innerWidth * 0.12);
-      const maxW = Math.min(450, window.innerWidth * 0.30);
+      const maxW = Math.min(420, window.innerWidth * 0.30);
       if (clientX >= minW && clientX <= maxW) {
         setSidebarWidth(clientX);
         localStorage.setItem("admin-sidebar-width", String(clientX));
@@ -84,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (e.touches.length === 0) return;
       const clientX = e.touches[0].clientX;
       const minW = Math.max(180, window.innerWidth * 0.12);
-      const maxW = Math.min(450, window.innerWidth * 0.30);
+      const maxW = Math.min(420, window.innerWidth * 0.30);
       if (clientX >= minW && clientX <= maxW) {
         setSidebarWidth(clientX);
         localStorage.setItem("admin-sidebar-width", String(clientX));
@@ -108,14 +151,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [isResizing]);
 
-  const [hasMagicAuth, setHasMagicAuth] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
+  // Auth checking optimization: Resolve immediately if user is already verified via Clerk or Cookie
   useEffect(() => {
-    // 1. Check client-accessible cookie
+    // 1. Client cookie
     if (
       typeof document !== "undefined" &&
       (document.cookie.includes("admin_magic_client=1") || document.cookie.includes("admin_magic_auth="))
@@ -125,8 +163,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
-    // 2. Query session endpoint
-    fetch("/api/admin/magic-login?check=1")
+    // 2. Clerk account Super Admin bypass
+    const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+    const userRole = user?.publicMetadata?.role as string;
+    const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+
+    if (
+      userEmail === "poweldayck@gmail.com" ||
+      userEmail === configPublicAdminEmail ||
+      userRole === "Super Admin" ||
+      userRole === "Admin"
+    ) {
+      setHasMagicAuth(true);
+      setCheckingAuth(false);
+      return;
+    }
+
+    // 3. Query session endpoint with timeout protection
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
+    fetch("/api/admin/magic-login?check=1", { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated) {
@@ -134,8 +191,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       })
       .catch(() => {})
-      .finally(() => setCheckingAuth(false));
-  }, []);
+      .finally(() => {
+        clearTimeout(timeout);
+        setCheckingAuth(false);
+      });
+  }, [user, isLoaded]);
 
   const handlePinUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,19 +227,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  // Show loading while auth details are fetching
+  // Render seamless skeleton shell during initial check (NO distorted text ligatures, NO layout jump)
   if (!isLoaded || checkingAuth) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest text-on-surface">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-on-surface-variant animate-pulse">Checking authorization...</p>
+      <div className="min-h-screen flex bg-surface-container-lowest text-on-surface">
+        {/* Desktop Sidebar Skeleton */}
+        <aside className="hidden md:flex flex-col w-64 border-r border-outline-variant/60 p-5 space-y-6 bg-surface animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-surface-container-high" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-4 bg-surface-container-high rounded w-3/4" />
+              <div className="h-2.5 bg-surface-container-high rounded w-1/2" />
+            </div>
+          </div>
+          <div className="h-10 bg-surface-container-high rounded-xl" />
+          <div className="space-y-2 flex-1 pt-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-9 bg-surface-container-high rounded-xl" />
+            ))}
+          </div>
+        </aside>
+
+        {/* Content Shell Skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-16 border-b border-outline-variant/60 bg-surface px-6 flex items-center justify-between animate-pulse">
+            <div className="h-8 bg-surface-container-high rounded-full w-64" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-surface-container-high" />
+              <div className="w-8 h-8 rounded-full bg-surface-container-high" />
+            </div>
+          </header>
+          <main className="p-6 sm:p-8 space-y-6 flex-1 bg-surface-bright animate-pulse">
+            <div className="h-8 bg-surface-container rounded-xl w-72" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-32 bg-surface-container rounded-3xl" />
+              ))}
+            </div>
+            <div className="h-96 bg-surface-container rounded-3xl" />
+          </main>
         </div>
       </div>
     );
   }
 
-  // Enforce Super Admin check (dynamic configuration & Clerk metadata roles + WhatsApp Magic link)
+  // Enforce Admin Authorization
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
   const userRole = user?.publicMetadata?.role as string;
   const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
@@ -191,17 +283,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     userRole === "Super Admin" ||
     userRole === "Admin";
 
-  // If unauthenticated, present the Master Admin PIN Gate Modal instead of bouncing to /dashboard
+  // Master Admin Passcode Gate (if unauthenticated)
   if (!isSuperAdmin && !hasMagicAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest p-4 relative overflow-hidden">
-        {/* Ambient red glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest p-4 relative overflow-hidden font-sans">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[130px] pointer-events-none" />
 
-        <div className="w-full max-w-md bg-surface-container-low border border-outline-variant p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+        <div className="w-full max-w-md bg-surface border border-outline-variant p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary mb-3">
-              <span className="material-symbols-outlined text-[32px]">shield_lock</span>
+              <Shield className="w-8 h-8" />
             </div>
             <h1 className="text-2xl font-black text-on-surface tracking-tight">Admin Command Center</h1>
             <p className="text-xs text-on-surface-variant max-w-xs mx-auto leading-relaxed">
@@ -228,7 +319,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 className="w-full h-12 px-4 rounded-xl bg-surface-container text-center font-mono text-lg font-black tracking-widest text-on-surface placeholder:text-on-surface-variant/40 border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {pinError && (
-                <p className="text-xs font-bold text-error mt-2 text-center animate-shake">{pinError}</p>
+                <p className="text-xs font-bold text-red-600 dark:text-red-400 mt-2 text-center">{pinError}</p>
               )}
             </div>
 
@@ -244,7 +335,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">lock_open</span>
+                  <KeyRound className="w-4 h-4" />
                   <span>Unlock Admin Dashboard</span>
                 </>
               )}
@@ -269,316 +360,304 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div 
-      className="min-h-screen flex bg-surface-container-lowest text-on-surface font-sans"
+      className="min-h-screen flex bg-surface-container-lowest text-on-surface font-sans antialiased overflow-x-hidden"
       style={{
         ["--sidebar-width" as any]: isCollapsed ? "80px" : `${sidebarWidth}px`
       }}
     >
-
-
-      {/* Resizing Guide HUD & Info Pill */}
+      {/* Resizing Guide HUD when dragging sidebar width */}
       {isResizing && (
         <>
-          {/* Transparent full-screen overlay to lock cursor style during drag */}
           <div className="fixed inset-0 cursor-col-resize z-50 select-none pointer-events-auto" />
-          
-          {/* Vertical guide line */}
           <div 
-            className="fixed top-0 bottom-0 w-[2px] bg-primary/70 z-50 pointer-events-none"
+            className="fixed top-0 bottom-0 w-[2px] bg-primary z-50 pointer-events-none"
             style={{ left: `${sidebarWidth}px` }}
           />
-
-          {/* Width info pill */}
           <div 
-            className="fixed top-1/3 z-50 bg-neutral-950 text-white font-mono text-xs px-3.5 py-2.5 rounded-xl shadow-2xl flex flex-col gap-0.5 select-none pointer-events-none -translate-x-1/2"
+            className="fixed top-1/3 z-50 bg-neutral-950 text-white font-mono text-xs px-3.5 py-2 rounded-xl shadow-2xl flex flex-col gap-0.5 select-none pointer-events-none -translate-x-1/2"
             style={{ left: `${sidebarWidth}px` }}
           >
-            <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">Sidebar Width</span>
+            <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">Width</span>
             <span className="text-white font-black">{sidebarWidth}px</span>
-            <span className="text-primary text-[10px] font-bold">
-              {typeof window !== 'undefined' ? Math.round((sidebarWidth / window.innerWidth) * 100) : 0}% of screen
-            </span>
           </div>
         </>
       )}
 
-      {/* Desktop / Tablet Sidebar */}
-      <nav 
-        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-20 py-6 select-none overflow-hidden ${
-          isResizing ? "" : "transition-all duration-300 ease-in-out"
-        } ${
-          isCollapsed ? "px-3" : "px-4"
-        }`}
+      {/* =========================================================
+          DESKTOP & TABLET SIDEBAR
+          ========================================================= */}
+      <aside 
+        className={`hidden md:flex flex-col fixed left-0 top-0 h-full bg-surface border-r border-outline-variant z-30 select-none overflow-hidden ${
+          isResizing ? "" : "transition-all duration-200 ease-out"
+        } ${isCollapsed ? "px-2.5 py-5" : "px-4 py-5"}`}
         style={{ width: "var(--sidebar-width)" }}
       >
-        {/* Draggable Resize Handle */}
+        {/* Resize Handle */}
         {!isCollapsed && (
           <div
             onMouseDown={startResizing}
             onTouchStart={startResizing}
             onDoubleClick={resetWidth}
-            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize z-30 transition-colors ${
+            className={`absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-30 transition-colors ${
               isResizing ? "bg-primary" : "hover:bg-primary/40 bg-transparent"
             }`}
             title="Drag to resize, double-click to reset"
           />
         )}
 
-        {/* Toggle Expand/Collapse Button (Modern SaaS style border trigger) */}
+        {/* Toggle Collapse Button */}
         <button
           onClick={toggleSidebar}
-          className="absolute top-8 -right-3 w-6 h-6 rounded-full border border-outline-variant bg-surface shadow-md flex items-center justify-center cursor-pointer hover:bg-surface-container-high transition-all duration-200 z-30 text-on-surface-variant hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          className="absolute top-6 -right-3 w-6 h-6 rounded-full border border-outline-variant bg-surface shadow-md flex items-center justify-center cursor-pointer hover:bg-surface-container-high transition-colors z-40 text-on-surface-variant hover:text-primary focus:outline-none"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <span className="material-symbols-outlined text-[16px] font-bold">
-            {isCollapsed ? "chevron_right" : "chevron_left"}
-          </span>
+          {isCollapsed ? (
+            <ChevronRight className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronLeft className="w-3.5 h-3.5" />
+          )}
         </button>
 
-        {/* Logo block */}
-        <div className={`mb-8 px-2 flex items-center gap-3 transition-all duration-300 ${isCollapsed ? "justify-center" : ""}`}>
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0 border border-outline-variant">
-            <span className="material-symbols-outlined text-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              admin_panel_settings
-            </span>
+        {/* Brand / Logo */}
+        <div className={`mb-6 px-1 flex items-center gap-3 transition-all ${isCollapsed ? "justify-center" : ""}`}>
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-xs">
+            <Shield className="w-5 h-5" />
           </div>
-          <div className={`transition-all duration-300 min-w-0 ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
-            <h1 className="text-base font-extrabold text-primary tracking-tight leading-tight whitespace-nowrap">Admin Central</h1>
-            <p className="text-[10px] text-on-surface-variant whitespace-nowrap">System Management v2.1</p>
-          </div>
-        </div>
-
-        {/* New Audit Button */}
-        <div className="mb-6 px-1">
-          {isCollapsed ? (
-            <button
-              className="w-12 h-12 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center shadow-soft relative group focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="New System Audit"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              {/* Tooltip for collapsed mode */}
-              <span 
-                role="tooltip"
-                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-              >
-                New System Audit
-              </span>
-            </button>
-          ) : (
-            <button className="w-full bg-primary text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-soft whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary">
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              New System Audit
-            </button>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <h1 className="text-sm font-extrabold text-on-surface tracking-tight leading-tight truncate">
+                Admin Central
+              </h1>
+              <p className="text-[10px] text-on-surface-variant truncate">
+                KRA Portal System v2.1
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Nav Links */}
-        <ul className="flex flex-col gap-1 flex-grow">
+        {/* Navigation Links */}
+        <nav className="flex-1 overflow-y-auto space-y-1 pr-0.5">
           {navLinks.map((link) => {
-            const isActive = link.href === "/admin" ? pathname === "/admin" : pathname === link.href || pathname?.startsWith(link.href + "/");
+            const Icon = link.icon;
+            // Precise active link detection: Only the single matching route is highlighted
+            const isActive = link.href === "/admin" 
+              ? pathname === "/admin" 
+              : pathname === link.href || pathname.startsWith(link.href + "/");
+
             return (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`flex items-center rounded-xl transition-all duration-200 text-sm font-medium group relative focus:outline-none focus:ring-2 focus:ring-primary ${
-                    isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-                  } ${
-                    isActive
-                      ? "bg-primary text-white font-bold"
-                      : "text-on-surface-variant hover:bg-surface-container-highest"
-                  }`}
-                  aria-label={link.label}
-                >
-                  <span
-                    className="material-symbols-outlined text-[20px]"
-                    style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                  >
-                    {link.icon}
-                  </span>
-                  
-                  <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center rounded-xl transition-all duration-150 text-xs font-semibold group relative focus:outline-none ${
+                  isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
+                } ${
+                  isActive
+                    ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                }`}
+                title={isCollapsed ? link.label : undefined}
+              >
+                <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? "text-white" : "group-hover:scale-110"}`} />
+
+                {!isCollapsed && (
+                  <span className="truncate whitespace-nowrap">{link.label}</span>
+                )}
+
+                {/* Pulsing Active Indicator Dot */}
+                {isActive && !isCollapsed && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+                )}
+
+                {/* Collapsed Tooltip */}
+                {isCollapsed && (
+                  <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-neutral-950 text-white text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">
                     {link.label}
                   </span>
-
-                  {isActive && !isCollapsed && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
-                  )}
-                  
-                  {/* Tooltip for collapsed mode */}
-                  {isCollapsed && (
-                    <span 
-                      role="tooltip"
-                      className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-                    >
-                      {link.label}
-                    </span>
-                  )}
-                </Link>
-              </li>
+                )}
+              </Link>
             );
           })}
-        </ul>
+        </nav>
 
-        {/* Footer */}
-        <div className="mt-auto border-t border-outline-variant pt-4 flex flex-col gap-1">
+        {/* Sidebar Footer */}
+        <div className="mt-auto pt-4 border-t border-outline-variant/60 space-y-1">
           <Link
             href="/dashboard"
-            className={`flex items-center rounded-xl transition-all duration-200 text-sm group relative focus:outline-none focus:ring-2 focus:ring-primary ${
-              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-            } text-on-surface-variant hover:bg-surface-container-highest`}
-            aria-label="Back to Portal"
+            className={`flex items-center rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors ${
+              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2"
+            }`}
+            title="Back to Client Portal"
           >
-            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
-              Back to Portal
-            </span>
-            
-            {/* Tooltip for collapsed mode */}
-            {isCollapsed && (
-              <span 
-                role="tooltip"
-                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-              >
-                Back to Portal
-              </span>
-            )}
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            {!isCollapsed && <span>Back to Portal</span>}
           </Link>
+
           <Link
             href="/sign-out"
-            className={`flex items-center rounded-xl transition-all duration-200 text-sm mt-1 group relative focus:outline-none focus:ring-2 focus:ring-primary ${
-              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-            } text-on-surface-variant hover:bg-surface-container-highest`}
-            aria-label="Sign Out"
+            className={`flex items-center rounded-xl text-xs font-medium text-on-surface-variant hover:text-red-600 hover:bg-red-500/10 transition-colors ${
+              isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2"
+            }`}
+            title="Sign Out"
           >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
-            <span className={`transition-all duration-200 truncate whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none absolute" : "opacity-100"}`}>
-              Sign Out
-            </span>
-            
-            {/* Tooltip for collapsed mode */}
-            {isCollapsed && (
-              <span 
-                role="tooltip"
-                className="absolute left-full ml-3 opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 bg-neutral-950 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-neutral-950"
-              >
-                Sign Out
-              </span>
-            )}
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!isCollapsed && <span>Sign Out</span>}
           </Link>
         </div>
-      </nav>
+      </aside>
 
-      {/* Main content */}
+      {/* =========================================================
+          MOBILE SLIDE-OVER DRAWER (Responsive Sheet)
+          ========================================================= */}
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          {/* Backdrop Blur */}
+          <div 
+            onClick={() => setMobileDrawerOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          />
+
+          {/* Drawer Sheet */}
+          <div className="relative w-[280px] max-w-[85vw] h-full bg-surface border-r border-outline-variant p-5 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-250">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-4 mb-3 border-b border-outline-variant/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-on-surface leading-tight">Admin Central</h2>
+                  <p className="text-[10px] text-on-surface-variant">System Navigation</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Nav list */}
+            <nav className="flex-1 overflow-y-auto space-y-1 pr-1">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = link.href === "/admin" 
+                  ? pathname === "/admin" 
+                  : pathname === link.href || pathname.startsWith(link.href + "/");
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-primary text-white shadow-md shadow-primary/20"
+                        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{link.label}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Bottom Actions */}
+            <div className="pt-4 border-t border-outline-variant/60 space-y-2 mt-auto">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileDrawerOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Return to Portal</span>
+              </Link>
+              <Link
+                href="/sign-out"
+                onClick={() => setMobileDrawerOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-red-600 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          MAIN APPLICATION AREA (Responsive Layout)
+          ========================================================= */}
       <div 
-        className={`flex-1 flex flex-col min-h-screen ml-0 ${
-          isResizing ? "" : "transition-all duration-300 ease-in-out"
+        className={`flex-1 flex flex-col min-h-screen min-w-0 ${
+          isResizing ? "" : "transition-all duration-200 ease-out"
         } md:ml-[var(--sidebar-width)]`}
       >
         {/* Top Header */}
-        <header className="sticky top-0 z-10 h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-4 md:px-6">
-          {/* Mobile Logo on left */}
-          <div className="flex items-center gap-2.5 md:hidden">
-            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center border border-outline-variant shrink-0">
-              <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                admin_panel_settings
-              </span>
+        <header className="sticky top-0 z-20 h-16 bg-surface/95 backdrop-blur-md border-b border-outline-variant/80 flex items-center justify-between px-4 sm:px-6">
+          {/* Mobile: Hamburger Menu + Logo */}
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="p-2 rounded-xl bg-surface-container border border-outline-variant text-on-surface hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Open Navigation Drawer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm text-primary tracking-tight">Admin Central</span>
             </div>
-            <span className="text-xs font-black text-primary uppercase tracking-wider">Admin Central</span>
           </div>
 
+          {/* Desktop: Quick Search */}
           <div className="hidden md:flex flex-1 max-w-md">
             <div className="relative w-full">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
-                className="w-full bg-surface-container-lowest border border-outline-variant rounded-full py-2 pl-10 pr-4 text-sm text-on-surface placeholder-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Search logs, users, IDs..."
+                className="w-full bg-surface-container-lowest border border-outline-variant rounded-full py-2 pl-10 pr-4 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Search telemetry, KRA records, logs, users..."
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto animate-fade-in">
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
-            </button>
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block focus:outline-none focus:ring-2 focus:ring-primary">
-              <span className="material-symbols-outlined">help</span>
-            </button>
-            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors hidden sm:block focus:outline-none focus:ring-2 focus:ring-primary">
-              <span className="material-symbols-outlined">settings</span>
-            </button>
+          {/* Right Header Badges & Actions */}
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+            <Link
+              href="/dashboard"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Client Portal</span>
+            </Link>
+
+            <Link
+              href="/admin/system-logs"
+              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-xl transition-colors relative"
+              title="System Logs & Telemetry"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
+            </Link>
+
             {user?.imageUrl && (
               <img
                 src={user.imageUrl}
-                alt="Admin"
-                className="w-9 h-9 rounded-full border border-outline-variant ml-2 object-cover cursor-pointer"
+                alt="Admin Profile"
+                className="w-8 h-8 rounded-full border border-outline-variant object-cover ml-1 shadow-xs"
               />
             )}
           </div>
         </header>
 
-        <div className="md:hidden w-full bg-surface border-b border-outline-variant relative">
-          <div className="px-4 py-2.5 flex flex-col">
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="flex items-center gap-2 text-sm font-bold text-on-surface hover:text-primary transition-colors py-1 focus:outline-none w-max"
-            >
-              <span className="material-symbols-outlined text-[20px]">menu</span>
-              <span>Menu</span>
-            </button>
-            
-            {/* Collapsible content (links list) */}
-            {mobileOpen && (
-              <ul className="flex flex-col gap-1 mt-2.5 pb-1 animate-in fade-in duration-200">
-                {navLinks.map((link) => {
-                  const isActive = link.href === "/admin" ? pathname === "/admin" : pathname === link.href || pathname?.startsWith(link.href + "/");
-                  return (
-                    <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-                          isActive
-                            ? "bg-primary text-white font-bold"
-                            : "text-on-surface hover:bg-surface-container-high"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">{link.icon}</span>
-                        <span>{link.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-                {/* Back to Portal */}
-                <li className="border-t border-outline-variant/60 mt-1 pt-1.5">
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-on-surface-variant hover:bg-surface-container-high"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                    <span>Back to Portal</span>
-                  </Link>
-                </li>
-                {/* Sign Out */}
-                <li>
-                  <Link
-                    href="/sign-out"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-on-surface-variant hover:bg-surface-container-high"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">logout</span>
-                    <span>Sign Out</span>
-                  </Link>
-                </li>
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {/* Page Content */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-surface-bright">
+        {/* Content Body */}
+        <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto bg-surface-bright min-w-0">
           {children}
         </main>
       </div>

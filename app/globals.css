@@ -243,6 +243,35 @@
   @apply bg-primary text-white font-medium shadow-sm transition-all hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0;
 }
 
+/* Material Symbols Outlined Fallback Protection against FOUC text blowouts */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  vertical-align: middle;
+  max-width: 24px;
+  max-height: 24px;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── Reduced Motion — Accessibility ─── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

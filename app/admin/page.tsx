@@ -346,16 +346,46 @@ export default function AdminOverviewPage() {
 
   if (loading && !data) {
     return (
-      <div className="p-6 md:p-8 space-y-8 animate-pulse">
-        <div className="h-10 bg-surface-container rounded-2xl w-1/3" />
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 animate-pulse text-on-surface">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant/60">
+          <div className="space-y-2.5">
+            <div className="h-5 bg-surface-container rounded-full w-48" />
+            <div className="h-9 bg-surface-container rounded-xl w-72 sm:w-96" />
+            <div className="h-4 bg-surface-container rounded w-64 sm:w-80" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-36 bg-surface-container rounded-xl" />
+            <div className="h-10 w-36 bg-surface-container rounded-xl" />
+          </div>
+        </div>
+
+        {/* Tab Strip Skeleton */}
+        <div className="flex gap-2 p-1.5 bg-surface-container rounded-2xl w-full max-w-2xl overflow-hidden">
+          <div className="h-9 w-36 bg-surface-container-high rounded-xl" />
+          <div className="h-9 w-44 bg-surface-container-high rounded-xl" />
+          <div className="h-9 w-48 bg-surface-container-high rounded-xl" />
+          <div className="h-9 w-40 bg-surface-container-high rounded-xl" />
+        </div>
+
+        {/* KPI Cards Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-surface-container rounded-3xl" />
+            <div key={i} className="h-36 bg-surface-container-lowest border border-outline-variant rounded-3xl p-5 space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="h-4 bg-surface-container rounded w-24" />
+                <div className="h-9 w-9 bg-surface-container rounded-2xl" />
+              </div>
+              <div className="h-7 bg-surface-container rounded-xl w-36" />
+              <div className="h-3.5 bg-surface-container rounded w-28" />
+            </div>
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80 bg-surface-container rounded-3xl" />
-          <div className="h-80 bg-surface-container rounded-3xl" />
+
+        {/* Content Blocks Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 h-80 bg-surface-container-lowest border border-outline-variant rounded-3xl" />
+          <div className="lg:col-span-5 h-80 bg-surface-container-lowest border border-outline-variant rounded-3xl" />
         </div>
       </div>
     );
@@ -451,13 +481,13 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* 2. Top Segmented Navigation Tabs matching website */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-surface-container border border-outline-variant/60 overflow-x-auto">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-surface-container border border-outline-variant/60 overflow-x-auto scrollbar-none -mx-1 sm:mx-0">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap shrink-0 ${
             activeTab === "overview"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+              ? "bg-primary text-white font-black shadow-md shadow-primary/20 ring-1 ring-primary/30"
+              : "bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold"
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -466,16 +496,20 @@ export default function AdminOverviewPage() {
 
         <button
           onClick={() => setActiveTab("paystack")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap shrink-0 ${
             activeTab === "paystack"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+              ? "bg-primary text-white font-black shadow-md shadow-primary/20 ring-1 ring-primary/30"
+              : "bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold"
           }`}
         >
           <CreditCard className="w-4 h-4" />
           <span>Paystack Gateway & Payouts</span>
           {payLive?.balanceKes !== undefined && (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white font-mono">
+            <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+              activeTab === "paystack"
+                ? "bg-white/25 text-white"
+                : "bg-surface-container-highest text-on-surface-variant"
+            }`}>
               KES {payLive.balanceKes.toLocaleString()}
             </span>
           )}
@@ -483,10 +517,10 @@ export default function AdminOverviewPage() {
 
         <button
           onClick={() => setActiveTab("transactions")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap shrink-0 ${
             activeTab === "transactions"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+              ? "bg-primary text-white font-black shadow-md shadow-primary/20 ring-1 ring-primary/30"
+              : "bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -495,15 +529,19 @@ export default function AdminOverviewPage() {
 
         <button
           onClick={() => setActiveTab("whatsapp")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap shrink-0 ${
             activeTab === "whatsapp"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+              ? "bg-primary text-white font-black shadow-md shadow-primary/20 ring-1 ring-primary/30"
+              : "bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold"
           }`}
         >
           <MessageSquare className="w-4 h-4" />
           <span>WhatsApp Bot Telemetry</span>
-          <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono">
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+            activeTab === "whatsapp"
+              ? "bg-white/25 text-white"
+              : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          }`}>
             {bot?.totalUsers || 0} users
           </span>
         </button>
