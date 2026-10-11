@@ -14,7 +14,11 @@ import {
   Sparkles,
   Code2,
   Zap,
-  Globe
+  Globe,
+  FolderGit2,
+  ExternalLink,
+  BookOpen,
+  Clock
 } from 'lucide-react'
 import { motion, useInView, animate } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
@@ -48,6 +52,24 @@ function Counter({ value }: { value: string }) {
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
+  const [projects, setProjects] = useState<any[]>([])
+  const [articles, setArticles] = useState<any[]>([])
+  const [loadingContent, setLoadingContent] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/projects').then((r) => r.json()).catch(() => ({ success: false })),
+      fetch('/api/articles').then((r) => r.json()).catch(() => ({ success: false }))
+    ]).then(([projData, artData]) => {
+      if (projData?.success && Array.isArray(projData.projects)) {
+        setProjects(projData.projects.slice(0, 3))
+      }
+      if (artData?.success && Array.isArray(artData.articles)) {
+        setArticles(artData.articles.slice(0, 2))
+      }
+      setLoadingContent(false)
+    })
+  }, [])
 
   const inHouseTools = [
     {
@@ -258,6 +280,156 @@ export default function Home() {
             })}
           </div>
         </section>
+
+        {/* ============================= FEATURED PROJECTS & CASE STUDIES ============================= */}
+        <section id="featured-projects" className="space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary uppercase tracking-widest">
+                <FolderGit2 className="h-3.5 w-3.5" />
+                Engineering Case Studies
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                Featured Production Systems
+              </h2>
+              <p className="text-sm text-on-surface-variant max-w-xl">
+                Real-world platforms architected for high concurrency, zero-data-loss compliance, and seamless payment flows.
+              </p>
+            </div>
+            <Link href="/projects">
+              <Button variant="outline" size="sm" className="h-10 px-5 rounded-xl font-bold text-xs gap-2 shrink-0">
+                Explore All Projects <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {projects.length > 0 ? (
+              projects.map((proj) => (
+                <div
+                  key={proj.id}
+                  className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all duration-300 shadow-soft hover:shadow-xl flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                        {proj.category}
+                      </span>
+                      {proj.liveUrl && (
+                        <a
+                          href={proj.liveUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-on-surface-variant hover:text-primary transition-colors p-1"
+                          title="Open Live System"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">
+                        <Link href={`/projects/${proj.slug}`}>
+                          {proj.title}
+                        </Link>
+                      </h3>
+                      <p className="text-xs text-on-surface-variant mt-2 line-clamp-3 leading-relaxed">
+                        {proj.summary}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {proj.techStack?.slice(0, 4).map((tech: string) => (
+                        <span key={tech} className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md border border-outline-variant/60">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-6 border-t border-outline-variant/60 flex items-center justify-between">
+                    <Link
+                      href={`/projects/${proj.slug}`}
+                      className="text-xs font-bold text-primary group-hover:underline flex items-center gap-1.5"
+                    >
+                      Read Case Study <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-3 p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant text-center text-xs text-on-surface-variant">
+                Loading production portfolio...
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ============================= LATEST TECHNICAL NOTES ============================= */}
+        {articles.length > 0 && (
+          <section id="articles-teaser" className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary uppercase tracking-widest">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Engineering Writing
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                  Field Notes & Tutorials
+                </h2>
+                <p className="text-sm text-on-surface-variant max-w-xl">
+                  Pragmatic architectural insights, payment engineering patterns, and lessons learned from production.
+                </p>
+              </div>
+              <Link href="/articles">
+                <Button variant="outline" size="sm" className="h-10 px-5 rounded-xl font-bold text-xs gap-2 shrink-0">
+                  All Articles <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {articles.map((art) => (
+                <div
+                  key={art.id}
+                  className="p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all shadow-soft group flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-xs text-on-surface-variant">
+                      <span className="font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                        {art.category}
+                      </span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="w-3 h-3" />
+                        {art.readingTimeMinutes} min
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">
+                      <Link href={`/articles/${art.slug}`}>
+                        {art.title}
+                      </Link>
+                    </h3>
+
+                    <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                      {art.excerpt}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-outline-variant/60">
+                    <Link
+                      href={`/articles/${art.slug}`}
+                      className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline"
+                    >
+                      Read Technical Article <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ============================= SERVICES TEASER ============================= */}
         <section className="p-10 sm:p-14 rounded-3xl bg-on-surface text-background dark:bg-surface-container-lowest dark:text-on-surface space-y-8">

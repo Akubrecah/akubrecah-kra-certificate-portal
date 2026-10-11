@@ -294,3 +294,194 @@ model SystemLog {
   @@map("system_logs")
 }
 
+model Project {
+  id                    String    @id @default(uuid())
+  slug                  String    @unique
+  title                 String
+  summary               String
+  description           String    @db.Text
+  category              String    // "Full-Stack SaaS", "Fintech / Payments", "GovTech & Compliance", "Mobile Ecosystem"
+  client                String?
+  featuredImage         String
+  galleryImages         String[]  @default([])
+  liveUrl               String?
+  githubUrl             String?
+  technologies          String[]  @default([])
+  problemStatement      String?   @db.Text
+  solutionArchitecture  String?   @db.Text
+  measurableOutcomes    String[]  @default([])
+  isFeatured            Boolean   @default(false)
+  isPublished           Boolean   @default(true)
+  displayOrder          Int       @default(0)
+  seoTitle              String?
+  seoDescription        String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category])
+  @@index([isPublished])
+  @@map("projects")
+}
+
+model Article {
+  id                  String    @id @default(uuid())
+  slug                String    @unique
+  title               String
+  excerpt             String
+  content             String    @db.Text
+  category            String
+  tags                String[]  @default([])
+  featuredImage       String?
+  authorName          String    @default("Akubrecah")
+  readingTimeMinutes  Int       @default(5)
+  isPublished         Boolean   @default(true)
+  publishedAt         DateTime  @default(now())
+  seoTitle            String?
+  seoDescription      String?
+  canonicalUrl        String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category])
+  @@index([isPublished])
+  @@map("articles")
+}
+
+model Inquiry {
+  id          String        @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  projectType String
+  budget      String?
+  message     String        @db.Text
+  status      String        @default("new") // "new", "contacted", "qualified", "proposal_sent", "won", "lost", "archived"
+  source      String        @default("website_contact")
+  ipAddress   String?
+  notes       InquiryNote[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("inquiries")
+}
+
+model InquiryNote {
+  id          String   @id @default(uuid())
+  inquiryId   String
+  authorName  String
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  inquiry     Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId])
+  @@map("inquiry_notes")
+}
+
+model SkillCategory {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  displayOrder Int      @default(0)
+  skills       Skill[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("skill_categories")
+}
+
+model Skill {
+  id           String        @id @default(uuid())
+  categoryId   String
+  name         String
+  proficiency  Int           @default(90) // 1 - 100 percentage
+  iconName     String?
+  yearsOfExp   Int?
+  displayOrder Int           @default(0)
+  category     SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([categoryId])
+  @@map("skills")
+}
+
+model WorkExperience {
+  id           String   @id @default(uuid())
+  company      String
+  role         String
+  location     String?
+  employmentType String? // "Full-time", "Contract", "Lead Consultant"
+  startDate    String
+  endDate      String?  // null or "Present"
+  description  String   @db.Text
+  achievements String[] @default([])
+  technologies String[] @default([])
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("work_experiences")
+}
+
+model ServiceOffering {
+  id           String   @id @default(uuid())
+  title        String
+  slug         String   @unique
+  tagline      String
+  description  String   @db.Text
+  icon         String   @default("code")
+  deliverables String[] @default([])
+  technologies String[] @default([])
+  priceStarting String?
+  isFeatured   Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("service_offerings")
+}
+
+model Testimonial {
+  id           String   @id @default(uuid())
+  authorName   String
+  authorTitle  String
+  company      String
+  avatarUrl    String?
+  content      String   @db.Text
+  isVerified   Boolean  @default(true)
+  isPublished  Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model SiteSetting {
+  id         String   @id @default(uuid())
+  key        String   @unique
+  value      Json
+  updatedAt  DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid())
+  filename     String
+  url          String
+  mimeType     String
+  sizeBytes    Int      @default(0)
+  altText      String?
+  category     String   @default("general") // "project", "article", "avatar", "document"
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+  @@map("media_assets")
+}
+
+

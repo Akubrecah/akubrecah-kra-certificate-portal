@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-type FormState = "idle" | "submitting" | "success"
+type FormState = "idle" | "submitting" | "success" | "error"
 
 const projectTypes = [
   "Web Application / Scalable SaaS",
@@ -58,16 +58,38 @@ export default function ContactPage() {
     message: "",
   })
   const [formState, setFormState] = useState<FormState>("idle")
+  const [errorMessage, setErrorMessage] = useState<string>("")
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    if (formState === "error") {
+      setFormState("idle")
+      setErrorMessage("")
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setFormState("submitting")
-    await new Promise((r) => setTimeout(r, 1200))
-    setFormState("success")
+    setErrorMessage("")
+
+    try {
+      const res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to submit project brief. Please try again.")
+      }
+
+      setFormState("success")
+    } catch (err: any) {
+      setErrorMessage(err.message || "A network error occurred while submitting. Please try again.")
+      setFormState("error")
+    }
   }
 
   return (
@@ -292,6 +314,13 @@ export default function ContactPage() {
                     className="rounded-xl border border-outline-variant bg-surface-container text-xs text-on-surface resize-none focus-visible:ring-primary leading-relaxed"
                   />
                 </div>
+
+                {formState === "error" && errorMessage && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold flex items-start gap-2.5">
+                    <span className="shrink-0 text-base leading-none">⚠️</span>
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
 
                 <Button
                   type="submit"

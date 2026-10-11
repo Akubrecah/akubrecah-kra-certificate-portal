@@ -7,12 +7,15 @@ import { useUser } from "@clerk/nextjs";
 
 const navLinks = [
   { href: "/admin", label: "Executive Overview", icon: "insights" },
+  { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: "contact_mail" },
+  { href: "/admin/projects", label: "Projects & Case Studies", icon: "folder_open" },
+  { href: "/admin/articles", label: "Articles & Field Notes", icon: "edit_note" },
   { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: "badge" },
   { href: "/admin/system-health", label: "System Health", icon: "monitor_heart" },
   { href: "/admin/user-management", label: "User Management", icon: "group" },
   { href: "/admin/role-access", label: "Role Access", icon: "admin_panel_settings" },
   { href: "/admin/system-logs", label: "System Logs", icon: "terminal" },
-  { href: "/admin/global-config", label: "Global Config", icon: "settings_input_component" },
+  { href: "/admin/settings", label: "Website Settings", icon: "tune" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

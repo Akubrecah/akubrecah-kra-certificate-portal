@@ -199,6 +199,16 @@ const navData: NavItem[] = [
     footer: { label: "All Solutions →", href: "/solutions" },
   },
   {
+    label: "Projects",
+    href: "/projects",
+    groups: null,
+  },
+  {
+    label: "Articles",
+    href: "/articles",
+    groups: null,
+  },
+  {
     label: "Contact",
     href: "/contact",
     groups: null,
@@ -565,14 +575,12 @@ export function SiteHeader() {
 
             {isLoaded && isSignedIn ? (
               <div className="flex items-center gap-2 flex-nowrap">
-                {isAdmin && (
-                  <Link href="/admin/system-health">
-                    <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary hover:text-white transition-all cursor-pointer shrink-0">
-                      <Shield className="h-3 w-3" />
-                      Admin
-                    </span>
-                  </Link>
-                )}
+                <Link href="/admin">
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary hover:text-white transition-all cursor-pointer shrink-0">
+                    <Shield className="h-3 w-3" />
+                    Admin
+                  </span>
+                </Link>
                 <Link href="/dashboard">
                   <Button size="sm" className="h-8.5 px-3 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary/90 flex items-center gap-1.5 shrink-0">
                     <LayoutDashboard className="h-3.5 w-3.5" />
