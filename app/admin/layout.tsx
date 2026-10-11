@@ -105,6 +105,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [isResizing]);
 
+  const [hasMagicAuth, setHasMagicAuth] = useState(false);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.cookie.includes('admin_magic_auth=')) {
+      setHasMagicAuth(true);
+    }
+  }, []);
+
   // Show loading while auth details are fetching
   if (!isLoaded) {
     return (
@@ -116,14 +124,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-
-  const [hasMagicAuth, setHasMagicAuth] = useState(false);
-
-  useEffect(() => {
-    if (typeof document !== 'undefined' && document.cookie.includes('admin_magic_auth=')) {
-      setHasMagicAuth(true);
-    }
-  }, []);
 
   // Enforce Super Admin check (dynamic configuration & Clerk metadata roles + WhatsApp Magic link)
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();

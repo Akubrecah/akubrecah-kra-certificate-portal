@@ -86,7 +86,7 @@ export async function generateCertificatePdfBuffer(data: TaxpayerPdfData): Promi
     path.join(__dirname, '..', 'public', 'receipt-template.pdf'),
   ];
 
-  let templatePath = possiblePaths.find((p) => fs.existsSync(p));
+  const templatePath = possiblePaths.find((p) => fs.existsSync(p));
   if (!templatePath) {
     throw new Error('Certificate template (receipt-template.pdf) not found on server.');
   }

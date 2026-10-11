@@ -8,6 +8,7 @@ export const maxDuration = 150; // Allow up to 2.5 minutes for user interaction 
 
 // Define global declaration for TypeScript compiler
 declare global {
+  // eslint-disable-next-line no-var
   var kraSessions: Map<string, any> | undefined;
 }
 

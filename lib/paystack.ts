@@ -182,7 +182,7 @@ export function verifyPaystackWebhookSignature(rawBody: string, signature: strin
  * Normalizes Kenyan mobile numbers to Paystack international format: +2547XXXXXXXX or +2541XXXXXXXX
  */
 export function formatPaystackKenyaPhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
+  const cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
   if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
     return '+254' + cleaned;
   }

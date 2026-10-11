@@ -6,7 +6,7 @@ export const maxDuration = 30;
 
 // Helper to normalize phone numbers to Safaricom Daraja format: 2547XXXXXXXX or 2541XXXXXXXX
 export function normalizePhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
+  const cleaned = phone.replace(/[\s\-\+\(\)]/g, '');
   if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
     return '254' + cleaned;
   }

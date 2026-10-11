@@ -35,7 +35,7 @@ const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || 'akubrecah-kra
  *      254712345678@s.whatsapp.net -> 254712345678
  */
 export function sanitizeWhatsAppPhone(phone: string): string {
-  let cleaned = phone.replace(/@s\.whatsapp\.net/g, '').replace(/[\s\-\+\(\)]/g, '');
+  const cleaned = phone.replace(/@s\.whatsapp\.net/g, '').replace(/[\s\-\+\(\)]/g, '');
   if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
     return '254' + cleaned;
   }

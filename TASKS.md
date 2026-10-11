@@ -34,3 +34,19 @@
   - [x] Built 1-click on-the-fly certificate PDF downloads for any transaction record.
   - [x] Enforced Zero-Server PDF Storage: PDFs are generated in-memory (RAM buffer) and streamed directly to clients.
   - [x] Removed persistent cached PIN auto-fill in `components/kra-portal.tsx` so users and admins always search fresh for another PIN.
+
+## Feature 3: Enterprise CI/CD Pipeline
+- [x] **Task 9: Lint & Hook Cleanliness**
+  - [x] Resolved React hook ordering bug in `app/admin/layout.tsx`.
+  - [x] Configured `.eslintrc.json` ignorePatterns and relaxed require imports for Tailwind plugin.
+  - [x] Fixed all `prefer-const` and `no-var` declaration errors across codebase (`npm run lint -- --quiet` returns 0 errors).
+- [x] **Task 10: Pull Request Quality & Security Pipeline (`.github/workflows/ci.yml`)**
+  - [x] Quality Gate: Prisma validation & generation, ESLint check, TypeScript compilation (`tsc --noEmit`), and Next.js build verification.
+  - [x] Security Governance: Gitleaks automated secret scanner and critical npm dependency audits.
+  - [x] Ephemeral Preview: Vercel Preview deployments on Pull Requests with automatic PR preview URL comments.
+  - [x] Alert Dispatch: WhatsApp telemetry alert to admin phone on pipeline outcome.
+- [x] **Task 11: Production Release Pipeline (`.github/workflows/deploy.yml`)**
+  - [x] Automatic production deployment to Vercel upon pushing/merging to `main`.
+  - [x] WhatsApp notification dispatched with commit SHA, author, and live website link.
+- [x] **Task 12: CI/CD Setup Guide (`CI_CD.md`)**
+  - [x] Documented pipeline architecture, required GitHub Secrets, and recommended branch protection rules.

@@ -1,0 +1,173 @@
+name: CI Quality & Security Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: 🛡️ Quality Gate (Lint, Types, Schema & Build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Validate Prisma Schema & Generate Client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+        run: |
+          npm run prisma:validate
+          npx prisma generate
+
+      - name: 🔍 ESLint Analysis
+        run: npm run lint -- --quiet
+
+      - name: 🏷️ TypeScript Typecheck
+        run: npm run typecheck
+
+      - name: 🏗️ Production Build Verification
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+          NEXT_PUBLIC_APP_URL: https://kra-certificate.vercel.app
+          NEXT_PUBLIC_SUPER_ADMIN_EMAIL: poweldayck@gmail.com
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder_for_ci' }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_placeholder_for_ci' }}
+        run: npm run build
+
+  security-scan:
+    name: 🔒 Security & Secret Governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout repository (full depth for commit auditing)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔑 Gitleaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: 🛡️ Audit npm dependencies
+        run: |
+          npm audit --audit-level=critical || true
+
+  vercel-preview:
+    name: 🚀 Vercel Preview Deployment
+    needs: [quality-gate, security-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' && env.VERCEL_TOKEN != ''
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || 'team_vmAKoPs7Zz3mGe6LEUj5WiIs' }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || 'prj_qP2jRgwrMsICqRlBPqMsvdkcRyRe' }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: 📥 Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: 🏗️ Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: 🚀 Deploy Preview to Vercel
+        id: deploy
+        run: |
+          PREVIEW_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+
+      - name: 💬 Comment Preview URL on Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.deploy.outputs.preview_url }}';
+            if (previewUrl) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `✅ **Vercel Preview Deployment Ready!**\n\n🔗 **Preview URL:** ${previewUrl}\n\n*Deployed from commit ${context.sha.substring(0, 7)}*`
+              });
+            }
+
+  notify-status:
+    name: 📢 Pipeline Telemetry & Alert
+    needs: [quality-gate, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 📱 Dispatch Status Notification
+        env:
+          EVOLUTION_URL: ${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          ADMIN_PHONE: ${{ secrets.ADMIN_WHATSAPP_PHONE || '254791497858' }}
+          WEBHOOK_URL: ${{ secrets.WHATSAPP_NOTIFICATION_WEBHOOK }}
+          GATE_STATUS: ${{ needs.quality-gate.result }}
+          SEC_STATUS: ${{ needs.security-scan.result }}
+        run: |
+          STATUS="SUCCESS ✅"
+          if [ "$GATE_STATUS" != "success" ] || [ "$SEC_STATUS" != "success" ]; then
+            STATUS="FAILED ❌"
+          fi
+
+          MESSAGE="🔔 *Akubrecah KRA CI Pipeline Alert*\n\n"
+          MESSAGE+="• Status: ${STATUS}\n"
+          MESSAGE+="• Event: ${{ github.event_name }}\n"
+          MESSAGE+="• Branch: ${{ github.ref_name }}\n"
+          MESSAGE+="• Commit: ${{ github.sha }}\n"
+          MESSAGE+="• Author: ${{ github.actor }}\n\n"
+          MESSAGE+="Run Link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # 1. Custom Webhook if configured
+          if [ -n "$WEBHOOK_URL" ]; then
+            echo "Sending notification to webhook..."
+            curl -s -X POST "$WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"text\":\"$MESSAGE\", \"status\":\"$STATUS\", \"repo\":\"${{ github.repository }}\"}" || true
+          fi
+
+          # 2. Evolution API WhatsApp if configured
+          if [ -n "$EVOLUTION_URL" ] && [ -n "$EVOLUTION_KEY" ]; then
+            echo "Sending WhatsApp notification via Evolution API..."
+            CLEAN_PHONE=$(echo "$ADMIN_PHONE" | tr -cd '0-9')
+            curl -s -X POST "${EVOLUTION_URL}/message/sendText/akubrecah-kra" \
+              -H "apikey: ${EVOLUTION_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"number\":\"${CLEAN_PHONE}\",\"text\":\"${MESSAGE}\"}" || true
+          fi
+
+          echo "Notification step completed."

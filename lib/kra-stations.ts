@@ -131,7 +131,7 @@ export function getCountiesForStation(station: string): { primary: string; secon
  */
 export function formatKraStation(station: string): string {
   if (!station) return "";
-  let cleanStation = station
+  const cleanStation = station
     .trim()
     .replace(/\bTSO\b/gi, "")
     .replace(/\s+/g, " ")
