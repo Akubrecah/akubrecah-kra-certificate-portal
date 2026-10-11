@@ -4,6 +4,7 @@ import { sanitizeWhatsAppPhone, sendEvolutionTextMessage } from '@/lib/evolution
 import { fetchTaxpayerById, fetchTaxpayerByPin } from '@/lib/kra-api';
 import { maskTaxpayerData } from '@/lib/masking';
 import { initializePaystackTransaction } from '@/lib/paystack';
+import { dispatchMpesaStkPush, normalizePhoneNumber } from '@/app/api/mpesa/stkpush/route';
 import { createAdminMagicToken } from '@/lib/magic-token';
 import { getPublicAppUrl } from '@/lib/utils';
 
@@ -25,6 +26,57 @@ function formatDisplayPhone(phone: string): string {
     return '0' + phone.substring(3);
   }
   return phone;
+}
+
+
+async function triggerInAppMpesaPayment({
+  targetPhone,
+  whatsappUserPhone,
+  pin,
+  amount,
+  taxpayerName,
+}: {
+  targetPhone: string;
+  whatsappUserPhone: string;
+  pin: string;
+  amount: number;
+  taxpayerName?: string;
+}): Promise<{
+  success: boolean;
+  checkoutRequestId?: string;
+  gateway?: string;
+  normalizedPhone: string;
+  error?: string;
+}> {
+  const normalizedPhone = normalizePhoneNumber(targetPhone);
+  const cleanPin = pin.trim().toUpperCase();
+  const reference = `CERT-${cleanPin}-${Date.now()}`;
+
+  try {
+    const result = await dispatchMpesaStkPush({
+      phone: normalizedPhone,
+      amount,
+      reference,
+      description: `KRA Certificate - ${cleanPin}`,
+      userClerkId: `wa_${whatsappUserPhone.replace(/[^a-zA-Z0-9]/g, '')}`,
+      userEmail: `wa_${whatsappUserPhone.replace(/[^a-zA-Z0-9]/g, '')}@akubrecah.co.ke`,
+    });
+
+    return {
+      success: result.success,
+      checkoutRequestId: result.checkoutRequestId || result.CheckoutRequestID,
+      gateway: result.gateway || 'mpesa',
+      normalizedPhone,
+      error: result.error,
+    };
+  } catch (err: any) {
+    console.error('[WhatsApp triggerInAppMpesaPayment Error]:', err.message);
+    return {
+      success: false,
+      normalizedPhone,
+      error: err.message || 'Failed to trigger M-Pesa STK Push',
+    };
+  }
 }
 
 async function createPaystackLink(userPhone: string, pin: string, amount: number, customerName?: string) {
@@ -511,29 +563,54 @@ export async function handleWhatsAppChat(params: {
               const masked = maskTaxpayerData(taxpayer);
               const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
 
-              const paystackRes = await createPaystackLink(userPhone, cleanPin, downloadFee, taxpayer.taxpayerName);
+              const stkRes = await triggerInAppMpesaPayment({
+                targetPhone: userPhone,
+                whatsappUserPhone: userPhone,
+                pin: cleanPin,
+                amount: downloadFee,
+                taxpayerName: taxpayer.taxpayerName,
+              });
 
               await saveConversationState('AWAITING_PAYMENT', {
                 activeSession: true,
                 pin: cleanPin,
                 idNumber: taxpayer.idNumber || cmdArgs,
                 taxpayerName: taxpayer.taxpayerName,
-                checkoutId: paystackRes.reference || '',
+                checkoutId: stkRes.checkoutRequestId || '',
+                paymentPhone: stkRes.normalizedPhone,
+                stkGateway: stkRes.gateway,
                 taxpayerDetails: taxpayer,
+                pushedAt: Date.now(),
               });
 
-              replyText =
-                `✅ *Taxpayer Record Found!*\n\n` +
-                `• *Name:* ${masked.taxpayerName}\n` +
-                `• *PIN:* \`${masked.pin}\`\n` +
-                `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
-                `*Official Certificate Download:* KES ${downloadFee}.00\n\n` +
-                (paystackRes.success && paystackRes.authorizationUrl
-                  ? `💳 *Tap below to Pay with M-Pesa or Card (Paystack):*\n👉 ${paystackRes.authorizationUrl}\n\n`
-                  : `Reply *1* to generate your secure Paystack checkout link.\n\n`) +
-                `⚡ _Supports instant M-Pesa prompt, Visa, Mastercard & Apple Pay._\n` +
-                `_Once payment is approved, your KRA PIN Certificate and Official Payment Receipt PDFs will be delivered right here in WhatsApp automatically!_\n\n` +
-                `_(Reply *PAID* or *1* to verify payment, or *0* to cancel)_`;
+              if (stkRes.success) {
+                replyText =
+                  `✅ *Taxpayer Record Found!*\n\n` +
+                  `• *Name:* ${masked.taxpayerName}\n` +
+                  `• *PIN:* \`${masked.pin}\`\n` +
+                  `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
+                  `📲 *M-PESA PAYMENT PROMPT SENT!*\n` +
+                  `─────────────────────────────\n` +
+                  `• *Amount:* KES ${downloadFee}.00\n` +
+                  `• *Phone:* \`${stkRes.normalizedPhone}\`\n` +
+                  `• *Ref:* \`${stkRes.checkoutRequestId || cleanPin}\`\n\n` +
+                  `👉 *Check your handset screen now* and enter your M-Pesa PIN to complete payment.\n\n` +
+                  `⚡ *Automatic Delivery:* Your *KRA PIN Certificate (PDF)* and *Official ETR Thermal Receipt (PDF & Image)* will be delivered right here in chat the moment you enter your PIN!\n\n` +
+                  `_Options:_\n` +
+                  `• Pay with different number? Send your Safaricom number (e.g. *0712345678*)\n` +
+                  `• Didn't see prompt? Reply *1* or *RESEND*\n` +
+                  `• Reply *0* to cancel`;
+              } else {
+                replyText =
+                  `✅ *Taxpayer Record Found!*\n\n` +
+                  `• *Name:* ${masked.taxpayerName}\n` +
+                  `• *PIN:* \`${masked.pin}\`\n` +
+                  `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
+                  `*Official Certificate Download:* KES ${downloadFee}.00\n\n` +
+                  `⚠️ *M-Pesa STK Push:* ${stkRes.error || 'Could not send prompt to this number'}.\n\n` +
+                  `👉 Please reply with your Safaricom M-Pesa number (e.g. *0712345678*) to trigger the payment prompt on that handset.\n\n` +
+                  `_(Reply *0* to cancel)_`;
+              }
             }
           }
         } else {
@@ -610,34 +687,58 @@ export async function handleWhatsAppChat(params: {
           const masked = maskTaxpayerData(taxpayer);
           const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
 
-          const paystackRes = await createPaystackLink(userPhone, cleanPin, downloadFee, taxpayer.taxpayerName);
+          const stkRes = await triggerInAppMpesaPayment({
+            targetPhone: userPhone,
+            whatsappUserPhone: userPhone,
+            pin: cleanPin,
+            amount: downloadFee,
+            taxpayerName: taxpayer.taxpayerName,
+          });
 
           await saveConversationState('AWAITING_PAYMENT', {
             activeSession: true,
             pin: cleanPin,
             idNumber: taxpayer.idNumber || incomingText,
             taxpayerName: taxpayer.taxpayerName,
-            checkoutId: paystackRes.reference || '',
-            checkoutUrl: paystackRes.authorizationUrl || '',
+            checkoutId: stkRes.checkoutRequestId || '',
+            paymentPhone: stkRes.normalizedPhone,
+            stkGateway: stkRes.gateway,
             taxpayerDetails: taxpayer,
+            pushedAt: Date.now(),
           });
 
-          replyText =
-            `✅ *Taxpayer Record Found!*\n\n` +
-            `• *Name:* ${masked.taxpayerName}\n` +
-            `• *PIN:* \`${masked.pin}\`\n` +
-            `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
-            `*Official Certificate Download:* KES ${downloadFee}.00\n\n` +
-            (paystackRes.success && paystackRes.authorizationUrl
-              ? `💳 *Tap below to Pay with M-Pesa or Card (Paystack):*\n👉 ${paystackRes.authorizationUrl}\n\n`
-              : `Reply *1* to generate your secure Paystack checkout link.\n\n`) +
-            `⚡ _Supports instant M-Pesa prompt, Visa, Mastercard & Apple Pay._\n` +
-            `_Once payment is approved, your KRA PIN Certificate and Official Payment Receipt PDFs will be delivered right here in WhatsApp automatically!_\n\n` +
-            `_(Reply *PAID* or *1* to verify payment, or *0* to cancel)_`;
+          if (stkRes.success) {
+            replyText =
+              `✅ *Taxpayer Record Found!*\n\n` +
+              `• *Name:* ${masked.taxpayerName}\n` +
+              `• *PIN:* \`${masked.pin}\`\n` +
+              `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
+              `📲 *M-PESA PAYMENT PROMPT SENT!*\n` +
+              `─────────────────────────────\n` +
+              `• *Amount:* KES ${downloadFee}.00\n` +
+              `• *Phone:* \`${stkRes.normalizedPhone}\`\n` +
+              `• *Ref:* \`${stkRes.checkoutRequestId || cleanPin}\`\n\n` +
+              `👉 *Check your handset screen now* and enter your M-Pesa PIN to complete payment.\n\n` +
+              `⚡ *Automatic Delivery:* Your *KRA PIN Certificate (PDF)* and *Official ETR Thermal Receipt (PDF & Image)* will be delivered right here in chat the moment you enter your PIN!\n\n` +
+              `_Options:_\n` +
+              `• Pay with different number? Send your Safaricom number (e.g. *0712345678*)\n` +
+              `• Didn't see prompt? Reply *1* or *RESEND*\n` +
+              `• Reply *0* to cancel`;
+          } else {
+            replyText =
+              `✅ *Taxpayer Record Found!*\n\n` +
+              `• *Name:* ${masked.taxpayerName}\n` +
+              `• *PIN:* \`${masked.pin}\`\n` +
+              `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
+              `*Official Certificate Download:* KES ${downloadFee}.00\n\n` +
+              `⚠️ *M-Pesa STK Push:* ${stkRes.error || 'Could not send prompt to this number'}.\n\n` +
+              `👉 Please reply with your Safaricom M-Pesa number (e.g. *0712345678*) to trigger the payment prompt on that handset.\n\n` +
+              `_(Reply *0* to cancel)_`;
+          }
         }
       }
     }
-    // 4. Step AWAITING_PAYMENT / AWAITING_PAYMENT_METHOD / AWAITING_PHONE_NUMBER
+    // 4. Step AWAITING_PAYMENT / AWAITING_PAYMENT_METHOD / AWAITING_CONFIRMATION / AWAITING_PHONE_NUMBER
     else if (
       currentStep === 'AWAITING_PAYMENT' ||
       currentStep === 'AWAITING_PAYMENT_METHOD' ||
@@ -646,6 +747,7 @@ export async function handleWhatsAppChat(params: {
     ) {
       const pinToDownload = metadata.pin;
       const downloadFee = Number(process.env.PAYSTACK_DOWNLOAD_FEE_KES || 20);
+      const activePayPhone = metadata.paymentPhone || userPhone;
 
       // A. Cancellation
       if (lowerText === '0' || lowerText === 'cancel' || lowerText === 'exit' || lowerText === 'reset') {
@@ -661,46 +763,126 @@ export async function handleWhatsAppChat(params: {
         });
         replyText = `✅ *Operation Cancelled*\n\nSend */kra* or */menu* whenever you want to start again.`;
       }
-      // B. User requests a fresh link
-      else if (lowerText === 'retry' || lowerText === 'new' || lowerText === 'link' || lowerText === 'paystack') {
-        const paystackRes = await createPaystackLink(userPhone, pinToDownload, downloadFee, metadata.taxpayerName);
-        if (paystackRes.success && paystackRes.authorizationUrl) {
-          await saveConversationState('AWAITING_PAYMENT', {
-            activeSession: true,
-            checkoutId: paystackRes.reference || '',
-            checkoutUrl: paystackRes.authorizationUrl || '',
-          });
+      // B. User supplies an alternate phone number (e.g. 0712345678, 254712345678, 0112345678)
+      else if (/^(?:254|\+254|0)?(7|1)\d{8}$/.test(incomingText.replace(/[\s\-\+\(\)]/g, ''))) {
+        const targetPhone = incomingText.replace(/[\s\-\+\(\)]/g, '');
+        const stkRes = await triggerInAppMpesaPayment({
+          targetPhone,
+          whatsappUserPhone: userPhone,
+          pin: pinToDownload,
+          amount: downloadFee,
+          taxpayerName: metadata.taxpayerName,
+        });
+
+        await saveConversationState('AWAITING_PAYMENT', {
+          activeSession: true,
+          checkoutId: stkRes.checkoutRequestId || metadata.checkoutId,
+          paymentPhone: stkRes.normalizedPhone,
+          stkGateway: stkRes.gateway,
+          pushedAt: Date.now(),
+        });
+
+        if (stkRes.success) {
           replyText =
-            `💳 *New Secure Payment Link:*\n` +
-            `👉 ${paystackRes.authorizationUrl}\n\n` +
-            `⚡ _Supports M-Pesa, Card, and Apple Pay._\n` +
-            `Once approved, your documents will be delivered right here automatically!\n\n` +
-            `_(Reply *PAID* once finished, or *0* to cancel)_`;
+            `📲 *M-PESA PAYMENT PROMPT SENT!*\n` +
+            `─────────────────────────────\n` +
+            `• *Amount:* KES ${downloadFee}.00\n` +
+            `• *Target Phone:* \`${stkRes.normalizedPhone}\`\n` +
+            `• *Reference:* \`${stkRes.checkoutRequestId || pinToDownload}\`\n\n` +
+            `👉 *Check that phone's screen now* and enter your M-Pesa PIN.\n\n` +
+            `⚡ Documents will arrive in this chat immediately after payment!\n\n` +
+            `_(Reply *1* or *RESEND* to try again, or *0* to cancel)_`;
         } else {
-          await saveConversationState('AWAITING_PAYMENT', { activeSession: true });
-          replyText = `❌ *Could not generate link:*\n${paystackRes.error || 'Please try again in a few moments'}.`;
+          replyText =
+            `⚠️ *Could not send prompt to ${stkRes.normalizedPhone}:*\n${stkRes.error || 'Please ensure this is a valid Safaricom line'}.\n\n` +
+            `👉 Please enter another Safaricom phone number (e.g. *0712345678*) or reply *0* to cancel.`;
         }
       }
-      // C. Verification & check
+      // C. User requests resending the STK Push
+      else if (lowerText === '1' || lowerText === 'resend' || lowerText === 'retry' || lowerText === 'prompt' || lowerText === 'push') {
+        const stkRes = await triggerInAppMpesaPayment({
+          targetPhone: activePayPhone,
+          whatsappUserPhone: userPhone,
+          pin: pinToDownload,
+          amount: downloadFee,
+          taxpayerName: metadata.taxpayerName,
+        });
+
+        await saveConversationState('AWAITING_PAYMENT', {
+          activeSession: true,
+          checkoutId: stkRes.checkoutRequestId || metadata.checkoutId,
+          paymentPhone: stkRes.normalizedPhone,
+          stkGateway: stkRes.gateway,
+          pushedAt: Date.now(),
+        });
+
+        if (stkRes.success) {
+          replyText =
+            `📲 *M-PESA PROMPT RESENT!*\n\n` +
+            `A fresh payment prompt for *KES ${downloadFee}.00* was sent to \`${stkRes.normalizedPhone}\`.\n\n` +
+            `👉 Enter your M-Pesa PIN to complete payment.\n\n` +
+            `⚡ Delivery happens automatically right here!`;
+        } else {
+          replyText =
+            `⚠️ *Could not resend prompt:*\n${stkRes.error || 'Temporary network issue'}.\n\n` +
+            `👉 Send an alternative Safaricom number (e.g. *0712345678*) to pay with another phone, or reply *0* to cancel.`;
+        }
+      }
+      // D. Verification check (e.g. "PAID", or general text)
       else {
         let isPaid = false;
-        let paystackTx: any = null;
+        let verifiedReceipt = '';
+
         if (metadata.checkoutId) {
+          // 1. Check DB for recorded download
           try {
-            const { verifyPaystackTransaction } = await import('@/lib/paystack');
-            paystackTx = await verifyPaystackTransaction(metadata.checkoutId);
-            if (paystackTx && paystackTx.status === 'success') {
-              isPaid = true;
+            if (typeof db.certificateDownload?.findFirst === 'function') {
+              const dl = await db.certificateDownload.findFirst({
+                where: {
+                  OR: [
+                    { mpesaReceipt: metadata.checkoutId },
+                    { clerkId: `wa_${userPhone.replace(/[^a-zA-Z0-9]/g, '')}` },
+                  ],
+                },
+                orderBy: { createdAt: 'desc' },
+              });
+              if (dl && (dl.mpesaReceipt === metadata.checkoutId || (dl.pin === pinToDownload && Date.now() - new Date(dl.createdAt).getTime() < 300000))) {
+                isPaid = true;
+                verifiedReceipt = dl.mpesaReceipt || metadata.checkoutId;
+              }
             }
-          } catch (err: any) {
-            console.warn('[WhatsApp Chat] Paystack verify notice:', err.message);
+          } catch (dbErr: any) {
+            console.warn('[WhatsApp Chat] DB payment check notice:', dbErr.message);
+          }
+
+          // 2. Check global mpesaCallbacks (Daraja in-memory)
+          if (!isPaid && typeof (global as any).mpesaCallbacks !== 'undefined') {
+            const cb = (global as any).mpesaCallbacks?.get(metadata.checkoutId);
+            if (cb && cb.ResultCode === 0) {
+              isPaid = true;
+              verifiedReceipt = cb.MpesaReceiptNumber || metadata.checkoutId;
+            }
+          }
+
+          // 3. Check Paystack transaction status
+          if (!isPaid && metadata.checkoutId.startsWith('PSTK-')) {
+            try {
+              const { verifyPaystackTransaction } = await import('@/lib/paystack');
+              const paystackTx = await verifyPaystackTransaction(metadata.checkoutId);
+              if (paystackTx && paystackTx.status === 'success') {
+                isPaid = true;
+                verifiedReceipt = paystackTx.reference;
+              }
+            } catch (err: any) {
+              console.warn('[WhatsApp Chat] Paystack verify notice:', err.message);
+            }
           }
         }
 
-        if (isPaid && paystackTx) {
+        if (isPaid) {
           await saveConversationState('COMPLETED', {
             activeSession: false,
-            mpesaReceipt: paystackTx.reference,
+            mpesaReceipt: verifiedReceipt,
           });
 
           const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
@@ -708,28 +890,26 @@ export async function handleWhatsAppChat(params: {
             phone: userPhone,
             pin: pinToDownload,
             checkoutId: metadata.checkoutId,
-            mpesaReceipt: paystackTx.reference,
-            amount: paystackTx.amountKes || downloadFee,
+            mpesaReceipt: verifiedReceipt || `REC-${Date.now()}`,
+            amount: downloadFee,
             taxpayerName: metadata.taxpayerName,
             taxpayerDetails: metadata.taxpayerDetails,
           });
 
           replyText =
             `🎉 *Payment Confirmed!*\n\n` +
-            `Your official *KRA PIN Certificate* and *Official Payment Receipt* have been delivered to your chat above.\n\n` +
+            `Your official *KRA PIN Certificate (PDF)* and *Official ETR Thermal Receipt (PDF & Image)* have been delivered to your chat above.\n\n` +
             `Send */kra* or */menu* anytime to perform another lookup.`;
         } else {
           await saveConversationState('AWAITING_PAYMENT', { activeSession: true });
-          const checkoutUrl = metadata.checkoutUrl;
 
           replyText =
-            `⏳ *Payment Pending Approval*\n\n` +
-            `We haven't received confirmation for reference \`${metadata.checkoutId || 'PSTK'}\` yet.\n\n` +
-            (checkoutUrl ? `👉 *Complete payment here:*\n${checkoutUrl}\n\n` : '') +
-            `⚡ _Select M-Pesa or Card on the Paystack checkout page._\n\n` +
-            `• Reply *PAID* or *1* to verify again\n` +
-            `• Reply *RETRY* to generate a fresh link\n` +
-            `• Reply *0* to cancel`;
+            `⏳ *Waiting for M-Pesa PIN...*\n\n` +
+            `We have not yet received payment confirmation for \`${activePayPhone}\`.\n\n` +
+            `• *Entered PIN already?* Please allow 3-5 seconds for Safaricom confirmation, then reply *PAID*.\n` +
+            `• *Prompt didn't show up?* Reply *1* or *RESEND* to trigger it again.\n` +
+            `• *Different phone?* Send your Safaricom number (e.g. *0712345678*).\n` +
+            `• Reply *0* to cancel.`;
         }
       }
     }

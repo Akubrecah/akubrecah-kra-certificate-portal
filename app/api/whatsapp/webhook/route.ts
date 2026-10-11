@@ -164,18 +164,17 @@ export async function POST(req: NextRequest) {
     const isAwaitingPayment = (chatResult as any)?.step === 'AWAITING_PAYMENT';
 
     // If an STK push was just dispatched and we are waiting for payment,
-    // actively monitor Paystack in background so delivery happens AUTOMATICALLY
-    // the moment the user enters their PIN on phone!
-    if (isAwaitingPayment && pendingCheckoutId && pendingCheckoutId.startsWith('PSTK-')) {
+    // actively monitor M-Pesa in background so delivery happens AUTOMATICALLY
+    // the moment the user enters their PIN on their phone!
+    if (isAwaitingPayment && pendingCheckoutId) {
       after(async () => {
-        console.log(`[WhatsApp Webhook after] Actively monitoring Paystack payment for ${pendingCheckoutId}`);
-        const { verifyPaystackTransaction } = await import('@/lib/paystack');
+        console.log(`[WhatsApp Webhook after] Actively monitoring M-Pesa payment for ${pendingCheckoutId} (${userPhone})`);
         const { fulfillWhatsAppCertificateDelivery } = await import('@/lib/certificate-fulfillment');
         const prismaModule = await import('@/lib/prisma');
         const db = prismaModule.default as any;
 
-        const maxDurationMs = 50000; // 50 seconds active monitoring
-        const intervalMs = 3000; // poll every 3 seconds
+        const maxDurationMs = 55000; // 55 seconds active monitoring
+        const intervalMs = 2500; // poll every 2.5 seconds
         const startTime = Date.now();
 
         while (Date.now() - startTime < maxDurationMs) {
@@ -193,15 +192,82 @@ export async function POST(req: NextRequest) {
               break;
             }
 
-            const tx = await verifyPaystackTransaction(pendingCheckoutId);
-            if (tx && tx.status === 'success') {
-              console.log(`[WhatsApp Webhook after] Payment verified for ${pendingCheckoutId}! Initiating PDF delivery.`);
+            let isPaid = false;
+            let mpesaReceipt = '';
+            let amountKes = 20;
+
+            // 1. Check if DB recorded certificate download via webhook or callback
+            if (typeof db.certificateDownload?.findFirst === 'function') {
+              const dl = await db.certificateDownload.findFirst({
+                where: {
+                  OR: [
+                    { mpesaReceipt: pendingCheckoutId },
+                    { clerkId: `wa_${userPhone.replace(/[^a-zA-Z0-9]/g, '')}` },
+                  ],
+                },
+                orderBy: { createdAt: 'desc' },
+              });
+              if (
+                dl &&
+                (dl.mpesaReceipt === pendingCheckoutId ||
+                  (conv?.metadata?.pin && dl.pin === conv.metadata.pin && Date.now() - new Date(dl.createdAt).getTime() < 300000))
+              ) {
+                isPaid = true;
+                mpesaReceipt = dl.mpesaReceipt || pendingCheckoutId;
+                amountKes = Number(dl.amountCharged) || 20;
+              }
+            }
+
+            // 2. Check global in-memory Daraja callback cache
+            if (!isPaid && typeof (global as any).mpesaCallbacks !== 'undefined') {
+              const cb = (global as any).mpesaCallbacks?.get(pendingCheckoutId);
+              if (cb && cb.ResultCode === 0) {
+                isPaid = true;
+                mpesaReceipt = cb.MpesaReceiptNumber || pendingCheckoutId;
+              }
+            }
+
+            // 3. Check Paystack verification (if checkoutId is PSTK-... or CERT-...)
+            if (!isPaid && (pendingCheckoutId.startsWith('PSTK-') || pendingCheckoutId.startsWith('CERT-'))) {
+              try {
+                const { verifyPaystackTransaction } = await import('@/lib/paystack');
+                const tx = await verifyPaystackTransaction(pendingCheckoutId);
+                if (tx && tx.status === 'success') {
+                  isPaid = true;
+                  mpesaReceipt = tx.reference || `PSTK_${pendingCheckoutId}`;
+                  amountKes = tx.amountKes || 20;
+                }
+              } catch (verifyErr: any) {
+                // Ignore transient network errors during polling
+              }
+            }
+
+            if (isPaid) {
+              console.log(`[WhatsApp Webhook after] Payment verified for ${pendingCheckoutId}! Initiating document delivery.`);
+
+              // Update session in DB so it doesn't trigger duplicate delivery
+              if (conv && typeof db.ai_conversations?.update === 'function') {
+                await db.ai_conversations
+                  .update({
+                    where: { id: conv.id },
+                    data: {
+                      metadata: {
+                        ...(conv.metadata || {}),
+                        step: 'COMPLETED',
+                        activeSession: false,
+                        mpesaReceipt,
+                      },
+                    },
+                  })
+                  .catch(() => {});
+              }
+
               await fulfillWhatsAppCertificateDelivery({
                 phone: userPhone,
                 pin: conv?.metadata?.pin || (chatResult as any)?.metadata?.pin || 'KRA_CERT',
                 checkoutId: pendingCheckoutId,
-                mpesaReceipt: tx.reference || `PAYSTACK_${pendingCheckoutId}`,
-                amount: tx.amountKes || 20,
+                mpesaReceipt: mpesaReceipt || `MPESA_${pendingCheckoutId}`,
+                amount: amountKes,
                 taxpayerName: conv?.metadata?.taxpayerName || (chatResult as any)?.metadata?.taxpayerName,
                 taxpayerDetails: conv?.metadata?.taxpayerDetails || (chatResult as any)?.metadata?.taxpayerDetails,
               });

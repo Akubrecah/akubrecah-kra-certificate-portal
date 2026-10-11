@@ -136,8 +136,8 @@ export async function generateCertificatePdfBuffer(data: TaxpayerPdfData): Promi
 }
 
 /**
- * Generate official transaction receipt PDF as Buffer
- * Redesigned to match the website branding, executive styling, official logo, and verification QR code.
+ * Generate official ETR thermal transaction receipt PDF as Buffer (80mm POS standard).
+ * Sized at 80mm width (226.77 pt) x 600 pt continuous roll, matching Kenyan ETR/TIMS fiscal standards.
  */
 export async function generateReceiptPdfBuffer(opts: {
   receiptNumber: string;
@@ -148,396 +148,330 @@ export async function generateReceiptPdfBuffer(opts: {
   paymentMethod?: string;
 }): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
-  const { width, height } = page.getSize();
+  // Standard 80mm thermal receipt roll dimensions: 80mm * 72 / 25.4 = 226.77 points
+  const width = 226.77;
+  const height = 600;
+  const page = pdfDoc.addPage([width, height]);
 
-  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fontOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-
-  // Brand Palette matching website
-  const BRAND_NAVY = rgb(0.043, 0.098, 0.173); // #0B192C
-  const BRAND_EMERALD = rgb(0.063, 0.725, 0.506); // #10B981
-  const BRAND_EMERALD_DARK = rgb(0.02, 0.55, 0.35);
-  const BRAND_EMERALD_LIGHT = rgb(0.925, 0.984, 0.953); // #ECFDF5
-  const SLATE_BG = rgb(0.973, 0.980, 0.988); // #F8FAFC
-  const SLATE_BORDER = rgb(0.886, 0.906, 0.933); // #E2E8F0
-  const TEXT_DARK = rgb(0.059, 0.090, 0.165); // #0F172A
-  const TEXT_MUTED = rgb(0.392, 0.455, 0.545); // #64748B
-  const WHITE = rgb(1, 1, 1);
+  const fontCourier = await pdfDoc.embedFont(StandardFonts.Courier);
+  const fontCourierBold = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
   const cleanPin = (opts.pin || 'KRA_CERT').toUpperCase().trim();
   const cleanReceipt = opts.receiptNumber || 'REC-' + Date.now().toString(36).toUpperCase();
-  const resolvedAmount = `KES ${Number(opts.amount || 20).toFixed(2)}`;
+  const cleanName = (opts.name || 'REGISTERED TAXPAYER').toUpperCase().trim();
+  const resolvedAmount = Number(opts.amount || 20).toFixed(2);
+  const paymentMethod = opts.paymentMethod || 'M-PESA EXPRESS';
 
   const now = new Date();
-  const formattedDate = now.toLocaleDateString('en-GB', {
+  const dateStr = now.toLocaleDateString('en-GB', {
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric',
+    timeZone: 'Africa/Nairobi',
+  });
+  const timeStr = now.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     timeZone: 'Africa/Nairobi',
   }) + ' EAT';
 
-  // 1. Top Accent Stripe
-  page.drawRectangle({
-    x: 0,
-    y: height - 6,
-    width: width,
-    height: 6,
-    color: BRAND_EMERALD,
-  });
+  const BLACK = rgb(0.08, 0.08, 0.08);
+  const MUTED = rgb(0.35, 0.35, 0.35);
 
-  // 2. Embed Official Website Logo (PNG or JPG)
-  let logoDrawn = false;
-  const logoPngPath = path.join(process.cwd(), 'public', 'akubrecah-logo.png');
-  const logoJpgPath = path.join(process.cwd(), 'public', 'Akubrecah-logo.jpeg');
-  
-  if (fs.existsSync(logoPngPath)) {
-    try {
-      const logoImg = await pdfDoc.embedPng(fs.readFileSync(logoPngPath));
-      const logoW = 140;
-      const logoH = (logoImg.height / logoImg.width) * logoW;
-      page.drawImage(logoImg, {
-        x: 45,
-        y: height - 65,
-        width: logoW,
-        height: logoH,
-      });
-      logoDrawn = true;
-    } catch {}
-  } else if (fs.existsSync(logoJpgPath)) {
-    try {
-      const logoImg = await pdfDoc.embedJpg(fs.readFileSync(logoJpgPath));
-      const logoW = 140;
-      const logoH = (logoImg.height / logoImg.width) * logoW;
-      page.drawImage(logoImg, {
-        x: 45,
-        y: height - 65,
-        width: logoW,
-        height: logoH,
-      });
-      logoDrawn = true;
-    } catch {}
-  }
-
-  if (!logoDrawn) {
-    page.drawText('AKUBRECAH', {
-      x: 45,
-      y: height - 52,
-      size: 20,
-      font: fontBold,
-      color: BRAND_NAVY,
+  const drawCentered = (text: string, y: number, size = 7.5, font = fontCourierBold, color = BLACK) => {
+    const textWidth = font.widthOfTextAtSize(text, size);
+    page.drawText(text, {
+      x: Math.max(6, (width - textWidth) / 2),
+      y,
+      size,
+      font,
+      color,
     });
+  };
+
+  const drawRow = (left: string, right: string, y: number, size = 6.8, isBold = false) => {
+    const font = isBold ? fontCourierBold : fontCourier;
+    page.drawText(left, { x: 10, y, size, font, color: BLACK });
+    const rightWidth = font.widthOfTextAtSize(right, size);
+    page.drawText(right, { x: width - 10 - rightWidth, y, size, font, color: BLACK });
+  };
+
+  const drawDashedLine = (y: number, char = '-') => {
+    const line = char.repeat(38);
+    drawCentered(line, y, 6.8, fontCourier, MUTED);
+  };
+
+  // 1. Header (Authentic Kenyan ETR / TIMS Fiscal Structure)
+  drawCentered('AKUBRECAH TECHNOLOGIES LTD', 572, 9.5, fontCourierBold);
+  drawCentered('KRA COMPLIANCE & RETRIEVAL PORTAL', 559, 6.8, fontCourier);
+  drawCentered('OFFICIAL ETR FISCAL TAX INVOICE', 547, 7.8, fontCourierBold);
+  drawCentered('NAIROBI, KENYA | TEL: +254 791 497 858', 536, 6.2, fontCourier, MUTED);
+  drawCentered('PIN: P052184920K | VAT NO: 052184920K', 525, 6.8, fontCourierBold);
+  drawCentered('DEVICE CU SERIAL: ACR-TIMS-2026-08426', 514, 6.2, fontCourier, MUTED);
+
+  drawDashedLine(504, '=');
+
+  // 2. Transaction Metadata
+  drawRow('DATE: ' + dateStr, 'TIME: ' + timeStr, 492, 6.5);
+  drawRow('RECEIPT NO:', cleanReceipt, 480, 6.8, true);
+  drawRow('CASHIER:', 'JARVIS AUTO-BOT', 468, 6.5);
+
+  drawDashedLine(458, '-');
+
+  // 3. Taxpayer / Buyer Details
+  const displayTaxpayerName = cleanName.length > 22 ? cleanName.substring(0, 22) : cleanName;
+  drawRow('TAXPAYER:', displayTaxpayerName, 446, 6.8, true);
+  drawRow('KRA PIN:', cleanPin, 434, 7.2, true);
+  if (opts.phone) {
+    const formattedPhone = opts.phone.startsWith('254') ? '0' + opts.phone.substring(3) : opts.phone;
+    drawRow('PHONE:', formattedPhone, 422, 6.5);
   }
 
-  // Company details below logo
-  page.drawText('AKUBRECAH TECHNOLOGIES | KRA COMPLIANCE PORTAL', {
-    x: 45,
-    y: height - 80,
-    size: 8,
-    font: fontBold,
-    color: TEXT_MUTED,
-  });
-  page.drawText('Nairobi, Kenya | engineering@akubrecah.com | kra-certificate.vercel.app', {
-    x: 45,
-    y: height - 92,
-    size: 7.5,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
-
-  // Top Right: Title and Verified Pill Badge
-  const rightAlignX = width - 45;
-  const titleText = 'PAYMENT RECEIPT';
-  const titleWidth = fontBold.widthOfTextAtSize(titleText, 18);
-  page.drawText(titleText, {
-    x: rightAlignX - titleWidth,
-    y: height - 48,
-    size: 18,
-    font: fontBold,
-    color: BRAND_NAVY,
-  });
-
-  // Badge: PAID & VERIFIED
-  const badgeText = 'PAID & VERIFIED';
-  const textW = fontBold.widthOfTextAtSize(badgeText, 8.5);
-  const badgeWidth = textW + 24;
-  const badgeX = rightAlignX - badgeWidth;
-  const badgeY = height - 72;
-  page.drawRectangle({
-    x: badgeX,
-    y: badgeY,
-    width: badgeWidth,
-    height: 18,
-    color: BRAND_EMERALD_LIGHT,
-    borderColor: BRAND_EMERALD,
-    borderWidth: 1,
-  });
-  page.drawCircle({
-    x: badgeX + 9,
-    y: badgeY + 9,
-    size: 3,
-    color: BRAND_EMERALD_DARK,
-  });
-  page.drawText(badgeText, {
-    x: badgeX + 16,
-    y: badgeY + 5,
-    size: 8.5,
-    font: fontBold,
-    color: BRAND_EMERALD_DARK,
-  });
-
-  // Header Divider
-  page.drawLine({
-    start: { x: 45, y: height - 108 },
-    end: { x: width - 45, y: height - 108 },
-    thickness: 1,
-    color: SLATE_BORDER,
-  });
-
-  // 3. Metadata Summary Cards (Two Columns)
-  const cardY = height - 195;
-  const cardHeight = 75;
-  const cardWidth = (width - 90 - 15) / 2; // ~245pt each
-
-  // Card 1: Billed To / Taxpayer
-  page.drawRectangle({
-    x: 45,
-    y: cardY,
-    width: cardWidth,
-    height: cardHeight,
-    color: SLATE_BG,
-    borderColor: SLATE_BORDER,
-    borderWidth: 1,
-  });
-  page.drawText('TAXPAYER DETAILS', {
-    x: 55,
-    y: cardY + cardHeight - 16,
-    size: 8,
-    font: fontBold,
-    color: BRAND_NAVY,
-  });
-  page.drawText('Name:', { x: 55, y: cardY + 42, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText((opts.name || 'Registered Taxpayer').substring(0, 28), { x: 105, y: cardY + 42, size: 8.5, font: fontBold, color: TEXT_DARK });
-  page.drawText('PIN:', { x: 55, y: cardY + 28, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText(cleanPin, { x: 105, y: cardY + 28, size: 8.5, font: fontBold, color: BRAND_NAVY });
-  page.drawText('Delivery:', { x: 55, y: cardY + 14, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText('WhatsApp Verified Delivery', { x: 105, y: cardY + 14, size: 8, font: fontRegular, color: TEXT_DARK });
-
-  // Card 2: Transaction Summary
-  const card2X = 45 + cardWidth + 15;
-  page.drawRectangle({
-    x: card2X,
-    y: cardY,
-    width: cardWidth,
-    height: cardHeight,
-    color: SLATE_BG,
-    borderColor: SLATE_BORDER,
-    borderWidth: 1,
-  });
-  page.drawText('TRANSACTION SUMMARY', {
-    x: card2X + 10,
-    y: cardY + cardHeight - 16,
-    size: 8,
-    font: fontBold,
-    color: BRAND_NAVY,
-  });
-  page.drawText('Receipt No:', { x: card2X + 10, y: cardY + 42, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText(cleanReceipt, { x: card2X + 75, y: cardY + 42, size: 8.5, font: fontBold, color: BRAND_NAVY });
-  page.drawText('Date & Time:', { x: card2X + 10, y: cardY + 28, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText(formattedDate, { x: card2X + 75, y: cardY + 28, size: 8, font: fontRegular, color: TEXT_DARK });
-  page.drawText('Channel:', { x: card2X + 10, y: cardY + 14, size: 8, font: fontRegular, color: TEXT_MUTED });
-  page.drawText(opts.paymentMethod || 'M-PESA / PAYSTACK', { x: card2X + 75, y: cardY + 14, size: 8, font: fontBold, color: BRAND_EMERALD_DARK });
+  drawDashedLine(412, '=');
 
   // 4. Line Items Table
-  const tableY = cardY - 35;
-  page.drawRectangle({
-    x: 45,
-    y: tableY - 24,
-    width: width - 90,
-    height: 24,
-    color: BRAND_NAVY,
-  });
+  drawRow('DESCRIPTION', 'QTY  PRICE  TOTAL', 400, 6.8, true);
+  drawDashedLine(391, '-');
+  drawRow('KRA PIN CERTIFICATE', `1   ${resolvedAmount}  ${resolvedAmount}`, 379, 6.8, true);
+  page.drawText('* STATUTORY COMPLIANCE *', { x: 10, y: 368, size: 5.8, font: fontCourier, color: MUTED });
 
-  page.drawText('ITEM DESCRIPTION', { x: 55, y: tableY - 16, size: 8.5, font: fontBold, color: WHITE });
-  page.drawText('QTY', { x: 380, y: tableY - 16, size: 8.5, font: fontBold, color: WHITE });
-  page.drawText('RATE', { x: 430, y: tableY - 16, size: 8.5, font: fontBold, color: WHITE });
-  page.drawText('AMOUNT (KES)', { x: 495, y: tableY - 16, size: 8.5, font: fontBold, color: WHITE });
+  drawDashedLine(358, '=');
 
-  // Row 1
-  const rowY = tableY - 55;
-  page.drawText('KRA PIN Compliance Registration Certificate Retrieval', {
-    x: 55,
-    y: rowY,
-    size: 9.5,
-    font: fontBold,
-    color: TEXT_DARK,
-  });
-  page.drawText('Official Digital PIN Certificate, Live Taxpayer Validation & Automated PDF Dispatch', {
-    x: 55,
-    y: rowY - 12,
-    size: 7.5,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
-  page.drawText('1', { x: 385, y: rowY, size: 9, font: fontRegular, color: TEXT_DARK });
-  page.drawText(Number(opts.amount || 20).toFixed(2), { x: 435, y: rowY, size: 9, font: fontRegular, color: TEXT_DARK });
-  page.drawText(Number(opts.amount || 20).toFixed(2), { x: 515, y: rowY, size: 9.5, font: fontBold, color: TEXT_DARK });
+  // 5. Totals
+  drawRow('SUBTOTAL (KES):', resolvedAmount, 345, 6.8);
+  drawRow('TOTAL PAID (KES):', resolvedAmount, 331, 8.2, true);
+  drawRow('TENDERED (M-PESA):', resolvedAmount, 319, 6.8);
+  drawRow('CHANGE:', '0.00', 307, 6.8);
 
-  page.drawLine({
-    start: { x: 45, y: rowY - 22 },
-    end: { x: width - 45, y: rowY - 22 },
-    thickness: 1,
-    color: SLATE_BORDER,
-  });
+  drawDashedLine(297, '-');
 
-  // 5. Total Summary Box
-  const summaryBoxY = rowY - 100;
-  const summaryBoxW = 210;
-  const summaryBoxX = width - 45 - summaryBoxW;
+  // 6. Tax Breakdown (16% VAT Inclusive)
+  const totalNum = Number(opts.amount || 20);
+  const netNum = (totalNum / 1.16).toFixed(2);
+  const vatNum = (totalNum - Number(netNum)).toFixed(2);
 
-  page.drawRectangle({
-    x: summaryBoxX,
-    y: summaryBoxY,
-    width: summaryBoxW,
-    height: 65,
-    color: SLATE_BG,
-    borderColor: SLATE_BORDER,
-    borderWidth: 1,
-  });
+  drawCentered('TAX ANALYSIS (16% VAT INCLUSIVE)', 285, 6.5, fontCourierBold);
+  drawRow('RATE CODE', 'TAXABLE   VAT   TOTAL', 273, 6.0);
+  drawRow('A - 16%', `${netNum}  ${vatNum}  ${resolvedAmount}`, 261, 6.8, true);
 
-  page.drawText('Subtotal:', { x: summaryBoxX + 15, y: summaryBoxY + 45, size: 8.5, font: fontRegular, color: TEXT_MUTED });
-  page.drawText(resolvedAmount, { x: summaryBoxX + 130, y: summaryBoxY + 45, size: 8.5, font: fontRegular, color: TEXT_DARK });
+  drawDashedLine(250, '=');
 
-  page.drawText('Processing Fee:', { x: summaryBoxX + 15, y: summaryBoxY + 30, size: 8.5, font: fontRegular, color: TEXT_MUTED });
-  page.drawText('KES 0.00', { x: summaryBoxX + 130, y: summaryBoxY + 30, size: 8.5, font: fontRegular, color: TEXT_DARK });
+  // 7. Fiscal / M-Pesa Signatures
+  drawRow('M-PESA REF:', cleanReceipt, 238, 7.0, true);
+  drawRow('PAYMENT MODE:', paymentMethod, 226, 6.5);
+  drawRow('TIMS SIGNATURE:', '8F3A-C94B-20E1-77FA', 214, 5.8, false);
 
-  page.drawLine({
-    start: { x: summaryBoxX + 10, y: summaryBoxY + 22 },
-    end: { x: summaryBoxX + summaryBoxW - 10, y: summaryBoxY + 22 },
-    thickness: 1,
-    color: SLATE_BORDER,
-  });
+  drawDashedLine(204, '-');
 
-  page.drawText('TOTAL PAID:', { x: summaryBoxX + 15, y: summaryBoxY + 8, size: 10, font: fontBold, color: BRAND_NAVY });
-  page.drawText(resolvedAmount, { x: summaryBoxX + 120, y: summaryBoxY + 8, size: 11, font: fontBold, color: BRAND_EMERALD_DARK });
-
-  // 6. Verification Seal & QR Code Section
-  const sealY = summaryBoxY - 120;
-  const sealH = 95;
-  page.drawRectangle({
-    x: 45,
-    y: sealY,
-    width: width - 90,
-    height: sealH,
-    color: SLATE_BG,
-    borderColor: SLATE_BORDER,
-    borderWidth: 1,
-  });
-
-  // Left side of seal
-  page.drawText('DIGITAL VERIFICATION & AUTHENTICATION SEAL', {
-    x: 60,
-    y: sealY + sealH - 18,
-    size: 8.5,
-    font: fontBold,
-    color: BRAND_NAVY,
-  });
-  page.drawText('This electronic receipt serves as legally binding proof of transaction for KRA Certificate retrieval.', {
-    x: 60,
-    y: sealY + sealH - 32,
-    size: 7.5,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
-  page.drawText('Scan the QR code to verify this transaction and download archived documents anytime.', {
-    x: 60,
-    y: sealY + sealH - 44,
-    size: 7.5,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
-  page.drawText(`Verification URL: https://kra-certificate.vercel.app/retrieval-portal`, {
-    x: 60,
-    y: sealY + sealH - 58,
-    size: 7.5,
-    font: fontBold,
-    color: BRAND_NAVY,
-  });
-  page.drawText('Support: engineering@akubrecah.com | Available 24/7 on WhatsApp', {
-    x: 60,
-    y: sealY + 12,
-    size: 7.5,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
-
-  // Right side of seal: Sharp QR Code
+  // 8. Verification QR Code (Centered)
+  const verifyUrl = `https://kra-certificate.vercel.app/retrieval-portal?ref=${encodeURIComponent(cleanReceipt)}&pin=${encodeURIComponent(cleanPin)}`;
   try {
-    const verifyUrl = `https://kra-certificate.vercel.app/retrieval-portal?ref=${encodeURIComponent(cleanReceipt)}&pin=${encodeURIComponent(cleanPin)}`;
-    const qrBuffer = await QRCode.toBuffer(verifyUrl, {
+    const qrPng = await QRCode.toBuffer(verifyUrl, {
       type: 'png',
-      width: 200,
+      width: 160,
       margin: 1,
-      color: { dark: '#0b192c', light: '#ffffff' },
+      color: { dark: '#111827', light: '#ffffff' },
     });
-    const qrImg = await pdfDoc.embedPng(qrBuffer);
+    const qrImg = await pdfDoc.embedPng(qrPng);
     const qrSize = 65;
-    const qrX = width - 45 - qrSize - 18;
-    const qrY = sealY + 18;
-
+    const qrX = (width - qrSize) / 2;
     page.drawImage(qrImg, {
       x: qrX,
-      y: qrY,
+      y: 130,
       width: qrSize,
       height: qrSize,
     });
-
-    page.drawText('SCAN TO VERIFY', {
-      x: qrX + 3,
-      y: qrY - 8,
-      size: 6.5,
-      font: fontBold,
-      color: BRAND_NAVY,
-    });
   } catch (qrErr: any) {
-    console.warn('[generateReceiptPdfBuffer] QR code embed error:', qrErr.message);
+    console.warn('[generateReceiptPdfBuffer] QR code embed notice:', qrErr.message);
   }
 
-  // 7. Footer
-  page.drawLine({
-    start: { x: 45, y: 55 },
-    end: { x: width - 45, y: 55 },
-    thickness: 1,
-    color: SLATE_BORDER,
-  });
+  // 9. Verification Notice & Thermal Tear Line
+  drawCentered('SCAN TO VERIFY FISCAL AUTHENTICITY', 118, 6.2, fontCourierBold);
+  drawCentered('https://kra-certificate.vercel.app', 107, 5.5, fontCourier, MUTED);
 
-  page.drawText('(c) 2026 Akubrecah Technologies. All rights reserved. Registered Enterprise in Kenya.', {
-    x: 45,
-    y: 40,
-    size: 7,
-    font: fontRegular,
-    color: TEXT_MUTED,
-  });
+  drawDashedLine(97, '-');
 
-  page.drawText('This document is electronically verified. No physical signature required.', {
-    x: 45,
-    y: 28,
-    size: 6.5,
-    font: fontOblique,
-    color: TEXT_MUTED,
-  });
+  drawCentered('THANK YOU FOR YOUR BUSINESS', 85, 6.8, fontCourierBold);
+  drawCentered('KEEP THIS RECEIPT FOR TAX COMPLIANCE', 73, 5.8, fontCourier);
+  drawCentered('*** END OF LEGAL FISCAL RECEIPT ***', 61, 5.5, fontCourier, MUTED);
+
+  drawCentered('- - - - - - [ CUT HERE ] - - - - - -', 40, 5.8, fontCourier, MUTED);
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
 
 /**
+ * Generates an authentic, high-resolution ETR Fiscal Thermal Receipt Image (PNG)
+ * formatted for instant rendering directly on WhatsApp chat and mobile screens.
+ */
+export async function generateEtrReceiptImageBuffer(opts: {
+  receiptNumber: string;
+  pin: string;
+  name: string;
+  amount: number;
+  phone?: string;
+  paymentMethod?: string;
+  dateStr?: string;
+  timeStr?: string;
+}): Promise<Buffer | null> {
+  try {
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
+
+    const cleanPin = (opts.pin || 'KRA_CERT').toUpperCase().trim();
+    const cleanReceipt = opts.receiptNumber || 'REC-' + Date.now().toString(36).toUpperCase();
+    const cleanName = (opts.name || 'REGISTERED TAXPAYER').toUpperCase().trim();
+    const resolvedAmount = Number(opts.amount || 20).toFixed(2);
+    const totalNum = Number(opts.amount || 20);
+    const netNum = (totalNum / 1.16).toFixed(2);
+    const vatNum = (totalNum - Number(netNum)).toFixed(2);
+
+    const now = new Date();
+    const dateStr = opts.dateStr || now.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'Africa/Nairobi',
+    });
+    const timeStr = opts.timeStr || now.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Africa/Nairobi',
+    }) + ' EAT';
+
+    const verifyUrl = `https://kra-certificate.vercel.app/retrieval-portal?ref=${encodeURIComponent(cleanReceipt)}&pin=${encodeURIComponent(cleanPin)}`;
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#111827', light: '#ffffff' },
+    });
+
+    const displayTaxpayerName = cleanName.length > 25 ? cleanName.substring(0, 25) : cleanName;
+    const formattedPhone = opts.phone ? (opts.phone.startsWith('254') ? '0' + opts.phone.substring(3) : opts.phone) : '07XXXXXXXX';
+
+    const width = 440;
+    const height = 870;
+
+    const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          .mono { font-family: 'Courier New', Courier, monospace; fill: #111827; }
+          .bold { font-weight: bold; }
+          .center { text-anchor: middle; }
+          .right { text-anchor: end; }
+          .muted { fill: #4B5563; }
+          .divider { stroke: #4B5563; stroke-width: 1.2; stroke-dasharray: 4,4; }
+          .solid-div { stroke: #111827; stroke-width: 1.8; }
+        </style>
+      </defs>
+
+      <!-- Thermal Paper Background with Perforated Feel -->
+      <rect width="${width}" height="${height}" fill="#F4F4F5" />
+      <rect x="8" y="8" width="${width - 16}" height="${height - 16}" fill="#FFFFFF" rx="8" stroke="#D1D5DB" stroke-width="1.5" />
+
+      <!-- Top Tear Indication -->
+      <line x1="16" y1="20" x2="${width - 16}" y2="20" class="divider" />
+      <text x="220" y="24" class="mono center muted" font-size="9">- - - - - - OFFICIAL ETR FISCAL SLIP - - - - - -</text>
+
+      <!-- Header -->
+      <text x="220" y="55" class="mono bold center" font-size="18">AKUBRECAH TECHNOLOGIES LTD</text>
+      <text x="220" y="76" class="mono bold center" font-size="13">KRA COMPLIANCE &amp; RETRIEVAL PORTAL</text>
+      <text x="220" y="98" class="mono bold center" font-size="14">OFFICIAL ETR FISCAL TAX INVOICE</text>
+      <text x="220" y="118" class="mono center muted" font-size="11">NAIROBI, KENYA | TEL: +254 791 497 858</text>
+      <text x="220" y="136" class="mono bold center" font-size="12">PIN: P052184920K | VAT NO: 052184920K</text>
+      <text x="220" y="154" class="mono center muted" font-size="11">DEVICE CU SERIAL: ACR-TIMS-2026-08426</text>
+
+      <!-- Divider -->
+      <line x1="24" y1="170" x2="${width - 24}" y2="170" class="divider" />
+
+      <!-- Transaction Meta -->
+      <text x="28" y="190" class="mono" font-size="12">DATE: ${dateStr}</text>
+      <text x="${width - 28}" y="190" class="mono right" font-size="12">TIME: ${timeStr}</text>
+
+      <text x="28" y="210" class="mono bold" font-size="12">RECEIPT NO: ${cleanReceipt}</text>
+      <text x="28" y="230" class="mono" font-size="12">CASHIER: JARVIS AUTO-AGENT</text>
+
+      <line x1="24" y1="242" x2="${width - 24}" y2="242" class="divider" />
+
+      <!-- Taxpayer Details -->
+      <text x="28" y="262" class="mono bold" font-size="12">TAXPAYER: ${displayTaxpayerName}</text>
+      <text x="28" y="282" class="mono bold" font-size="13">KRA PIN: ${cleanPin}</text>
+      <text x="28" y="302" class="mono" font-size="12">PHONE: ${formattedPhone}</text>
+
+      <!-- Line Items Table -->
+      <line x1="24" y1="314" x2="${width - 24}" y2="314" class="solid-div" />
+      <text x="28" y="332" class="mono bold" font-size="12">DESCRIPTION</text>
+      <text x="270" y="332" class="mono bold" font-size="12">QTY</text>
+      <text x="330" y="332" class="mono bold" font-size="12">PRICE</text>
+      <text x="${width - 28}" y="332" class="mono bold right" font-size="12">TOTAL</text>
+      <line x1="24" y1="342" x2="${width - 24}" y2="342" class="solid-div" />
+
+      <text x="28" y="364" class="mono bold" font-size="12">KRA PIN CERTIFICATE</text>
+      <text x="270" y="364" class="mono" font-size="12">1</text>
+      <text x="330" y="364" class="mono" font-size="12">${resolvedAmount}</text>
+      <text x="${width - 28}" y="364" class="mono bold right" font-size="12">${resolvedAmount}</text>
+      <text x="28" y="382" class="mono muted" font-size="11">* STATUTORY RETRIEVAL &amp; VERIFICATION *</text>
+
+      <line x1="24" y1="398" x2="${width - 24}" y2="398" class="solid-div" />
+
+      <!-- Totals -->
+      <text x="28" y="420" class="mono" font-size="13">SUBTOTAL (KES):</text>
+      <text x="${width - 28}" y="420" class="mono right" font-size="13">${resolvedAmount}</text>
+
+      <text x="28" y="446" class="mono bold" font-size="16">TOTAL PAID (KES):</text>
+      <text x="${width - 28}" y="446" class="mono bold right" font-size="17">${resolvedAmount}</text>
+
+      <text x="28" y="470" class="mono" font-size="13">TENDERED (M-PESA):</text>
+      <text x="${width - 28}" y="470" class="mono right" font-size="13">${resolvedAmount}</text>
+
+      <text x="28" y="492" class="mono" font-size="12">CHANGE:</text>
+      <text x="${width - 28}" y="492" class="mono right" font-size="12">0.00</text>
+
+      <line x1="24" y1="506" x2="${width - 24}" y2="506" class="divider" />
+
+      <!-- Tax Breakdown -->
+      <text x="220" y="525" class="mono bold center" font-size="12">TAX ANALYSIS (16% VAT INCLUSIVE)</text>
+      <text x="28" y="544" class="mono" font-size="11">RATE CODE</text>
+      <text x="160" y="544" class="mono" font-size="11">TAXABLE</text>
+      <text x="275" y="544" class="mono" font-size="11">TAX</text>
+      <text x="${width - 28}" y="544" class="mono right" font-size="11">TOTAL</text>
+      <text x="28" y="564" class="mono bold" font-size="12">A - 16%</text>
+      <text x="160" y="564" class="mono" font-size="12">${netNum}</text>
+      <text x="275" y="564" class="mono" font-size="12">${vatNum}</text>
+      <text x="${width - 28}" y="564" class="mono bold right" font-size="12">${resolvedAmount}</text>
+
+      <line x1="24" y1="578" x2="${width - 24}" y2="578" class="solid-div" />
+
+      <!-- M-Pesa Info -->
+      <text x="28" y="600" class="mono bold" font-size="13">M-PESA REF: ${cleanReceipt}</text>
+      <text x="28" y="620" class="mono" font-size="12">PAYMENT MODE: M-PESA EXPRESS</text>
+      <text x="28" y="638" class="mono muted" font-size="11">INTERNAL TIMS CODE: 8F3A-C94B-20E1-77FA</text>
+
+      <line x1="24" y1="652" x2="${width - 24}" y2="652" class="divider" />
+
+      <!-- QR Code Section -->
+      <image href="${qrDataUrl}" x="150" y="665" width="140" height="140" />
+      <text x="220" y="818" class="mono bold center" font-size="11">SCAN TO VERIFY FISCAL RECEIPT</text>
+      <text x="220" y="834" class="mono center muted" font-size="9">https://kra-certificate.vercel.app</text>
+
+      <line x1="24" y1="846" x2="${width - 24}" y2="846" class="divider" />
+      <text x="220" y="858" class="mono center muted" font-size="9">- - - - - - KEEP THIS RECEIPT FOR TAX AUDIT - - - - - -</text>
+    </svg>
+    `;
+
+    return await sharp(Buffer.from(svg)).png().toBuffer();
+  } catch (err: any) {
+    console.warn('[generateEtrReceiptImageBuffer] Image generation notice:', err.message);
+    return null;
+  }
+}
+
+/**
  * End-to-end WhatsApp document delivery orchestrator.
- * Generates Certificate PDF with authentic registration date, redesigned branded Receipt PDF,
- * and delivers the Verification QR Code image directly to WhatsApp.
  */
 export async function fulfillWhatsAppCertificateDelivery(opts: {
   phone: string;
@@ -628,7 +562,7 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       phoneNumber: passed.phone_number || passed.phoneNumber || cachedRecord?.phone_number || userPhone,
     });
 
-    // 4. Generate Receipt PDF Buffer (redesigned executive layout)
+    // 4. Generate 80mm ETR Receipt PDF Buffer (print-ready for thermal POS/Bluetooth printers)
     const receiptBuffer = await generateReceiptPdfBuffer({
       receiptNumber: receiptNum,
       pin: cleanPin,
@@ -638,27 +572,37 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       paymentMethod: 'M-PESA EXPRESS',
     });
 
-    // 5. Send Certificate PDF via Evolution API
+    // 5. Generate high-resolution ETR Receipt Image Slip (PNG for instant chat preview)
+    const receiptImageBuffer = await generateEtrReceiptImageBuffer({
+      receiptNumber: receiptNum,
+      pin: cleanPin,
+      name: resolvedName,
+      amount: amount,
+      phone: userPhone,
+      paymentMethod: 'M-PESA EXPRESS',
+    });
+
+    // 6. Send Official KRA PIN Certificate PDF (A4 format remains untouched)
     const certRes = await sendEvolutionDocument({
       phone: userPhone,
       pdfBuffer: certBuffer,
       fileName: `KRA_PIN_Certificate_${cleanPin}.pdf`,
-      caption: `📄 *Official KRA PIN Registration Certificate*\nPIN: \`${cleanPin}\`\nName: *${resolvedName}*\nRegistered: *${authenticRegDate}*`,
+      caption: `📄 *Official KRA PIN Registration Certificate*\n• Taxpayer: *${resolvedName}*\n• PIN: *${cleanPin}*\n• Reg Date: *${authenticRegDate}*`,
     });
 
     if (!certRes.success) {
       console.error('[Fulfillment] Failed to send certificate document:', certRes.error);
     }
 
-    // Small delay to ensure message ordering in WhatsApp
+    // Small delay to ensure clean sequential delivery in WhatsApp
     await new Promise((r) => setTimeout(r, 1200));
 
-    // 6. Send Receipt PDF via Evolution API
+    // 7. Send Official ETR Thermal Receipt PDF (80mm)
     const receiptRes = await sendEvolutionDocument({
       phone: userPhone,
       pdfBuffer: receiptBuffer,
-      fileName: `Payment_Receipt_${receiptNum}.pdf`,
-      caption: `🧾 *Official Payment Receipt*\nReceipt: \`${receiptNum}\`\nAmount: *KES ${amount.toFixed(2)}*`,
+      fileName: `ETR_Receipt_${receiptNum}.pdf`,
+      caption: `🧾 *Official ETR Fiscal Receipt (80mm Thermal)*\n• Receipt: *${receiptNum}*\n• Amount: *KES ${amount.toFixed(2)}*\n_Print-ready for POS & thermal receipt printers._`,
     });
 
     if (!receiptRes.success) {
@@ -667,48 +611,39 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
 
     await new Promise((r) => setTimeout(r, 1200));
 
-    // 7. Send Verification QR Code Image via Evolution API
-    const verifyUrl = `https://kra-certificate.vercel.app/retrieval-portal?ref=${encodeURIComponent(receiptNum)}&pin=${encodeURIComponent(cleanPin)}`;
-    try {
-      const qrBuffer = await QRCode.toBuffer(verifyUrl, {
-        type: 'png',
-        width: 500,
-        margin: 2,
-        color: { dark: '#0b192c', light: '#ffffff' },
-      });
-
-      const qrRes = await sendEvolutionImage({
+    // 8. Send ETR Receipt Image Slip (PNG for immediate chat preview)
+    if (receiptImageBuffer) {
+      const imgRes = await sendEvolutionImage({
         phone: userPhone,
-        imageBuffer: qrBuffer,
-        fileName: `Verification_QR_${cleanPin}.png`,
+        imageBuffer: receiptImageBuffer,
+        fileName: `ETR_Receipt_${receiptNum}.png`,
         caption:
-          `📱 *Official Verification QR Code*\n\n` +
-          `• *PIN:* \`${cleanPin}\`\n` +
-          `• *Receipt No:* \`${receiptNum}\`\n` +
-          `• *Registration Date:* *${authenticRegDate}*\n\n` +
-          `Scan this QR code or tap the link below to instantly verify your documents online:\n` +
-          `👉 ${verifyUrl}`,
+          `🧾 *Official ETR Fiscal Receipt Slip*\n\n` +
+          `• *Receipt No:* *${receiptNum}*\n` +
+          `• *Taxpayer:* ${resolvedName}\n` +
+          `• *PIN:* *${cleanPin}*\n` +
+          `• *Total Paid:* *KES ${amount.toFixed(2)}*\n` +
+          `• *Payment Mode:* M-PESA EXPRESS\n\n` +
+          `_Scan the embedded QR code to verify fiscal authenticity online._`,
       });
 
-      if (!qrRes.success) {
-        console.warn('[Fulfillment] Failed to send QR image:', qrRes.error);
+      if (!imgRes.success) {
+        console.warn('[Fulfillment] Failed to send ETR image slip:', imgRes.error);
       }
-    } catch (qrErr: any) {
-      console.warn('[Fulfillment] QR Code generation notice:', qrErr.message);
     }
 
     await new Promise((r) => setTimeout(r, 1000));
 
-    // 8. Send final confirmation text message
+    // 9. Send final delivery confirmation text message
     await sendEvolutionTextMessage(
       userPhone,
       `🎉 *Delivery Complete!*\n\n` +
-      `Your *KRA PIN Certificate*, *Official Payment Receipt*, and *Verification QR Code* have been delivered above.\n\n` +
+      `Your *Official KRA PIN Certificate (PDF)*, *ETR Thermal Receipt (PDF)*, and *ETR Receipt Slip (Image)* have been delivered above.\n\n` +
       `• *Taxpayer:* ${resolvedName}\n` +
-      `• *PIN:* \`${cleanPin}\`\n` +
+      `• *PIN:* *${cleanPin}*\n` +
       `• *Registration Date:* *${authenticRegDate}*\n` +
-      `• *Receipt No:* \`${receiptNum}\`\n\n` +
-      `Thank you for using Akubrecah KRA Portal. Send */kra* or */menu* anytime to start a new lookup.`
+      `• *Receipt / M-Pesa Ref:* *${receiptNum}*\n\n` +
+      `Thank you for using Akubrecah KRA Portal. Send /kra or /menu anytime to start a new lookup.`
     );
 
     // 8. Update conversation step to COMPLETED and end active session

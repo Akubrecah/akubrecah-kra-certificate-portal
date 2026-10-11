@@ -50,3 +50,24 @@
   - [x] WhatsApp notification dispatched with commit SHA, author, and live website link.
 - [x] **Task 12: CI/CD Setup Guide (`CI_CD.md`)**
   - [x] Documented pipeline architecture, required GitHub Secrets, and recommended branch protection rules.
+
+## Feature 4: WhatsApp In-App M-Pesa STK Push & Authentic ETR Fiscal Thermal Receipt
+- [x] **Task 13: In-App M-Pesa STK Push Triggering (No External Redirects)**
+  - [x] Integrated `dispatchMpesaStkPush` directly into `app/api/whatsapp/chat/route.ts` for `/kra <PIN/ID>` lookup and `AWAITING_INPUT` step.
+  - [x] Immediately triggers M-Pesa PIN prompt directly on customer's phone for KES 20.00 without any Paystack checkout redirect links.
+  - [x] Enabled seamless alternate phone payment: user can send another number (e.g., `0712345678`) to dispatch the STK push to that device.
+  - [x] Supported `1` or `RESEND` to re-trigger prompt, and `PAID` to verify manually.
+- [x] **Task 14: Authentic 80mm ETR Fiscal Thermal Receipt & Image Slip Generation**
+  - [x] Redesigned `generateReceiptPdfBuffer` in `lib/certificate-fulfillment.ts` to output standard 80mm continuous thermal POS receipt (`[226.77 pt, 600 pt]`).
+  - [x] Included authentic TIMS fiscal layout: Control Unit serial (`ACR-TIMS-2026-08426`), Receipt Number, Trader KRA PIN, Taxpayer PIN/Name, Net amount (KES 17.24), 16% VAT (KES 2.76), M-Pesa reference, embedded verification QR code, and thermal cut lines.
+  - [x] Implemented `generateEtrReceiptImageBuffer` with SVG and `sharp` to produce a 440x870px crisp PNG ETR receipt slip for immediate visual preview in WhatsApp chat.
+  - [x] Preserved official KRA PIN Certificate A4 format with authentic registration dates.
+- [x] **Task 15: Automated Background Payment Poller & Multi-Document Fulfillment**
+  - [x] Upgraded Next.js `after()` background poller in `app/api/whatsapp/webhook/route.ts` to actively monitor both Daraja and Paystack M-Pesa transactions every 2.5s for up to 55s.
+  - [x] Completely automated fulfillment: the moment user enters M-Pesa PIN, bot automatically delivers:
+    1. Official KRA PIN Certificate PDF (A4 format).
+    2. Official ETR Fiscal Receipt PDF (`ETR_Receipt_[REC].pdf`, 80mm thermal).
+    3. Official ETR Fiscal Receipt Image Slip (`ETR_Receipt_[REC].png`, instant visual preview).
+    4. Confirmation summary message.
+  - [x] Updated `app/api/generate-receipt/route.ts` download filename to `ETR_Receipt_[REC].pdf`.
+

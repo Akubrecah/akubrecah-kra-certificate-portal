@@ -16,7 +16,7 @@ export function MarkdownContent({ content, className = '' }: MarkdownContentProp
   if (!content) return null;
 
   // Pre-process any GitHub specific callouts e.g. > [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING]
-  let enhanced = content
+  const enhanced = content
     .replace(
       /> \[!NOTE\]\s*\n((?:> .*\n?)*)/gi,
       '<div class="github-alert alert-note"><div class="alert-title">📘 Note</div>$1</div>'

@@ -19,7 +19,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  let project = await getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug);
   if (!project) {
     const { repos } = await getAllGithubRepos('Akubrecah');
     const gh = repos.find((r) => r.name.toLowerCase() === slug.toLowerCase());

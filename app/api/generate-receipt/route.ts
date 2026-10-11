@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Receipt_${resolvedReceipt}.pdf"`,
+        'Content-Disposition': `attachment; filename="ETR_Receipt_${resolvedReceipt}.pdf"`,
       },
     });
   } catch (error: any) {
