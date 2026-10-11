@@ -10,14 +10,14 @@ export interface MagicTokenPayload {
 }
 
 /**
- * Generate a signed, tamper-proof magic token that expires in 15 minutes
+ * Generate a signed, tamper-proof magic token (default validity: 4 hours)
  */
-export function createAdminMagicToken(phone: string): string {
+export function createAdminMagicToken(phone: string, durationMinutes = 240): string {
   const payload: MagicTokenPayload = {
     phone,
     role: 'Super Admin',
     createdAt: Date.now(),
-    expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
+    expiresAt: Date.now() + durationMinutes * 60 * 1000,
   };
 
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');

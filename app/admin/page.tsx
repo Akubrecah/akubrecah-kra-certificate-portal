@@ -361,6 +361,25 @@ export default function AdminOverviewPage() {
     );
   }
 
+  if (!data && !loading) {
+    return (
+      <div className="p-8 max-w-xl mx-auto my-16 bg-surface-container-low border border-outline-variant rounded-3xl text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-on-surface">Telemetry Data Not Available</h2>
+        <p className="text-xs text-on-surface-variant leading-relaxed">
+          Unable to synchronize dashboard telemetry. Please ensure your admin session is active and click retry below.
+        </p>
+        <button
+          onClick={handleRefresh}
+          className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary/90 transition-all shadow-md"
+        >
+          Retry Sync
+        </button>
+      </div>
+    );
+  }
   const rev = data?.revenue;
   const payLive = data?.paystackLive;
   const dev = data?.deviceUsage;
@@ -512,8 +531,8 @@ export default function AdminOverviewPage() {
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">
-            <span>Paystack: KES {(rev?.byGateway.paystack || 0).toLocaleString()}</span>
-            <span>M-Pesa STK: KES {(rev?.byGateway.mpesa || 0).toLocaleString()}</span>
+            <span>Paystack: KES {(rev?.byGateway?.paystack || 0).toLocaleString()}</span>
+            <span>M-Pesa STK: KES {(rev?.byGateway?.mpesa || 0).toLocaleString()}</span>
           </div>
         </div>
 

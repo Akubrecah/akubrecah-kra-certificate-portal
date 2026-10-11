@@ -79,26 +79,42 @@ async function handleAdminBotCommand({
   isFromBotOwner?: boolean;
 }): Promise<string | null> {
   const trimmed = incomingText.trim();
-  const lower = trimmed.toLowerCase();
+
+  // Strip leading ! or /
+  const clean = trimmed.replace(/^[\!\/]/, '').trim();
+  const parts = clean.split(/\s+/);
+  const rawCmd = parts[0]?.toLowerCase() || '';
+  const rawArg = parts.slice(1).join(' ').trim();
+
+  const expectedPin = process.env.ADMIN_BOT_PIN || '8426';
+  const hasPinInText = clean.includes(expectedPin) || clean.includes('8426');
+
+  // Check if this message is intended for admin bot
+  const adminCmds = [
+    'admin',
+    'stats',
+    'kpi',
+    'revenue',
+    'rev',
+    'logs',
+    'tx',
+    'transactions',
+    'bot',
+    'whatsapp',
+    'link',
+    'magic',
+    'web',
+    'lock',
+    'logout',
+    'help',
+    'menu',
+  ];
 
   const isAdminTrigger =
     trimmed.startsWith('!') ||
-    lower.startsWith('/admin') ||
-    lower.startsWith('/stats') ||
-    lower.startsWith('/revenue') ||
-    lower.startsWith('/logs') ||
-    lower.startsWith('/bot') ||
-    lower.startsWith('/link') ||
-    lower.startsWith('/lock') ||
-    lower === 'admin' ||
-    lower === 'stats' ||
-    lower === 'revenue' ||
-    lower === 'logs' ||
-    lower === 'bot' ||
-    lower === 'link' ||
-    lower === 'lock' ||
-    lower === 'help' ||
-    lower === 'menu';
+    (trimmed.startsWith('/') && adminCmds.includes(rawCmd)) ||
+    adminCmds.includes(rawCmd) ||
+    hasPinInText;
 
   if (!isAdminTrigger) return null;
 
@@ -121,93 +137,65 @@ async function handleAdminBotCommand({
     adminList.includes(effectivePhone) ||
     adminList.some((p) => effectivePhone.endsWith(p) || p.endsWith(effectivePhone));
 
-  const expectedPin = process.env.ADMIN_BOT_PIN || '8426';
   const hasActivePinSession = Boolean(
     metadata.isAdminAuthenticated && metadata.adminAuthExpiry && Date.now() < metadata.adminAuthExpiry
   );
 
-  // The bot number itself and whitelisted admin phones are ALWAYS pre-authenticated without requiring PIN entry!
-  const isAdminAuthenticated = isWhitelisted || hasActivePinSession;
+  // Authenticate if owner, whitelisted, active session, OR if message contains the master PIN!
+  let isAdminAuthenticated = isWhitelisted || hasActivePinSession || hasPinInText;
 
-  const clean = trimmed.replace(/^[\!\/]/, '').trim();
-  const parts = clean.split(/\s+/);
-  const cmd = parts[0]?.toLowerCase() || '';
-  const arg = parts.slice(1).join(' ').trim();
-
-  // Authentication command or menu request: !admin, !auth, !login, !help, !menu, admin, help, menu
-  if (cmd === 'admin' || cmd === 'auth' || cmd === 'login' || cmd === 'help' || cmd === 'menu') {
-    if (arg === expectedPin) {
-      await saveConversationState(metadata.step || 'IDLE', {
-        isAdminAuthenticated: true,
-        adminAuthExpiry: Date.now() + 4 * 60 * 60 * 1000, // 4 hours session
-      });
-
-      return (
-        `👑 *ADMIN AUTHENTICATED SUCCESSFULLY*\n\n` +
-        `Welcome to the *Akubrecah KRA Admin Command Center*.\n` +
-        `Session unlocked for 4 hours.\n\n` +
-        `*Available Commands:*\n` +
-        `• *!stats* — Real-time Executive KPIs (Revenue, Users, PC vs Mobile)\n` +
-        `• *!revenue* — Revenue Breakdown (Today, 7d, Gateways)\n` +
-        `• *!logs* — Last 5 Transactions & Receipts\n` +
-        `• *!bot* — WhatsApp Bot Adoption & Stats\n` +
-        `• *!link* — 1-Click Web Dashboard Login Link\n` +
-        `• *!lock* — Lock admin session`
-      );
-    } else if (isAdminAuthenticated) {
-      return (
-        `👑 *AKUBRECAH KRA — ADMIN COMMAND CENTER*\n\n` +
-        `• *!stats* — Real-time Executive KPIs (Revenue, Users, PC vs Mobile)\n` +
-        `• *!revenue* — Revenue Breakdown (Today, 7d, Gateways)\n` +
-        `• *!logs* — Last 5 Transactions & Receipts\n` +
-        `• *!bot* — WhatsApp Bot Adoption & Stats\n` +
-        `• *!link* — 1-Click Web Dashboard Login Link\n` +
-        `• *!lock* — Lock session\n\n` +
-        `_Reply with any command (e.g. *!stats*) to run immediately._`
-      );
-    } else {
-      return (
-        `🔐 *Admin Verification Required*\n\n` +
-        `To unlock the Admin Command Center, enter your PIN:\n` +
-        `Reply: *!admin <PIN>*\n\n` +
-        `_(Default PIN is 8426 or set in ADMIN_BOT_PIN)_`
-      );
-    }
+  if (hasPinInText && !hasActivePinSession) {
+    await saveConversationState(metadata.step || 'IDLE', {
+      isAdminAuthenticated: true,
+      adminAuthExpiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+    });
+    isAdminAuthenticated = true;
   }
 
-  // Enforce authentication for non-whitelisted numbers
+  // Handle nested sub-commands like "admin stats", "admin revenue", "admin logs", "admin link"
+  let cmd = rawCmd;
+  let arg = rawArg;
+  if (cmd === 'admin' && arg && adminCmds.includes(arg.toLowerCase())) {
+    cmd = arg.toLowerCase();
+    arg = '';
+  }
+
+  // If user entered admin command without authentication and without PIN
   if (!isAdminAuthenticated) {
     return (
-      `🔐 *Admin Access Restricted*\n\n` +
-      `Your phone is not yet unlocked for admin operations.\n` +
-      `Reply: *!admin <PIN>* to authenticate.`
+      `🔐 *Akubrecah KRA — Admin Verification Required*\n\n` +
+      `Your phone is not yet unlocked for admin operations.\n\n` +
+      `To unlock, reply:\n` +
+      `*!admin 8426* or simply *8426*\n\n` +
+      `_(Default master PIN is 8426)_`
     );
   }
 
+  // From here on, caller is fully authenticated!
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
 
-  // Lock command
+  // 1. Lock command
   if (cmd === 'lock' || cmd === 'logout') {
     await saveConversationState(metadata.step || 'IDLE', {
       isAdminAuthenticated: false,
       adminAuthExpiry: 0,
     });
-    return `🔒 *Admin Session Locked.*\nSend *!admin <PIN>* anytime to re-authenticate.`;
+    return `🔒 *Admin Session Locked.*\nSend *!admin 8426* anytime to re-authenticate.`;
   }
 
-  // 1-Click Magic Link
+  // 2. 1-Click Magic Link
   if (cmd === 'link' || cmd === 'magic' || cmd === 'web') {
-    const magicToken = createAdminMagicToken(userPhone);
+    const magicToken = createAdminMagicToken(effectivePhone || BOT_NUMBER);
     const magicUrl = `${appUrl}/api/admin/magic-login?token=${magicToken}`;
     return (
       `👑 *1-Click Admin Web Access*\n\n` +
-      `Tap the link below to open your Executive Admin Dashboard directly in your phone browser without entering a password:\n\n` +
+      `Tap the link below to open your Executive Admin Dashboard directly without entering any password:\n\n` +
       `👉 ${magicUrl}\n\n` +
-      `⏳ _This cryptographically signed link is valid for 15 minutes._`
+      `⏳ _This cryptographically signed token is valid for 4 hours._`
     );
   }
 
-  // !stats
+  // 3. !stats
   if (cmd === 'stats' || cmd === 'kpi') {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -251,7 +239,7 @@ async function handleAdminBotCommand({
     );
   }
 
-  // !revenue
+  // 4. !revenue
   if (cmd === 'revenue' || cmd === 'rev') {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -284,7 +272,7 @@ async function handleAdminBotCommand({
     );
   }
 
-  // !logs
+  // 5. !logs
   if (cmd === 'logs' || cmd === 'transactions' || cmd === 'tx') {
     let recent: any[] = [];
     if (typeof db.certificateDownload?.findMany === 'function') {
@@ -317,7 +305,7 @@ async function handleAdminBotCommand({
     return report;
   }
 
-  // !bot
+  // 6. !bot
   if (cmd === 'bot' || cmd === 'whatsapp') {
     let totalBotUsers = 0;
     let totalConversations = 0;
@@ -348,15 +336,16 @@ async function handleAdminBotCommand({
     );
   }
 
-  // Default menu
+  // 7. Menu / Help / Default
   return (
-    `👑 *AKUBRECAH KRA — ADMIN MENU*\n\n` +
-    `• *!stats* — Real-time Executive KPIs\n` +
-    `• *!revenue* — Complete revenue breakdown\n` +
-    `• *!logs* — Latest 5 transaction receipts\n` +
-    `• *!bot* — WhatsApp bot user adoption & sales\n` +
-    `• *!link* — 1-Click magic link to Web Dashboard\n` +
-    `• *!lock* — Lock admin session`
+    `👑 *AKUBRECAH KRA — ADMIN COMMAND CENTER*\n\n` +
+    `• *!stats* — Real-time Executive KPIs (Revenue, Users, PC vs Mobile)\n` +
+    `• *!revenue* — Revenue Breakdown (Today, 7d, Gateways)\n` +
+    `• *!logs* — Last 5 Transactions & Receipts\n` +
+    `• *!bot* — WhatsApp Bot Adoption & Stats\n` +
+    `• *!link* — 1-Click Web Dashboard Login Link\n` +
+    `• *!lock* — Lock session\n\n` +
+    `_Reply with any command (e.g. *!stats* or *!link*) to run immediately._`
   );
 }
 

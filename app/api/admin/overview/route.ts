@@ -1,48 +1,9 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyAdminMagicToken } from "@/lib/magic-token";
 import { getPaystackBalances, getPaystackLiveTransactions, getPaystackPayouts } from "@/lib/paystack";
+import { verifyAdminCaller } from "@/lib/admin-auth";
 
 export const maxDuration = 30;
-
-// Verify caller is Super Admin or Admin (via Clerk or WhatsApp Magic Token)
-async function verifyAdminCaller(req: NextRequest) {
-  // Check WhatsApp Magic Cookie first
-  const magicCookie = req.cookies.get("admin_magic_auth")?.value;
-  if (magicCookie) {
-    const verified = verifyAdminMagicToken(magicCookie);
-    if (verified) {
-      return { userId: "wa_admin_" + verified.phone, email: "admin@akubrecah.co.ke", role: "Super Admin" };
-    }
-  }
-
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    const client = await clerkClient();
-    const currentUser = await client.users.getUser(userId);
-    const email = currentUser.primaryEmailAddress?.emailAddress?.toLowerCase();
-    const role = currentUser.publicMetadata?.role as string;
-    const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-    const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-
-    if (
-      email === "poweldayck@gmail.com" ||
-      email === configAdminEmail ||
-      email === configPublicAdminEmail ||
-      role === "Super Admin" ||
-      role === "Admin" ||
-      process.env.NODE_ENV === "development"
-    ) {
-      return { userId, email, role: role || "Admin" };
-    }
-  } catch (err: any) {
-    console.error("[verifyAdminCaller] Error:", err.message);
-  }
-  return null;
-}
 
 export async function GET(req: NextRequest) {
   try {

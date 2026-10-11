@@ -106,15 +106,66 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isResizing]);
 
   const [hasMagicAuth, setHasMagicAuth] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    if (typeof document !== 'undefined' && document.cookie.includes('admin_magic_auth=')) {
+    // 1. Check client-accessible cookie
+    if (
+      typeof document !== "undefined" &&
+      (document.cookie.includes("admin_magic_client=1") || document.cookie.includes("admin_magic_auth="))
+    ) {
       setHasMagicAuth(true);
+      setCheckingAuth(false);
+      return;
     }
+
+    // 2. Query session endpoint
+    fetch("/api/admin/magic-login?check=1")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated) {
+          setHasMagicAuth(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingAuth(false));
   }, []);
 
+  const handlePinUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinInput.trim()) {
+      setPinError("Please enter your admin PIN.");
+      return;
+    }
+
+    setIsVerifyingPin(true);
+    setPinError("");
+
+    try {
+      const res = await fetch("/api/admin/magic-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pinInput.trim() }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setHasMagicAuth(true);
+      } else {
+        setPinError(data.error || "Incorrect PIN. Default is 8426.");
+      }
+    } catch {
+      setPinError("Network error. Please try again.");
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
+
   // Show loading while auth details are fetching
-  if (!isLoaded) {
+  if (!isLoaded || checkingAuth) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest text-on-surface">
         <div className="flex flex-col items-center gap-4">
@@ -136,20 +187,81 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     userEmail === configPublicAdminEmail ||
     userRole === "Super Admin" ||
     userRole === "Admin";
-  
-  console.log("[Admin Authorization]", {
-    userEmail,
-    userRole,
-    isSuperAdmin,
-    hasMagicAuth,
-    userId: user?.id
-  });
 
+  // If unauthenticated, present the Master Admin PIN Gate Modal instead of bouncing to /dashboard
   if (!isSuperAdmin && !hasMagicAuth) {
-    if (typeof window !== "undefined") {
-      router.push("/dashboard");
-    }
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest p-4 relative overflow-hidden">
+        {/* Ambient red glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="w-full max-w-md bg-surface-container-low border border-outline-variant p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary mb-3">
+              <span className="material-symbols-outlined text-[32px]">shield_lock</span>
+            </div>
+            <h1 className="text-2xl font-black text-on-surface tracking-tight">Admin Command Center</h1>
+            <p className="text-xs text-on-surface-variant max-w-xs mx-auto leading-relaxed">
+              Official KRA Portal Administration. Enter your master PIN to unlock executive access.
+            </p>
+          </div>
+
+          <form onSubmit={handlePinUnlock} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                Master Admin Passcode
+              </label>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  setPinError("");
+                }}
+                placeholder="Enter 4-digit PIN (default: 8426)"
+                autoFocus
+                className="w-full h-12 px-4 rounded-xl bg-surface-container text-center font-mono text-lg font-black tracking-widest text-on-surface placeholder:text-on-surface-variant/40 border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {pinError && (
+                <p className="text-xs font-bold text-error mt-2 text-center animate-shake">{pinError}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isVerifyingPin}
+              className="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isVerifyingPin ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Verifying Passcode...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">lock_open</span>
+                  <span>Unlock Admin Dashboard</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-outline-variant/60 text-center space-y-2">
+            <Link
+              href="/sign-in?redirect_url=/admin"
+              className="text-xs font-bold text-primary hover:underline block"
+            >
+              Or Sign In with Clerk Super Admin Account →
+            </Link>
+            <Link href="/" className="text-[11px] text-on-surface-variant hover:text-on-surface block">
+              ← Return to Public Portal
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

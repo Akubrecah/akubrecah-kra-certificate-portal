@@ -1,36 +1,15 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminCaller } from "@/lib/admin-auth";
 
-// Verify that the current user is the super admin or has admin role configuration
-async function verifySuperAdmin() {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  const client = await clerkClient();
-  const currentUser = await client.users.getUser(userId);
-  const email = currentUser.primaryEmailAddress?.emailAddress?.toLowerCase();
-  const role = currentUser.publicMetadata?.role as string;
-  const configAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-  const configPublicAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
-
-  if (
-    email === "poweldayck@gmail.com" ||
-    email === configAdminEmail ||
-    email === configPublicAdminEmail ||
-    role === "Super Admin" ||
-    role === "Admin"
-  ) {
-    return client;
-  }
-  return null;
-}
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const client = await verifySuperAdmin();
-    if (!client) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    const admin = await verifyAdminCaller(req);
+    if (!admin) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Admin access required." }, { status: 403 });
     }
+
+    const client = await clerkClient();
 
     // Fetch all users from Clerk (limit to 100 for safety)
     const response = await client.users.getUserList({
@@ -86,10 +65,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const client = await verifySuperAdmin();
-    if (!client) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    const admin = await verifyAdminCaller(req);
+    if (!admin) {
+      return NextResponse.json({ success: false, error: "Unauthorized: Admin access required." }, { status: 403 });
     }
+
+    const client = await clerkClient();
 
     const { action, userId, role, status } = await req.json();
 

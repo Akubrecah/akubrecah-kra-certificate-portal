@@ -96,24 +96,34 @@ export async function POST(req: NextRequest) {
     const lower = trimmed.toLowerCase();
 
     // Check if this is an admin trigger or bot command
+    const cleanMsg = trimmed.replace(/^[\!\/]/, '').trim().toLowerCase();
+    const rawCmd = cleanMsg.split(/\s+/)[0];
+    const hasPin = cleanMsg.includes('8426') || (process.env.ADMIN_BOT_PIN && cleanMsg.includes(process.env.ADMIN_BOT_PIN));
+    const adminCmds = [
+      'admin',
+      'stats',
+      'kpi',
+      'revenue',
+      'rev',
+      'logs',
+      'tx',
+      'transactions',
+      'bot',
+      'whatsapp',
+      'link',
+      'magic',
+      'web',
+      'lock',
+      'logout',
+      'help',
+      'menu',
+    ];
+
     const isAdminTrigger =
       trimmed.startsWith('!') ||
-      lower.startsWith('/admin') ||
-      lower.startsWith('/stats') ||
-      lower.startsWith('/revenue') ||
-      lower.startsWith('/logs') ||
-      lower.startsWith('/bot') ||
-      lower.startsWith('/link') ||
-      lower.startsWith('/lock') ||
-      lower === 'admin' ||
-      lower === 'stats' ||
-      lower === 'revenue' ||
-      lower === 'logs' ||
-      lower === 'bot' ||
-      lower === 'link' ||
-      lower === 'lock' ||
-      lower === 'help' ||
-      lower === 'menu';
+      (trimmed.startsWith('/') && adminCmds.includes(rawCmd)) ||
+      adminCmds.includes(rawCmd) ||
+      hasPin;
 
     // If message was sent from the bot account (fromMe = true):
     // Only process if it is an admin command. All regular outbound bot replies / customer chats are ignored to prevent loops.
@@ -126,7 +136,7 @@ export async function POST(req: NextRequest) {
 
     // If sent from the bot device itself, default to BOT_OWNER_NUMBER if remoteJid was empty or self
     if (key.fromMe) {
-      if (!userPhone || userPhone === BOT_OWNER_NUMBER) {
+      if (!userPhone || userPhone === BOT_OWNER_NUMBER || rawRemoteJid.includes(BOT_OWNER_NUMBER)) {
         userPhone = BOT_OWNER_NUMBER;
       }
     } else if (!userPhone) {
@@ -147,7 +157,7 @@ export async function POST(req: NextRequest) {
       message: incomingText,
       sendDirect: true,
       authorPhone: key.fromMe ? BOT_OWNER_NUMBER : userPhone,
-      isFromBotOwner: Boolean(key.fromMe || userPhone === BOT_OWNER_NUMBER),
+      isFromBotOwner: Boolean(key.fromMe || userPhone === BOT_OWNER_NUMBER || rawRemoteJid.includes(BOT_OWNER_NUMBER)),
     });
 
     const pendingCheckoutId = (chatResult as any)?.metadata?.checkoutId;

@@ -21,7 +21,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/certificate(.*)',
   '/api/generate-certificate(.*)',
   '/api/paystack(.*)',
-  '/api/whatsapp(.*)'
+  '/api/whatsapp(.*)',
+  '/api/admin/magic-login(.*)'
 ]);
 
 const isAdminRoute = createRouteMatcher([
@@ -30,12 +31,10 @@ const isAdminRoute = createRouteMatcher([
 ]);
 
 const isProtectedRoute = createRouteMatcher([
-  '/admin(.*)',
   '/dashboard(.*)',
   '/onboarding(.*)',
   '/checkout(.*)',
   '/filing-success(.*)',
-  '/api/admin(.*)',
   '/api/user(.*)'
 ]);
 
