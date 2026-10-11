@@ -36,3 +36,17 @@ export function getDomainTheme(hostname: string): Theme {
   // Default fallback
   return 'default';
 }
+
+export function getPublicAppUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_URL && !process.env.VERCEL_URL.includes('localhost')) {
+    return `https://${process.env.VERCEL_URL}`.replace(/\/$/, '');
+  }
+  return 'https://akubrecah.vercel.app';
+}

@@ -6,6 +6,7 @@ import { maskTaxpayerData } from '@/lib/masking';
 import { initializePaystackTransaction } from '@/lib/paystack';
 import { dispatchMpesaStkPush } from '@/app/api/mpesa/stkpush/route';
 import { createAdminMagicToken } from '@/lib/magic-token';
+import { getPublicAppUrl } from '@/lib/utils';
 
 export const maxDuration = 60;
 
@@ -39,7 +40,7 @@ async function triggerMpesaPush(phone: string, pin: string, amount: number) {
 }
 
 async function createPaystackLink(userPhone: string, pin: string, amount: number, customerName?: string) {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+  const appUrl = getPublicAppUrl();
   const reference = `PSTK-CERT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
   return await initializePaystackTransaction({
     email: `wa_${userPhone.replace(/[^a-zA-Z0-9]/g, '')}@akubrecah.co.ke`,
@@ -172,7 +173,7 @@ async function handleAdminBotCommand({
   }
 
   // From here on, caller is fully authenticated!
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+  const appUrl = getPublicAppUrl();
 
   // 1. Lock command
   if (cmd === 'lock' || cmd === 'logout') {

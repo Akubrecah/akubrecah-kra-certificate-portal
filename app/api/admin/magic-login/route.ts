@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminMagicToken, verifyAdminMagicToken } from '@/lib/magic-token';
 import { auth, clerkClient } from '@clerk/nextjs/server';
+import { getPublicAppUrl } from '@/lib/utils';
 
 export const maxDuration = 15;
 
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 2. Token redirect handler
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://kra-certificate.vercel.app').replace(/\/$/, '');
+  const appUrl = getPublicAppUrl();
 
   if (!token) {
     return NextResponse.redirect(`${appUrl}/admin?error=missing_token`);
