@@ -42,7 +42,7 @@ interface NavLinkItem {
 const navLinks: NavLinkItem[] = [
   { href: "/admin", label: "Executive Overview", icon: LayoutDashboard },
   { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: Mail },
-  { href: "/admin/projects", label: "Projects & Case Studies", icon: FolderGit2 },
+  { href: "/admin/projects", label: "Projects & Repositories", icon: FolderGit2 },
   { href: "/admin/articles", label: "Articles & Field Notes", icon: BookOpen },
   { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: FileCheck2 },
   { href: "/admin/system-health", label: "System Health", icon: Activity },

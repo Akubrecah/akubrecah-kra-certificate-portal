@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getPublishedProjects } from '@/lib/cms';
-import { getAllGithubRepos } from '@/lib/github';
+import { getPublicGithubRepos } from '@/lib/github';
 import { ProjectsExplorer } from '@/components/projects-explorer';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ export const metadata = {
 export default async function ProjectsPage() {
   const [curatedProjects, githubData] = await Promise.all([
     getPublishedProjects(),
-    getAllGithubRepos('Akubrecah'),
+    getPublicGithubRepos('Akubrecah'),
   ]);
 
   return (

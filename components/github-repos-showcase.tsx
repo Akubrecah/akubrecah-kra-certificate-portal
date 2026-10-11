@@ -33,9 +33,9 @@ export function GithubReposShowcase({ initialRepos, stats: initialStats }: Githu
   const [pageSizeChoice, setPageSizeChoice] = useState<'all' | '24' | '48'>('all');
   const [visibleCount, setVisibleCount] = useState<number>(initialRepos.length > 0 ? initialRepos.length : 120);
 
-  // Client-side fallback sync: if initialRepos has fewer than 100 repos, auto-sync live from /api/github/repos
+  // Client-side fallback sync: if initialRepos is empty, auto-sync live from /api/github/repos
   useEffect(() => {
-    if (repos.length < 100) {
+    if (repos.length === 0) {
       handleSyncGithub(true);
     }
   }, []);

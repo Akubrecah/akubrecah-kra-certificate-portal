@@ -17,6 +17,8 @@ export interface GithubRepo {
   isArchived: boolean;
   size: number;
   defaultBranch: string;
+  isVisible?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface GithubUserStats {
@@ -187,6 +189,165 @@ export async function getAllGithubRepos(username = DEFAULT_USERNAME): Promise<{
       totalForks,
       languages,
     },
+  };
+}
+
+export interface RepoVisibilitySettings {
+  hiddenRepoNames: string[];
+  featuredRepoNames: string[];
+  lastUpdated?: string;
+  updatedBy?: string;
+}
+
+/**
+ * Loads repository visibility settings from Prisma SiteSetting (or local JSON fallback).
+ */
+export async function getRepoVisibilitySettings(): Promise<RepoVisibilitySettings> {
+  // 1. Try Prisma SiteSetting
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const prisma = prismaModule.default;
+    const setting = await prisma.siteSetting.findUnique({
+      where: { key: 'github_repo_visibility' },
+    });
+    if (setting?.value && typeof setting.value === 'object') {
+      const val = setting.value as any;
+      return {
+        hiddenRepoNames: Array.isArray(val.hiddenRepoNames) ? val.hiddenRepoNames : [],
+        featuredRepoNames: Array.isArray(val.featuredRepoNames) ? val.featuredRepoNames : [],
+        lastUpdated: val.lastUpdated,
+        updatedBy: val.updatedBy,
+      };
+    }
+  } catch (err: any) {
+    // DB fallback
+  }
+
+  // 2. Try filesystem fallback data/repo-visibility.json
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'data', 'repo-visibility.json');
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(content);
+      return {
+        hiddenRepoNames: Array.isArray(parsed.hiddenRepoNames) ? parsed.hiddenRepoNames : [],
+        featuredRepoNames: Array.isArray(parsed.featuredRepoNames) ? parsed.featuredRepoNames : [],
+        lastUpdated: parsed.lastUpdated,
+        updatedBy: parsed.updatedBy,
+      };
+    }
+  } catch (err) {
+    // Ignore
+  }
+
+  return {
+    hiddenRepoNames: [],
+    featuredRepoNames: ['BWM-XMD-QUANTUM', 'Flet-Weather-App', 'XeonBug-V8.1', 'Mpesa-Daraja-Api-Python'],
+  };
+}
+
+/**
+ * Persists repository visibility settings to both Prisma SiteSetting and JSON fallback.
+ */
+export async function saveRepoVisibilitySettings(settings: {
+  hiddenRepoNames: string[];
+  featuredRepoNames: string[];
+  updatedBy?: string;
+}): Promise<boolean> {
+  const payload = {
+    hiddenRepoNames: Array.from(new Set(settings.hiddenRepoNames)),
+    featuredRepoNames: Array.from(new Set(settings.featuredRepoNames)),
+    lastUpdated: new Date().toISOString(),
+    updatedBy: settings.updatedBy || 'admin',
+  };
+
+  // 1. Save to database
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const prisma = prismaModule.default;
+    await prisma.siteSetting.upsert({
+      where: { key: 'github_repo_visibility' },
+      update: { value: payload as any },
+      create: { key: 'github_repo_visibility', value: payload as any },
+    });
+  } catch (dbErr: any) {
+    console.warn('[saveRepoVisibilitySettings DB Warning]:', dbErr.message);
+  }
+
+  // 2. Save to filesystem fallback
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const filePath = path.join(dataDir, 'repo-visibility.json');
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+  } catch (fsErr: any) {
+    console.warn('[saveRepoVisibilitySettings FS Warning]:', fsErr.message);
+  }
+
+  return true;
+}
+
+/**
+ * Retrieves public repositories filtered by admin visibility settings.
+ * Only repositories not listed in `hiddenRepoNames` will be returned.
+ */
+export async function getPublicGithubRepos(username = DEFAULT_USERNAME) {
+  const [data, visibility] = await Promise.all([
+    getAllGithubRepos(username),
+    getRepoVisibilitySettings(),
+  ]);
+
+  const hiddenSet = new Set(visibility.hiddenRepoNames);
+  const featuredSet = new Set(visibility.featuredRepoNames);
+
+  // Filter out hidden repositories and annotate featured status
+  const publicRepos = data.repos
+    .filter((r) => !hiddenSet.has(r.name))
+    .map((r) => ({
+      ...r,
+      isVisible: true,
+      isFeatured: featuredSet.has(r.name),
+    }));
+
+  // Recalculate stats for visible repos
+  const langCounts: Record<string, number> = {};
+  let totalStars = 0;
+  let totalForks = 0;
+
+  for (const repo of publicRepos) {
+    totalStars += repo.stars;
+    totalForks += repo.forks;
+    if (repo.language && repo.language !== 'Codebase') {
+      langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+    }
+  }
+
+  const totalLangRepos = Object.values(langCounts).reduce((a, b) => a + b, 0) || 1;
+  const languages = Object.entries(langCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: Math.round((count / totalLangRepos) * 100),
+    }));
+
+  return {
+    repos: publicRepos,
+    stats: {
+      totalRepos: publicRepos.length,
+      totalStars,
+      totalForks,
+      languages,
+    },
+    totalAllRepos: data.repos.length,
+    hiddenCount: data.repos.length - publicRepos.length,
+    featuredCount: publicRepos.filter((r) => r.isFeatured).length,
   };
 }
 

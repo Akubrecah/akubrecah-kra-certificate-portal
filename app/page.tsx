@@ -69,9 +69,15 @@ export default function Home() {
     })
   }, [])
 
-  // Top starred public repos from GitHub with fallbacks
+  // Top starred public repos from GitHub with fallbacks (prioritizing admin featured repos)
   const topRepos: GithubRepo[] = (githubData.repos.length > 0
-    ? [...githubData.repos].sort((a, b) => b.stars - a.stars || new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime()).slice(0, 6)
+    ? [...githubData.repos]
+        .sort((a, b) => {
+          if (a.isFeatured && !b.isFeatured) return -1
+          if (!a.isFeatured && b.isFeatured) return 1
+          return b.stars - a.stars || new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime()
+        })
+        .slice(0, 6)
     : [
         {
           id: 1,

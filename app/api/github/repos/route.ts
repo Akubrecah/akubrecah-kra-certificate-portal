@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllGithubRepos } from '@/lib/github';
+import { getPublicGithubRepos } from '@/lib/github';
 
-export const revalidate = 300; // 5 minutes ISR cache
+export const revalidate = 60; // 1 minute ISR cache
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const search = (searchParams.get('q') || '').toLowerCase().trim();
     const sort = searchParams.get('sort') || 'updated'; // 'updated' | 'stars' | 'forks' | 'name'
 
-    const { repos, stats } = await getAllGithubRepos(username);
+    const { repos, stats } = await getPublicGithubRepos(username);
 
     let filtered = repos;
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { 
   FolderGit2, Plus, Edit3, Trash2, Globe, Github, 
   ExternalLink, CheckCircle2, XCircle, Star, Search, 
   Save, X, Eye
 } from "lucide-react";
+import { AdminGithubReposManager } from "@/components/admin-github-repos-manager";
 
 interface Project {
   id: string;
@@ -31,7 +33,10 @@ interface Project {
   createdAt: string;
 }
 
-export default function AdminProjectsPage() {
+function AdminProjectsContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "github" ? "github" : "projects";
+  const [activeTab, setActiveTab] = useState<"projects" | "github">(initialTab);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -182,37 +187,74 @@ export default function AdminProjectsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight">
-            Projects & Case Studies
-          </h1>
-          <p className="text-xs text-on-surface-variant mt-1">
-            Manage your engineering case studies, live demo links, architecture deep-dives, and tech stacks.
-          </p>
-        </div>
+      {/* Primary Tab Navigation */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-surface-container border border-outline-variant w-fit flex-wrap">
+        <button
+          onClick={() => setActiveTab("projects")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === "projects"
+              ? "bg-surface text-primary shadow-xs ring-1 ring-primary/20"
+              : "text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <FolderGit2 className="w-4 h-4" />
+          Curated Case Studies
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
+            {projects.length}
+          </span>
+        </button>
 
         <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-md self-start sm:self-auto"
+          onClick={() => setActiveTab("github")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === "github"
+              ? "bg-surface text-primary shadow-xs ring-1 ring-primary/20"
+              : "text-on-surface-variant hover:text-on-surface"
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          Add New Project
+          <Github className="w-4 h-4" />
+          GitHub Repositories Visibility
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-mono font-bold">
+            102 Repos
+          </span>
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search projects by title, category, or technology..."
-          className="w-full h-10 pl-10 pr-4 rounded-xl bg-surface-container border border-outline-variant text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      {activeTab === "github" ? (
+        <AdminGithubReposManager />
+      ) : (
+        <>
+          {/* Top Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight">
+                Projects & Case Studies
+              </h1>
+              <p className="text-xs text-on-surface-variant mt-1">
+                Manage your engineering case studies, live demo links, architecture deep-dives, and tech stacks.
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-md self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Project
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects by title, category, or technology..."
+              className="w-full h-10 pl-10 pr-4 rounded-xl bg-surface-container border border-outline-variant text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
 
       {/* Projects List */}
       {loading ? (
@@ -326,6 +368,8 @@ export default function AdminProjectsPage() {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
 
       {/* Editor Modal */}
@@ -547,5 +591,13 @@ export default function AdminProjectsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminProjectsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-xs text-on-surface-variant">Loading projects & repositories...</div>}>
+      <AdminProjectsContent />
+    </Suspense>
   );
 }
