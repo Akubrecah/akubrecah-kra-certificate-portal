@@ -23,36 +23,11 @@ import {
   Star,
   GitFork
 } from 'lucide-react'
-import { motion, useInView, animate } from "framer-motion"
-import { useRef, useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { GITHUB_LANGUAGE_COLORS, GithubRepo } from "@/lib/github"
-
-function Counter({ value }: { value: string }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const isInView = useInView(ref, { once: true, margin: "-50px" })
-  const [displayValue, setDisplayValue] = useState("0")
-  
-  useEffect(() => {
-    if (!isInView) return
-    const match = value.match(/([0-9.]+)/)
-    if (!match) { setDisplayValue(value); return }
-    const num = parseFloat(match[1])
-    const prefix = value.substring(0, match.index)
-    const suffix = value.substring(match.index! + match[1].length)
-    const isDecimal = match[1].includes(".")
-    const decimals = isDecimal ? match[1].split(".")[1].length : 0
-    const controls = animate(0, num, {
-      duration: 2.0,
-      ease: "easeOut",
-      onUpdate(val) { setDisplayValue(`${prefix}${val.toFixed(decimals)}${suffix}`) }
-    })
-    return () => controls.stop()
-  }, [value, isInView])
-
-  return <span ref={ref}>{displayValue}</span>
-}
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
@@ -342,22 +317,6 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* ============================= METRICS ============================= */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 border-y border-outline-variant py-10">
-          {[
-            { value: "99.98%", label: "Platform Uptime" },
-            { value: "120k+", label: "Automated Requests" },
-            { value: "50k+", label: "Certificates Issued" },
-            { value: "24/7", label: "System Monitoring" },
-          ].map((m) => (
-            <div key={m.label} className="flex flex-col items-center gap-1 p-4">
-              <span className="text-3xl sm:text-4xl font-black text-on-surface">
-                <Counter value={m.value} />
-              </span>
-              <span className="text-xs text-on-surface-variant text-center">{m.label}</span>
-            </div>
-          ))}
-        </section>
 
         {/* ============================= IN-HOUSE TOOLS ============================= */}
         <section id="products" className="space-y-10">
