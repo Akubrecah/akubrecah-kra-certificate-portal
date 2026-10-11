@@ -22,6 +22,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/generate-certificate(.*)',
   '/api/paystack(.*)',
   '/api/whatsapp(.*)',
+  '/api/analytics(.*)',
   '/api/admin/magic-login(.*)'
 ]);
 

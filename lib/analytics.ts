@@ -81,19 +81,17 @@ export async function trackEvent(payload: TrackingPayload): Promise<void> {
       deviceInfo,
     });
 
-    if (navigator.sendBeacon) {
-      const blob = new Blob([body], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/track', blob);
-    } else {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: true,
-      }).catch(() => {
-        // Silent failure for analytics
-      });
-    }
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon('/api/analytics/track', blob);
+      }
+    });
   } catch (err) {
     // Analytics failure should never break user interaction
   }

@@ -74,11 +74,22 @@ export async function GET(req: NextRequest) {
     const whatsappRevenue = whatsappDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0);
     const webRevenue = webDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0) + totalSubRevenue;
 
-    // Gateway Revenue
-    const mpesaRevenue = allDownloads
-      .filter((d) => Boolean(d.mpesaReceipt))
-      .reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0);
-    const paystackRevenue = totalRevenue - mpesaRevenue;
+    // Gateway Revenue (Paystack vs Legacy M-Pesa)
+    const isPaystackTx = (d: any) => {
+      const receipt = String(d.mpesaReceipt || '').toUpperCase();
+      const checkout = String(d.checkoutId || '').toUpperCase();
+      return (
+        receipt.startsWith('PSTK') ||
+        receipt.startsWith('PAYSTACK') ||
+        checkout.startsWith('PSTK') ||
+        checkout.startsWith('PAYSTACK') ||
+        d.downloadType === 'paystack'
+      );
+    };
+
+    const paystackDownloads = allDownloads.filter(isPaystackTx);
+    const paystackRevenue = paystackDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0) + totalSubRevenue;
+    const mpesaRevenue = Math.max(0, totalRevenue - paystackRevenue);
 
     // -------------------------------------------------------------
     // 2. WHATSAPP BOT SPECIFIC METRICS
@@ -96,7 +107,11 @@ export async function GET(req: NextRequest) {
       });
 
       totalBotConversations = waConversations.length;
-      const uniquePhones = new Set(waConversations.map((c: any) => c.user_phone).filter(Boolean));
+      const uniquePhones = new Set(
+        waConversations
+          .map((c: any) => c.user_phone)
+          .filter((p: string) => p && !p.includes('@broadcast'))
+      );
       totalBotUsers = uniquePhones.size;
       activeBotSessions = waConversations.filter((c: any) => c.status === "active").length;
       recentBotConversations = waConversations.slice(0, 8).map((c: any) => ({
@@ -142,26 +157,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Default fallback distribution if fresh install has no session records yet
+    // If session tracking is newly initialized and empty, calculate directly from real downloads
     if (totalSessions === 0) {
-      // Approximate from web vs wa ratios
-      totalSessions = Math.max(allDownloads.length * 4, 1);
-      pcSessions = Math.round(totalSessions * 0.65);
-      mobileSessions = Math.round(totalSessions * 0.30);
-      tabletSessions = totalSessions - pcSessions - mobileSessions;
-      osCounts["Windows PC"] = Math.round(pcSessions * 0.7);
-      osCounts["macOS Mac"] = Math.round(pcSessions * 0.3);
-      osCounts["Android"] = Math.round(mobileSessions * 0.75);
-      osCounts["iOS Apple"] = Math.round(mobileSessions * 0.25);
-      browserCounts["Chrome"] = Math.round(totalSessions * 0.6);
-      browserCounts["Safari"] = Math.round(totalSessions * 0.2);
-      browserCounts["Edge"] = Math.round(totalSessions * 0.15);
-      browserCounts["Firefox"] = Math.round(totalSessions * 0.05);
+      pcSessions = webDownloads.length;
+      mobileSessions = whatsappDownloads.length;
+      tabletSessions = 0;
+      totalSessions = pcSessions + mobileSessions;
+
+      if (totalSessions > 0) {
+        osCounts["macOS / Windows PC"] = pcSessions;
+        osCounts["Android / iOS Mobile"] = mobileSessions;
+        browserCounts["Web Browser"] = pcSessions;
+        browserCounts["WhatsApp In-App"] = mobileSessions;
+      }
     }
 
-    const pcPercentage = Math.round((pcSessions / totalSessions) * 100);
-    const mobilePercentage = Math.round((mobileSessions / totalSessions) * 100);
-    const tabletPercentage = 100 - pcPercentage - mobilePercentage;
+    const pcPercentage = totalSessions > 0 ? Math.round((pcSessions / totalSessions) * 100) : 0;
+    const mobilePercentage = totalSessions > 0 ? Math.round((mobileSessions / totalSessions) * 100) : 0;
+    const tabletPercentage = Math.max(0, 100 - pcPercentage - mobilePercentage);
 
     // -------------------------------------------------------------
     // 4. USER CLICKS & ENGAGEMENT FUNNEL
@@ -189,19 +202,19 @@ export async function GET(req: NextRequest) {
           }
         }
       } catch {
-        // Fallback calculation from downloads
+        // Fallback
       }
     }
 
     if (searchesCount === 0) {
-      searchesCount = Math.max(completedDownloadsCount * 6, 24);
-      maskedViewsCount = Math.max(completedDownloadsCount * 4, 16);
-      checkoutClicksCount = Math.max(completedDownloadsCount * 2, 8);
+      searchesCount = completedDownloadsCount;
+      maskedViewsCount = completedDownloadsCount;
+      checkoutClicksCount = completedDownloadsCount;
     }
 
     const overallConversionRate = searchesCount > 0 
       ? ((completedDownloadsCount / searchesCount) * 100).toFixed(1)
-      : "0.0";
+      : "100.0";
 
     // -------------------------------------------------------------
     // 5. UNIFIED REAL-TIME TRANSACTION LOGS
@@ -209,7 +222,7 @@ export async function GET(req: NextRequest) {
     let formattedTransactions = allDownloads.map((d) => {
       const isWa = d.clerkId?.startsWith("wa_");
       const phoneMatch = isWa ? d.clerkId.replace("wa_", "") : null;
-      const isMpesa = Boolean(d.mpesaReceipt);
+      const isPaystack = isPaystackTx(d);
 
       return {
         id: d.id,
@@ -218,8 +231,8 @@ export async function GET(req: NextRequest) {
         currency: d.currency || "KES",
         downloadType: d.downloadType || "pay_per_download",
         channel: isWa ? "whatsapp" : "web",
-        gateway: isMpesa ? "M-Pesa STK" : "Paystack",
-        receipt: d.mpesaReceipt || d.checkoutId || "STK-VERIFIED",
+        gateway: isPaystack ? "Paystack" : "M-Pesa STK (Legacy)",
+        receipt: d.mpesaReceipt || d.checkoutId || (isPaystack ? "PSTK-VERIFIED" : "STK-VERIFIED"),
         customer: phoneMatch || (d.users?.email || d.users?.phone || d.clerkId || "Guest User"),
         status: "COMPLETED",
         createdAt: d.createdAt,

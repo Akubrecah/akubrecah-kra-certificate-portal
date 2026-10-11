@@ -532,7 +532,7 @@ export default function AdminOverviewPage() {
           </div>
           <div className="mt-3 pt-3 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">
             <span>Paystack: KES {(rev?.byGateway?.paystack || 0).toLocaleString()}</span>
-            <span>M-Pesa STK: KES {(rev?.byGateway?.mpesa || 0).toLocaleString()}</span>
+            <span>M-Pesa (Legacy): KES {(rev?.byGateway?.mpesa || 0).toLocaleString()}</span>
           </div>
         </div>
 
@@ -549,8 +549,8 @@ export default function AdminOverviewPage() {
               KES {(payLive?.balanceKes || 0).toLocaleString()}
             </div>
             <div className="text-xs text-on-surface-variant mt-2 flex items-center justify-between">
-              <span>Payouts Made:</span>
-              <strong className="text-on-surface font-mono">KES {(payLive?.livePayoutsTotalKes || 0).toLocaleString()}</strong>
+              <span>Settled Payouts:</span>
+              <strong className="text-on-surface font-mono">KES {(payLive?.livePayoutsTotalKes || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">

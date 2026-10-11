@@ -387,6 +387,34 @@ export async function getPaystackPayouts(limit = 50, page = 1): Promise<{
   }
 
   try {
+    // 1. Fetch official merchant settlements (automated bank/m-pesa payouts)
+    const settlementRes = await fetch(`https://api.paystack.co/settlement?perPage=${limit}&page=${page}`, {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const settlementData = await settlementRes.json();
+
+    if (settlementRes.ok && settlementData.status && Array.isArray(settlementData.data) && settlementData.data.length > 0) {
+      const items = settlementData.data.map((s: any) => ({
+        id: s.id,
+        transferCode: `SETTLE-${s.id}`,
+        amountKes: (Number(s.total_amount || s.effective_amount || 0)) / 100,
+        currency: s.currency || 'KES',
+        status: s.status || 'success',
+        reason: 'Automated settlement to merchant account',
+        recipientName: 'Registered Bank / M-Pesa Account',
+        createdAt: s.settlement_date || s.createdAt,
+      }));
+      return {
+        success: true,
+        total: settlementData.meta?.total || items.length,
+        items,
+      };
+    }
+
+    // 2. Fallback to transfer endpoint
     const res = await fetch(`https://api.paystack.co/transfer?perPage=${limit}&page=${page}`, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
