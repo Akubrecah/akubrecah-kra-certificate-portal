@@ -26,14 +26,6 @@ interface NavItem {
   badge?: string;
 }
 
-const portalNavItems: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/retrieval-portal", label: "KRA Retrieval", icon: FileCheck2, badge: "KES 20" },
-  { href: "/pin-checker", label: "PIN Checker", icon: ShieldCheck, badge: "Free" },
-  { href: "/dashboard/filing", label: "Tax Filing", icon: Send },
-  { href: "/dashboard/profile", label: "My Profile", icon: User },
-];
-
 export default function DashboardLayout({
   children,
 }: {
@@ -56,6 +48,14 @@ export default function DashboardLayout({
     userEmail === configAdminEmail ||
     userRole === "Super Admin" ||
     userRole === "Admin";
+
+  const portalNavItems: NavItem[] = [
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { href: "/retrieval-portal", label: "KRA Retrieval", icon: FileCheck2, badge: "KES 20" },
+    ...(isAdmin ? [{ href: "/pin-checker", label: "PIN Checker", icon: ShieldCheck, badge: "Admin" }] : []),
+    { href: "/dashboard/filing", label: "Tax Filing", icon: Send },
+    { href: "/dashboard/profile", label: "My Profile", icon: User },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-surface font-sans antialiased">

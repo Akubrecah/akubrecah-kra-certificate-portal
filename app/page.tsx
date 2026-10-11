@@ -211,15 +211,7 @@ export default function Home() {
       ctaText: "Retrieve Certificate (KES 20)",
       color: "text-primary"
     },
-    {
-      title: "Live PIN & ID Validator",
-      badge: "GovTech",
-      description: "Real-time taxpayer status validation, station verification, and fraud prevention connecting to official tax registries.",
-      href: "/pin-checker",
-      icon: ShieldCheck,
-      ctaText: "Run PIN Check",
-      color: "text-red-600 dark:text-red-400"
-    },
+
     {
       title: "Automated Tax Filing",
       badge: "Compliance",

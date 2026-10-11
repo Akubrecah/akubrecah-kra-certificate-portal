@@ -77,13 +77,6 @@ const navData: NavItem[] = [
             badge: "KES 20",
           },
           {
-            title: "Live PIN & ID Checker",
-            desc: "Real-time taxpayer registry verification engine",
-            href: "/pin-checker",
-            icon: ShieldCheck,
-            badge: "Live",
-          },
-          {
             title: "Automated Tax Filing",
             desc: "Nil returns & statutory submission pipeline",
             href: "/dashboard/filing",
@@ -143,13 +136,6 @@ const navData: NavItem[] = [
             href: "/retrieval-portal",
             icon: FileCheck2,
             badge: "KES 20",
-          },
-          {
-            title: "Live PIN & ID Validator",
-            desc: "Real-time taxpayer registry verification engine",
-            href: "/pin-checker",
-            icon: ShieldCheck,
-            badge: "Live",
           },
           {
             title: "Automated Tax Filing",

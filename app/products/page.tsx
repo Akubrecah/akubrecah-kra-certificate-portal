@@ -30,31 +30,7 @@ const products = [
       { label: "Success Rate", value: "99.2%" },
     ],
   },
-  {
-    id: "pin-checker",
-    tag: "GovTech Utility",
-    icon: ShieldCheck,
-    title: "Live PIN & National ID Validator",
-    subtitle: "Real-time taxpayer registry verification",
-    description: "An enterprise-grade taxpayer validation engine connecting directly to official government registries. Verify KRA PINs, validate National IDs, check tax station assignments, and detect fraudulent credentials — all in real time.",
-    href: "/pin-checker",
-    ctaText: "Run Live Validation",
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-50 dark:bg-red-950/40",
-    features: [
-      "Real-time PIN status and validity check",
-      "National ID ↔ PIN cross-reference verification",
-      "Tax station and region assignment lookup",
-      "Taxpayer registration date and type display",
-      "Batch validation via CSV upload for enterprises",
-      "Fraud detection signals and risk scoring",
-    ],
-    stats: [
-      { label: "Validations/Day", value: "10,000+" },
-      { label: "Response Time", value: "< 3s" },
-      { label: "Registry Coverage", value: "100%" },
-    ],
-  },
+
   {
     id: "tax-filing",
     tag: "Compliance Engine",

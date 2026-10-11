@@ -186,7 +186,6 @@ export default function ContactPage() {
               <div className="space-y-2">
                 {[
                   { name: "KRA Certificate Retrieval Portal", href: "/retrieval-portal" },
-                  { name: "Live PIN & National ID Validator", href: "/pin-checker" },
                   { name: "Automated Tax Returns Filing", href: "/dashboard/filing" },
                 ].map((tool) => (
                   <Link

@@ -171,9 +171,9 @@ export default function RetrievalPortalPage() {
                 Inquire Enterprise API <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link href="/pin-checker">
+            <Link href="/dashboard/filing">
               <Button variant="outline" size="lg" className="h-12 px-8 rounded-xl border-2 border-white text-white hover:bg-white/10 font-bold text-sm">
-                Validate KRA PINs
+                Tax Filing Gateway
               </Button>
             </Link>
           </div>

@@ -64,14 +64,7 @@ const inHouseProducts = [
     href: "/retrieval-portal",
     desc: "Automated retrieval and cryptographic verification of compliance documents via National ID and PIN.",
   },
-  {
-    title: "Live PIN & National ID Validator",
-    tag: "Registry Engine",
-    stat: "10,000+ Validations / Day",
-    speed: "< 3s response time",
-    href: "/pin-checker",
-    desc: "Direct integration with public records for instant verification, fraud detection, and tax station lookup.",
-  },
+
   {
     title: "Automated Tax Returns Filing",
     tag: "Compliance Suite",

@@ -14,7 +14,6 @@ const isPublicRoute = createRouteMatcher([
   '/about',
   '/products(.*)',
   '/retrieval-portal(.*)',
-  '/pin-checker(.*)',
   '/terms(.*)',
   '/privacy(.*)',
   '/careers(.*)',
@@ -39,6 +38,7 @@ const isAdminRoute = createRouteMatcher([
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
+  '/pin-checker(.*)',
   '/onboarding(.*)',
   '/checkout(.*)',
   '/filing-success(.*)',

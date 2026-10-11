@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
+    if (!isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Taxpayer PIN verification engine is restricted to administrative audit access.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { pin, engineMode = 'auto' } = body;
 

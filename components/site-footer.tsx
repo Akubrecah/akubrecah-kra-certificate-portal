@@ -90,14 +90,8 @@ export function SiteFooter(): JSX.Element {
                 </Link>
               </li>
               <li>
-                <Link href="/pin-checker" className="hover:text-primary transition-colors flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  Live Taxpayer PIN Checker
-                </Link>
-              </li>
-              <li>
                 <Link href="/dashboard/filing" className="hover:text-primary transition-colors flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   Automated Nil Returns Filing
                 </Link>
               </li>

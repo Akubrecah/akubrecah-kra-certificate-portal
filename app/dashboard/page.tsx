@@ -93,6 +93,16 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
     }
   }
 
+  // 4. Admin privilege check
+  const userEmail = email?.toLowerCase();
+  const userRole = user?.publicMetadata?.role as string;
+  const configAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || process.env.SUPER_ADMIN_EMAIL || "poweldayck@gmail.com").toLowerCase();
+  const isAdmin =
+    userEmail === "poweldayck@gmail.com" ||
+    userEmail === configAdminEmail ||
+    userRole === "Super Admin" ||
+    userRole === "Admin";
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 w-full font-sans">
       
@@ -104,7 +114,7 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
             <p className="font-bold text-on-surface">Service Notice: Legacy Resume Builder Decommissioned</p>
             <p className="text-on-surface-variant text-xs leading-relaxed">
               Akubrecah has officially transitioned into a dedicated full-scale Software Engineering & Development company. 
-              All in-house statutory compliance tools (KRA Certificate Retrieval, Live PIN Checker, and Returns Filing) 
+              All in-house statutory compliance tools (KRA Certificate Retrieval and Returns Filing) 
               remain fully operational below.
             </p>
           </div>
@@ -124,7 +134,7 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
             Welcome back, {firstName}
           </h1>
           <p className="text-on-surface-variant mt-1 text-sm md:text-base">
-            Access statutory compliance tools, verify taxpayer PIN registry status, and retrieve official KRA certificates.
+            Access statutory compliance tools and retrieve official KRA PIN certificates instantly.
           </p>
         </div>
 
@@ -154,8 +164,8 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
         </div>
       </div>
 
-      {/* 3 Focused Action Cards (Compliance Hub) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Primary Action Cards (Focused Compliance Hub) */}
+      <div className={`grid grid-cols-1 ${isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6`}>
         
         {/* Card 1: KRA Certificate Retrieval Portal */}
         <Card className="bg-surface-container-lowest border-outline-variant hover:border-primary/50 shadow-soft hover:shadow-md transition-all duration-200 rounded-2xl flex flex-col justify-between group">
@@ -164,7 +174,7 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
               <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                 <FileCheck2 className="h-6 w-6" />
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-white">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-white">
                 KES 20
               </span>
             </div>
@@ -179,7 +189,7 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
             <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant mb-4">
               <span>Automated Gateway</span>
               <span className="font-semibold text-on-surface">
-                {certificatesCount > 0 ? `${certificatesCount} Generated` : "Instant PDF"}
+                {certificatesCount > 0 ? `${certificatesCount} Generated` : "Instant PDF • KES 20"}
               </span>
             </div>
             <Link href="/retrieval-portal" className="block w-full">
@@ -191,51 +201,19 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
           </CardContent>
         </Card>
 
-        {/* Card 2: Live Taxpayer PIN & ID Checker */}
-        <Card className="bg-surface-container-lowest border-outline-variant hover:border-red-500/50 shadow-soft hover:shadow-md transition-all duration-200 rounded-2xl flex flex-col justify-between group">
+        {/* Card 2: Automated Nil Returns Filing */}
+        <Card className="bg-surface-container-lowest border-outline-variant hover:border-primary/50 shadow-soft hover:shadow-md transition-all duration-200 rounded-2xl flex flex-col justify-between group">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between mb-3">
-              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-500/20">
-                Free
-              </span>
-            </div>
-            <CardTitle className="text-lg font-headline font-bold text-on-surface group-hover:text-red-600 transition-colors">
-              Live PIN & ID Checker
-            </CardTitle>
-            <CardDescription className="text-xs text-on-surface-variant leading-relaxed mt-1">
-              Verify taxpayer registry status in real time, confirm active tax obligations, and check assigned KRA Tax Station.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-2">
-            <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant mb-4">
-              <span>Taxpayer Registry</span>
-              <span className="font-semibold text-on-surface">Instant Lookup</span>
-            </div>
-            <Link href="/pin-checker" className="block w-full">
-              <Button variant="outline" className="w-full h-11 rounded-xl border-outline-variant font-bold text-xs hover:bg-surface-container hover:text-red-600 flex items-center justify-center gap-2 transition-all">
-                <span>Check Taxpayer PIN</span>
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: Automated Nil Returns Filing */}
-        <Card className="bg-surface-container-lowest border-outline-variant hover:border-emerald-500/50 shadow-soft hover:shadow-md transition-all duration-200 rounded-2xl flex flex-col justify-between group">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                 <Send className="h-6 w-6" />
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                 Statutory
               </span>
             </div>
-            <CardTitle className="text-lg font-headline font-bold text-on-surface group-hover:text-emerald-600 transition-colors">
-              Automated Nil Returns
+            <CardTitle className="text-lg font-headline font-bold text-on-surface group-hover:text-primary transition-colors">
+              Automated Nil Returns Filing
             </CardTitle>
             <CardDescription className="text-xs text-on-surface-variant leading-relaxed mt-1">
               Expedited statutory tax submission assistant for individual employment, business, and zero-liability nil returns.
@@ -244,16 +222,50 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
           <CardContent className="pt-2">
             <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant mb-4">
               <span>Annual Returns</span>
-              <span className="font-semibold text-on-surface">Pipeline Ready</span>
+              <span className="font-semibold text-on-surface">KRA Pipeline Ready</span>
             </div>
             <Link href="/dashboard/filing" className="block w-full">
-              <Button variant="outline" className="w-full h-11 rounded-xl border-outline-variant font-bold text-xs hover:bg-surface-container hover:text-emerald-600 flex items-center justify-center gap-2 transition-all">
+              <Button className="w-full h-11 rounded-xl bg-primary text-white font-bold text-xs shadow-xs hover:bg-primary/95 flex items-center justify-center gap-2 group-hover:shadow-md transition-all">
                 <span>Access Tax Filing</span>
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </CardContent>
         </Card>
+
+        {/* Card 3: Live PIN & ID Checker (Admin Only) */}
+        {isAdmin && (
+          <Card className="bg-surface-container-lowest border-outline-variant hover:border-primary/50 shadow-soft hover:shadow-md transition-all duration-200 rounded-2xl flex flex-col justify-between group">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                  Admin Only
+                </span>
+              </div>
+              <CardTitle className="text-lg font-headline font-bold text-on-surface group-hover:text-primary transition-colors">
+                Live PIN & ID Checker
+              </CardTitle>
+              <CardDescription className="text-xs text-on-surface-variant leading-relaxed mt-1">
+                Internal administration engine to verify live taxpayer registry status, confirm active obligations, and check assigned KRA Tax Station.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant mb-4">
+                <span>Taxpayer Registry</span>
+                <span className="font-semibold text-on-surface">Admin Audit Access</span>
+              </div>
+              <Link href="/pin-checker" className="block w-full">
+                <Button variant="outline" className="w-full h-11 rounded-xl border-outline-variant font-bold text-xs hover:bg-surface-container hover:text-primary flex items-center justify-center gap-2 transition-all">
+                  <span>Launch Admin PIN Checker</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Account Details & Compliance Profile Card */}
