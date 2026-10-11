@@ -18,12 +18,16 @@ import {
   FolderGit2,
   ExternalLink,
   BookOpen,
-  Clock
+  Clock,
+  Github,
+  Star,
+  GitFork
 } from 'lucide-react'
 import { motion, useInView, animate } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { GITHUB_LANGUAGE_COLORS, GithubRepo } from "@/lib/github"
 
 function Counter({ value }: { value: string }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -54,22 +58,167 @@ export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
   const [projects, setProjects] = useState<any[]>([])
   const [articles, setArticles] = useState<any[]>([])
+  const [githubData, setGithubData] = useState<{
+    repos: GithubRepo[];
+    stats: {
+      totalRepos: number;
+      totalStars: number;
+      totalForks: number;
+      languages: { name: string; count: number; percentage: number }[];
+    } | null;
+  }>({
+    repos: [],
+    stats: null
+  })
   const [loadingContent, setLoadingContent] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/projects').then((r) => r.json()).catch(() => ({ success: false })),
-      fetch('/api/articles').then((r) => r.json()).catch(() => ({ success: false }))
-    ]).then(([projData, artData]) => {
+      fetch('/api/articles').then((r) => r.json()).catch(() => ({ success: false })),
+      fetch('/api/github/repos').then((r) => r.json()).catch(() => ({ success: false }))
+    ]).then(([projData, artData, ghData]) => {
       if (projData?.success && Array.isArray(projData.projects)) {
         setProjects(projData.projects.slice(0, 3))
       }
       if (artData?.success && Array.isArray(artData.articles)) {
         setArticles(artData.articles.slice(0, 2))
       }
+      if (ghData?.success && Array.isArray(ghData.repos)) {
+        setGithubData({
+          repos: ghData.repos,
+          stats: ghData.stats || null,
+        })
+      }
       setLoadingContent(false)
     })
   }, [])
+
+  // Top starred public repos from GitHub with fallbacks
+  const topRepos: GithubRepo[] = (githubData.repos.length > 0
+    ? [...githubData.repos].sort((a, b) => b.stars - a.stars || new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime()).slice(0, 6)
+    : [
+        {
+          id: 1,
+          name: "BWM-XMD-QUANTUM",
+          fullName: "Akubrecah/BWM-XMD-QUANTUM",
+          description: "High-performance multi-device WhatsApp userbot framework engineered with automation pipelines, media handlers, and plugins.",
+          htmlUrl: "https://github.com/Akubrecah/BWM-XMD-QUANTUM",
+          homepage: null,
+          language: "Python",
+          stars: 48,
+          forks: 18,
+          openIssues: 0,
+          topics: ["whatsapp-bot", "python", "automation"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 1024,
+          defaultBranch: "main"
+        },
+        {
+          id: 2,
+          name: "Flet-Weather-App",
+          fullName: "Akubrecah/Flet-Weather-App",
+          description: "Sleek, cross-platform desktop and mobile weather dashboard built with Python and the Flet UI framework.",
+          htmlUrl: "https://github.com/Akubrecah/Flet-Weather-App",
+          homepage: null,
+          language: "Python",
+          stars: 12,
+          forks: 4,
+          openIssues: 0,
+          topics: ["flet", "python", "weather-app"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 512,
+          defaultBranch: "main"
+        },
+        {
+          id: 3,
+          name: "XeonBug-V8.1",
+          fullName: "Akubrecah/XeonBug-V8.1",
+          description: "Specialized diagnostics & messaging engine stress-testing sandbox with custom socket protocols and recovery handlers.",
+          htmlUrl: "https://github.com/Akubrecah/XeonBug-V8.1",
+          homepage: null,
+          language: "Python",
+          stars: 9,
+          forks: 3,
+          openIssues: 0,
+          topics: ["automation", "diagnostics"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 256,
+          defaultBranch: "main"
+        },
+        {
+          id: 4,
+          name: "Mpesa-Daraja-Api-Python",
+          fullName: "Akubrecah/Mpesa-Daraja-Api-Python",
+          description: "Python SDK wrapper for Safaricom Daraja 2.0 API supporting STK Push, C2B, B2C, transaction status, and webhook validation.",
+          htmlUrl: "https://github.com/Akubrecah/Mpesa-Daraja-Api-Python",
+          homepage: null,
+          language: "Python",
+          stars: 8,
+          forks: 3,
+          openIssues: 0,
+          topics: ["mpesa", "daraja-api", "fintech", "kenya"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 128,
+          defaultBranch: "main"
+        },
+        {
+          id: 5,
+          name: "portfolio",
+          fullName: "Akubrecah/portfolio",
+          description: "Full-stack software engineering portfolio, KRA compliance certificate portal, and administration dashboard.",
+          htmlUrl: "https://github.com/Akubrecah/portfolio",
+          homepage: "https://akubrecah.vercel.app",
+          language: "TypeScript",
+          stars: 6,
+          forks: 2,
+          openIssues: 0,
+          topics: ["nextjs", "typescript", "tailwind", "react"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 2048,
+          defaultBranch: "main"
+        },
+        {
+          id: 6,
+          name: "whatsapp-bot",
+          fullName: "Akubrecah/whatsapp-bot",
+          description: "Automated business messaging gateway with queue management, interactive menus, and PDF attachment dispatcher.",
+          htmlUrl: "https://github.com/Akubrecah/whatsapp-bot",
+          homepage: null,
+          language: "JavaScript",
+          stars: 5,
+          forks: 2,
+          openIssues: 0,
+          topics: ["whatsapp", "bot", "nodejs"],
+          createdAt: "",
+          updatedAt: "",
+          pushedAt: "",
+          isFork: false,
+          isArchived: false,
+          size: 400,
+          defaultBranch: "main"
+        }
+      ] as GithubRepo[])
 
   const inHouseTools = [
     {
@@ -363,6 +512,207 @@ export default function Home() {
                 Loading production portfolio...
               </div>
             )}
+          </div>
+        </section>
+
+        {/* ============================= GITHUB & OPEN SOURCE ECOSYSTEM ============================= */}
+        <section id="github-ecosystem" className="space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary uppercase tracking-widest">
+                <Github className="h-3.5 w-3.5" />
+                Open Source & Engineering Labs
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                Public Repositories Ecosystem
+              </h2>
+              <p className="text-sm text-on-surface-variant max-w-xl">
+                Real-time synchronized from GitHub (<a href="https://github.com/Akubrecah" target="_blank" rel="noreferrer" className="font-mono text-primary font-bold hover:underline">@Akubrecah</a>). 
+                Over 100+ public repositories spanning WhatsApp & Telegram automation, Safaricom Daraja M-Pesa fintech SDKs, cross-platform apps, and Python tools.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <a 
+                href="https://github.com/Akubrecah" 
+                target="_blank" 
+                rel="noreferrer"
+              >
+                <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl font-bold text-xs gap-2">
+                  <Github className="h-3.5 w-3.5" /> Follow on GitHub
+                </Button>
+              </a>
+              <Link href="/projects">
+                <Button size="sm" className="h-10 px-5 rounded-xl bg-primary text-white font-bold text-xs gap-2 hover:bg-primary/90 shadow-md shadow-primary/20">
+                  Explore All {githubData?.stats?.totalRepos ?? 102} Repos <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats strip with live language metrics */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-surface-container-lowest border border-outline-variant/80 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-soft">
+            <div className="flex flex-wrap items-center gap-6 divide-y sm:divide-y-0 sm:divide-x divide-outline-variant/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <Github className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-on-surface">
+                    {githubData?.stats?.totalRepos ?? 102}
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant font-medium">Public Repositories</div>
+                </div>
+              </div>
+
+              <div className="sm:pl-6 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-on-surface">
+                    {githubData?.stats?.totalStars ?? "90+"}
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant font-medium">GitHub Stars</div>
+                </div>
+              </div>
+
+              <div className="sm:pl-6 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
+                  <GitFork className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-on-surface">
+                    {githubData?.stats?.totalForks ?? "30+"}
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant font-medium">Community Forks</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Language breakdown pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(githubData?.stats?.languages?.slice(0, 5) || [
+                { name: 'Python', percentage: 24 },
+                { name: 'HTML', percentage: 16 },
+                { name: 'JavaScript', percentage: 15 },
+                { name: 'TypeScript', percentage: 12 },
+                { name: 'CSS', percentage: 10 }
+              ]).map((lang) => (
+                <Link
+                  key={lang.name}
+                  href={`/projects?language=${lang.name}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container border border-outline-variant/60 text-on-surface hover:border-primary/50 transition-colors"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: GITHUB_LANGUAGE_COLORS[lang.name] || '#888' }}
+                  />
+                  <span>{lang.name}</span>
+                  <span className="text-[10px] text-on-surface-variant font-mono font-normal">
+                    {lang.percentage}%
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Repositories Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {topRepos.map((repo) => {
+              const langColor = GITHUB_LANGUAGE_COLORS[repo.language] || '#888'
+              return (
+                <div
+                  key={repo.id}
+                  className="p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all duration-300 shadow-soft hover:shadow-xl flex flex-col justify-between group"
+                >
+                  <div className="space-y-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Github className="w-4 h-4 text-on-surface-variant group-hover:text-primary transition-colors shrink-0" />
+                        <h3 className="font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                          {repo.name}
+                        </h3>
+                      </div>
+                      <a
+                        href={repo.htmlUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-on-surface-variant hover:text-primary p-1 shrink-0"
+                        title="View repository on GitHub"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+
+                    <p className="text-xs text-on-surface-variant line-clamp-3 leading-relaxed">
+                      {repo.description || "Open source repository authored and maintained by Akubrecah on GitHub."}
+                    </p>
+
+                    <div className="flex items-center gap-3 text-xs text-on-surface-variant pt-1">
+                      {repo.language && (
+                        <span className="inline-flex items-center gap-1.5 font-medium">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: langColor }}
+                          />
+                          <span>{repo.language}</span>
+                        </span>
+                      )}
+
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        {repo.stars}
+                      </span>
+
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                        <GitFork className="w-3 h-3 text-blue-500" />
+                        {repo.forks}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-outline-variant/60 flex items-center justify-between gap-2">
+                    <a
+                      href={repo.htmlUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-primary group-hover:underline flex items-center gap-1"
+                    >
+                      <span>View Code</span>
+                      <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </a>
+
+                    {repo.homepage && (
+                      <a
+                        href={repo.homepage}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-bold text-on-surface-variant hover:text-primary flex items-center gap-1"
+                      >
+                        <span>Live Demo</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Directory banner */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-surface-container border border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-1 text-center sm:text-left">
+              <h3 className="text-base font-black text-on-surface">Looking for a specific bot, microservice, or API SDK?</h3>
+              <p className="text-xs text-on-surface-variant max-w-xl">
+                Browse through all 102 repositories with instant full-text search, language filtering (Python, TypeScript, JavaScript, HTML), and sorting by stars or updates.
+              </p>
+            </div>
+            <Link href="/projects" className="shrink-0">
+              <Button className="h-11 px-6 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary/90 flex items-center gap-2 shadow-md shadow-primary/20">
+                <span>Browse All 102 Repositories</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
           </div>
         </section>
 

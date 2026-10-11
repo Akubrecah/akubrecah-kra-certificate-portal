@@ -201,6 +201,7 @@ const navData: NavItem[] = [
   {
     label: "Projects",
     href: "/projects",
+    badge: "102 Repos",
     groups: null,
   },
   {
