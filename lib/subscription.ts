@@ -90,6 +90,32 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
       };
     }
 
+    // Check if user has an active Cyber Cafe monthly package
+    if (clerkId.startsWith('wa_')) {
+      const waPhone = clerkId.replace(/^wa_/, '');
+      const cafe = await db.cyberCafe?.findFirst({
+        where: {
+          whatsappPhone: waPhone,
+          status: 'active',
+          expiresAt: { gt: new Date() },
+        },
+      });
+      if (cafe) {
+        return {
+          isSubscribed: true,
+          subscription: {
+            id: cafe.id,
+            planName: 'cyber_monthly',
+            amountPaid: 500,
+            currency: 'KES',
+            expiresAt: cafe.expiresAt,
+            status: cafe.status,
+          },
+          userId: dbUser.id,
+        };
+      }
+    }
+
     return {
       isSubscribed: false,
       subscription: null,

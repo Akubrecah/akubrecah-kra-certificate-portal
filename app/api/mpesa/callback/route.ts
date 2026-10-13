@@ -100,6 +100,63 @@ export async function POST(req: NextRequest) {
         const targetPhone = conversation?.user_phone || phoneNumber;
         const taxpayerName = conversation?.metadata?.taxpayerName || '';
 
+        // 1b. Check if this payment was for a Cyber Cafe Monthly Subscription
+        const isCyber = conversation?.metadata?.step === 'CYBER_AWAITING_PAYMENT';
+        if (isCyber) {
+          console.log(`[M-Pesa Callback] Activating Cyber Cafe subscription for ${targetPhone} (receipt: ${mpesaReceipt})`);
+          const { activateCyberCafeSubscription, deliverCyberInvoiceToWhatsApp } = await import('@/lib/cyber-subscription');
+          const { sendEvolutionTextMessage } = await import('@/lib/evolution');
+
+          const activation = await activateCyberCafeSubscription({
+            cafeName: conversation?.metadata?.cyberCafeName || 'Cyber Cafe',
+            ownerName: conversation?.metadata?.cyberOwnerName || 'Cyber Operator',
+            whatsappPhone: conversation?.metadata?.cyberWaPhone || targetPhone,
+            paymentPhone: conversation?.metadata?.paymentPhone || phoneNumber || targetPhone,
+            mpesaReceipt,
+            checkoutId: CheckoutRequestID,
+            amountKes: Number(amount || 500),
+          });
+
+          if (conversation) {
+            const meta = (conversation.metadata as any) || {};
+            meta.step = 'IDLE';
+            meta.activeSession = false;
+            meta.mpesaReceipt = mpesaReceipt;
+            await db.ai_conversations?.update({
+              where: { id: conversation.id },
+              data: {
+                metadata: meta,
+                updated_at: new Date(),
+              },
+            });
+          }
+
+          if (activation.success && activation.invoice && activation.cafe) {
+            await deliverCyberInvoiceToWhatsApp({
+              whatsappPhone: targetPhone,
+              invoice: activation.invoice,
+              cafe: activation.cafe,
+              daysRemaining: activation.daysRemaining,
+            });
+
+            await sendEvolutionTextMessage(
+              targetPhone,
+              `🎉 *CYBER CAFE SUBSCRIPTION ACTIVATED!*\n` +
+              `────────────────────────────────────\n` +
+              `• *Cyber Cafe:* ${activation.cafe.cafeName}\n` +
+              `• *Operator:* ${activation.cafe.ownerName}\n` +
+              `• *Activated WhatsApp:* ${activation.cafe.whatsappPhone}\n` +
+              `• *Package:* 30 Days Unlimited Retrieval\n` +
+              `• *Status:* 🟢 ACTIVE (*${activation.daysRemaining} Days Remaining*)\n` +
+              `• *M-Pesa Receipt:* \`${mpesaReceipt}\`\n` +
+              `• *Official Tax Invoice:* Delivered above as PDF\n\n` +
+              `⚡ *Instant Delivery Active:* Simply enter any client's National ID Number or KRA PIN anytime to receive instant PIN certificates!`
+            );
+          }
+
+          return NextResponse.json({ success: true, message: 'Cyber Cafe subscription callback processed successfully' });
+        }
+
         // 2. Create CertificateDownload record safely
         let dbUser: any = null;
         try {

@@ -481,12 +481,14 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
   amount?: number;
   taxpayerName?: string;
   taxpayerDetails?: any;
+  isCyberSubscription?: boolean;
+  daysRemaining?: number;
 }): Promise<{ success: boolean; error?: string }> {
-  const { phone, pin, checkoutId, amount = 20 } = opts;
+  const { phone, pin, checkoutId, amount = 20, isCyberSubscription = false, daysRemaining } = opts;
   const db = prisma as any;
   const userPhone = sanitizeWhatsAppPhone(phone);
   const cleanPin = pin ? pin.toUpperCase().trim() : 'KRA_CERT';
-  const receiptNum = opts.mpesaReceipt || `REC-${Date.now().toString(36).toUpperCase()}`;
+  const receiptNum = opts.mpesaReceipt || (isCyberSubscription ? 'CYBER-SUB-ACTIVE' : `REC-${Date.now().toString(36).toUpperCase()}`);
 
   console.log(`[Fulfillment] Initiating WhatsApp document delivery for PIN ${cleanPin} to ${userPhone}`);
 
@@ -534,7 +536,7 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
           userId: dbUser.id,
           clerkId: 'wa_' + userPhone,
           pin: cleanPin,
-          downloadType: 'pay_per_download',
+          downloadType: isCyberSubscription ? 'cyber_subscription' : 'pay_per_download',
           amountCharged: amount,
           currency: 'KES',
           mpesaReceipt: receiptNum,
@@ -569,7 +571,7 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       name: resolvedName,
       amount: amount,
       phone: userPhone,
-      paymentMethod: 'M-PESA EXPRESS',
+      paymentMethod: isCyberSubscription ? 'CYBER UNLIMITED' : 'M-PESA EXPRESS',
     });
 
     // 5. Generate high-resolution ETR Receipt Image Slip (PNG for instant chat preview)
@@ -579,7 +581,7 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       name: resolvedName,
       amount: amount,
       phone: userPhone,
-      paymentMethod: 'M-PESA EXPRESS',
+      paymentMethod: isCyberSubscription ? 'CYBER UNLIMITED' : 'M-PESA EXPRESS',
     });
 
     // 6. Send Official KRA PIN Certificate PDF (A4 format remains untouched)
@@ -602,7 +604,9 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
       phone: userPhone,
       pdfBuffer: receiptBuffer,
       fileName: `ETR_Receipt_${receiptNum}.pdf`,
-      caption: `🧾 *Official ETR Fiscal Receipt (80mm Thermal)*\n• Receipt: *${receiptNum}*\n• Amount: *KES ${amount.toFixed(2)}*\n_Print-ready for POS & thermal receipt printers._`,
+      caption: isCyberSubscription
+        ? `🧾 *Official ETR Fiscal Slip (80mm Thermal)*\n• Ref: *${receiptNum}*\n• Rate: *CYBER PACKAGE (INCLUDED)*\n_Print-ready for POS & thermal receipt printers._`
+        : `🧾 *Official ETR Fiscal Receipt (80mm Thermal)*\n• Receipt: *${receiptNum}*\n• Amount: *KES ${amount.toFixed(2)}*\n_Print-ready for POS & thermal receipt printers._`,
     });
 
     if (!receiptRes.success) {
@@ -617,14 +621,20 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
         phone: userPhone,
         imageBuffer: receiptImageBuffer,
         fileName: `ETR_Receipt_${receiptNum}.png`,
-        caption:
-          `🧾 *Official ETR Fiscal Receipt Slip*\n\n` +
-          `• *Receipt No:* *${receiptNum}*\n` +
-          `• *Taxpayer:* ${resolvedName}\n` +
-          `• *PIN:* *${cleanPin}*\n` +
-          `• *Total Paid:* *KES ${amount.toFixed(2)}*\n` +
-          `• *Payment Mode:* M-PESA EXPRESS\n\n` +
-          `_Scan the embedded QR code to verify fiscal authenticity online._`,
+        caption: isCyberSubscription
+          ? `🧾 *Official ETR Fiscal Receipt Slip*\n\n` +
+            `• *Taxpayer:* ${resolvedName}\n` +
+            `• *PIN:* *${cleanPin}*\n` +
+            `• *Package:* Cyber Cafe Unlimited Active\n` +
+            `• *Days Remaining:* ${daysRemaining ?? 30} Days\n\n` +
+            `_Scan embedded QR code to verify fiscal authenticity._`
+          : `🧾 *Official ETR Fiscal Receipt Slip*\n\n` +
+            `• *Receipt No:* *${receiptNum}*\n` +
+            `• *Taxpayer:* ${resolvedName}\n` +
+            `• *PIN:* *${cleanPin}*\n` +
+            `• *Total Paid:* *KES ${amount.toFixed(2)}*\n` +
+            `• *Payment Mode:* M-PESA EXPRESS\n\n` +
+            `_Scan the embedded QR code to verify fiscal authenticity online._`,
       });
 
       if (!imgRes.success) {
@@ -635,16 +645,22 @@ export async function fulfillWhatsAppCertificateDelivery(opts: {
     await new Promise((r) => setTimeout(r, 1000));
 
     // 9. Send final delivery confirmation text message
-    await sendEvolutionTextMessage(
-      userPhone,
-      `🎉 *Delivery Complete!*\n\n` +
-      `Your *Official KRA PIN Certificate (PDF)*, *ETR Thermal Receipt (PDF)*, and *ETR Receipt Slip (Image)* have been delivered above.\n\n` +
-      `• *Taxpayer:* ${resolvedName}\n` +
-      `• *PIN:* *${cleanPin}*\n` +
-      `• *Registration Date:* *${authenticRegDate}*\n` +
-      `• *Receipt / M-Pesa Ref:* *${receiptNum}*\n\n` +
-      `Thank you for using Akubrecah KRA Portal. Send /kra or /menu anytime to start a new lookup.`
-    );
+    const completionMsg = isCyberSubscription
+      ? `🎉 *Instant Delivery Complete!*\n\n` +
+        `• *Taxpayer:* ${resolvedName}\n` +
+        `• *PIN:* *${cleanPin}*\n` +
+        `• *Registration Date:* *${authenticRegDate}*\n` +
+        `• *Cyber Cafe Package:* 🟢 ACTIVE (*${daysRemaining ?? 30} Days Remaining*)\n\n` +
+        `⚡ *Unlimited Access Active:* Enter any client's National ID or PIN anytime for instant PIN certificates!`
+      : `🎉 *Delivery Complete!*\n\n` +
+        `Your *Official KRA PIN Certificate (PDF)*, *ETR Thermal Receipt (PDF)*, and *ETR Receipt Slip (Image)* have been delivered above.\n\n` +
+        `• *Taxpayer:* ${resolvedName}\n` +
+        `• *PIN:* *${cleanPin}*\n` +
+        `• *Registration Date:* *${authenticRegDate}*\n` +
+        `• *Receipt / M-Pesa Ref:* *${receiptNum}*\n\n` +
+        `Thank you for using Akubrecah KRA Portal. Send /kra or /menu anytime to start a new lookup.`;
+
+    await sendEvolutionTextMessage(userPhone, completionMsg);
 
     // 8. Update conversation step to COMPLETED and end active session
     let conversation = await db.ai_conversations?.findFirst({

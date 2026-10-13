@@ -161,7 +161,9 @@ export async function POST(req: NextRequest) {
     });
 
     const pendingCheckoutId = (chatResult as any)?.metadata?.checkoutId;
-    const isAwaitingPayment = (chatResult as any)?.step === 'AWAITING_PAYMENT';
+    const isAwaitingPayment =
+      (chatResult as any)?.step === 'AWAITING_PAYMENT' ||
+      (chatResult as any)?.step === 'CYBER_AWAITING_PAYMENT';
 
     // If an STK push was just dispatched and we are waiting for payment,
     // actively monitor M-Pesa in background so delivery happens AUTOMATICALLY
@@ -218,17 +220,35 @@ export async function POST(req: NextRequest) {
               }
             }
 
+            // 1b. Check if DB recorded cyberInvoice
+            if (!isPaid && typeof db.cyberInvoice?.findFirst === 'function') {
+              const inv = await db.cyberInvoice.findFirst({
+                where: {
+                  OR: [
+                    { checkoutId: pendingCheckoutId },
+                    { mpesaReceipt: pendingCheckoutId },
+                  ],
+                },
+              });
+              if (inv) {
+                isPaid = true;
+                mpesaReceipt = inv.mpesaReceipt || pendingCheckoutId;
+                amountKes = 500;
+              }
+            }
+
             // 2. Check global in-memory Daraja callback cache
             if (!isPaid && typeof (global as any).mpesaCallbacks !== 'undefined') {
               const cb = (global as any).mpesaCallbacks?.get(pendingCheckoutId);
               if (cb && cb.ResultCode === 0) {
                 isPaid = true;
                 mpesaReceipt = cb.MpesaReceiptNumber || pendingCheckoutId;
+                amountKes = cb.Amount || 500;
               }
             }
 
             // 3. Check Paystack verification (if checkoutId is PSTK-... or CERT-...)
-            if (!isPaid && (pendingCheckoutId.startsWith('PSTK-') || pendingCheckoutId.startsWith('CERT-'))) {
+            if (!isPaid && (pendingCheckoutId.startsWith('PSTK-') || pendingCheckoutId.startsWith('CERT-') || pendingCheckoutId.startsWith('CYBER-'))) {
               try {
                 const { verifyPaystackTransaction } = await import('@/lib/paystack');
                 const tx = await verifyPaystackTransaction(pendingCheckoutId);
@@ -243,7 +263,65 @@ export async function POST(req: NextRequest) {
             }
 
             if (isPaid) {
-              console.log(`[WhatsApp Webhook after] Payment verified for ${pendingCheckoutId}! Initiating document delivery.`);
+              console.log(`[WhatsApp Webhook after] Payment verified for ${pendingCheckoutId}! Initiating fulfillment.`);
+
+              const isCyberPayment = conv?.metadata?.step === 'CYBER_AWAITING_PAYMENT';
+
+              if (isCyberPayment) {
+                console.log(`[WhatsApp Webhook after] Activating Cyber Cafe subscription for ${userPhone} (ref: ${mpesaReceipt})`);
+                const { activateCyberCafeSubscription, deliverCyberInvoiceToWhatsApp } = await import('@/lib/cyber-subscription');
+                const { sendEvolutionTextMessage } = await import('@/lib/evolution');
+
+                const activation = await activateCyberCafeSubscription({
+                  cafeName: conv?.metadata?.cyberCafeName || 'Cyber Cafe',
+                  ownerName: conv?.metadata?.cyberOwnerName || 'Cyber Operator',
+                  whatsappPhone: conv?.metadata?.cyberWaPhone || userPhone,
+                  paymentPhone: conv?.metadata?.paymentPhone || userPhone,
+                  mpesaReceipt,
+                  checkoutId: pendingCheckoutId,
+                  amountKes: 500,
+                });
+
+                if (conv && typeof db.ai_conversations?.update === 'function') {
+                  await db.ai_conversations
+                    .update({
+                      where: { id: conv.id },
+                      data: {
+                        metadata: {
+                          ...(conv.metadata || {}),
+                          step: 'IDLE',
+                          activeSession: false,
+                          mpesaReceipt,
+                        },
+                      },
+                    })
+                    .catch(() => {});
+                }
+
+                if (activation.success && activation.invoice && activation.cafe) {
+                  await deliverCyberInvoiceToWhatsApp({
+                    whatsappPhone: userPhone,
+                    invoice: activation.invoice,
+                    cafe: activation.cafe,
+                    daysRemaining: activation.daysRemaining,
+                  });
+
+                  await sendEvolutionTextMessage(
+                    userPhone,
+                    `🎉 *CYBER CAFE SUBSCRIPTION ACTIVATED!*\n` +
+                    `────────────────────────────────────\n` +
+                    `• *Cyber Cafe:* ${activation.cafe.cafeName}\n` +
+                    `• *Operator:* ${activation.cafe.ownerName}\n` +
+                    `• *Activated WhatsApp:* ${activation.cafe.whatsappPhone}\n` +
+                    `• *Package:* 30 Days Unlimited Retrieval\n` +
+                    `• *Status:* 🟢 ACTIVE (*${activation.daysRemaining} Days Remaining*)\n` +
+                    `• *M-Pesa Receipt:* \`${mpesaReceipt}\`\n` +
+                    `• *Official Tax Invoice:* Delivered above as PDF\n\n` +
+                    `⚡ *Instant Delivery Active:* Simply enter any client's National ID Number or KRA PIN anytime to receive instant PIN certificates!`
+                  );
+                }
+                break;
+              }
 
               // Update session in DB so it doesn't trigger duplicate delivery
               if (conv && typeof db.ai_conversations?.update === 'function') {

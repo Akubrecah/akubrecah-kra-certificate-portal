@@ -71,3 +71,28 @@
     4. Confirmation summary message.
   - [x] Updated `app/api/generate-receipt/route.ts` download filename to `ETR_Receipt_[REC].pdf`.
 
+## Feature 5: Cyber Cafe Monthly Package (KES 500) via WhatsApp Bot
+- [x] **Task 16: Database Schema & Migration**
+  - [x] Added `CyberCafe` model in `prisma/schema.prisma` tracking business name, owner name, activated WhatsApp line, payment phone, active period, and fair-use counters.
+  - [x] Added `CyberInvoice` model in `prisma/schema.prisma` for legal commercial and ETR tax invoice persistence.
+  - [x] Synced schema with Neon PostgreSQL (`npx prisma db push`) and regenerated Prisma Client.
+- [x] **Task 17: Cyber Cafe Core Subscription Engine (`lib/cyber-subscription.ts`)**
+  - [x] Implemented `getCyberCafeStatus` calculating active status, days remaining, and 100/day fair-use rate limiting.
+  - [x] Implemented `activateCyberCafeSubscription` with stacking renewal (+30 days added to remaining expiry).
+  - [x] Implemented `generateCyberInvoicePdfBuffer` generating official A4 Fiscal Tax Invoice PDF with 16% VAT breakdown, M-Pesa receipt, and QR code verification.
+  - [x] Implemented `deliverCyberInvoiceToWhatsApp` dispatching the PDF directly to WhatsApp chat.
+- [x] **Task 18: WhatsApp Bot Commands & Registration Wizard (`app/api/whatsapp/chat/route.ts`)**
+  - [x] Implemented `/cyber`, `/subscribe`, `/status`, `/days`, and `/invoice` slash commands and keyword triggers.
+  - [x] Built 4-step registration wizard (`CYBER_REG_NAME` → `CYBER_REG_OWNER` → `CYBER_REG_WHATSAPP` → `CYBER_REG_PAYMENT`).
+  - [x] Integrated M-Pesa STK push for KES 500 with resend and alternate phone number support.
+- [x] **Task 19: Automated Fulfillment & Background Payment Poller**
+  - [x] Updated `after()` background poller in `app/api/whatsapp/webhook/route.ts` and callback in `app/api/mpesa/callback/route.ts` to detect KES 500 Cyber Cafe activations.
+  - [x] Dispatches official Tax Invoice PDF, welcome message with days remaining, and activates instant lookups upon PIN entry.
+- [x] **Task 20: Frictionless Instant Certificate Retrieval for Subscribers**
+  - [x] Enabled active Cyber Cafe users to enter any National ID Number or PIN directly (with or without slashes).
+  - [x] Completely bypasses the KES 20 payment prompt and instantly delivers the official KRA PIN Certificate PDF and thermal slip.
+  - [x] Always appends days remaining and today's fair-use lookups counter to delivery confirmation.
+- [x] **Task 21: Verification & Typecheck**
+  - [x] `npx tsc --noEmit` verified with 0 TypeScript errors.
+  - [x] End-to-end integration test executed with 100% pass rate.
+

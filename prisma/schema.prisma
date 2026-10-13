@@ -281,6 +281,50 @@ model CertificateDownload {
   @@map("certificate_downloads")
 }
 
+/// Cyber Cafe registered for monthly KES 500 unlimited PIN retrieval package
+model CyberCafe {
+  id               String         @id @default(uuid())
+  cafeName         String
+  ownerName        String
+  whatsappPhone    String         @unique // Formatted phone: 254XXXXXXXXX
+  paymentPhone     String         // Safaricom phone: 254XXXXXXXXX
+  status           String         @default("active") // "active" | "expired" | "pending"
+  startsAt         DateTime?      @default(now())
+  expiresAt        DateTime?
+  totalDownloads   Int            @default(0)
+  dailyDownloads   Int            @default(0)
+  lastDownloadDate String?        // "YYYY-MM-DD" for 100/day fair-use tracking
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  invoices         CyberInvoice[]
+
+  @@index([whatsappPhone])
+  @@index([status])
+  @@map("cyber_cafes")
+}
+
+/// Official Tax Invoices generated for Cyber Cafe subscriptions
+model CyberInvoice {
+  id            String    @id @default(uuid())
+  invoiceNumber String    @unique // e.g. INV-CYBER-2026-08426
+  cyberCafeId   String
+  cyberCafe     CyberCafe @relation(fields: [cyberCafeId], references: [id], onDelete: Cascade)
+  amount        Float     @default(500)
+  currency      String    @default("KES")
+  mpesaReceipt  String?
+  checkoutId    String?
+  status        String    @default("paid") // "paid" | "pending"
+  periodStart   DateTime
+  periodEnd     DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  @@index([cyberCafeId])
+  @@index([invoiceNumber])
+  @@map("cyber_invoices")
+}
+
 model SystemLog {
   id        String   @id @default(uuid())
   timestamp DateTime @default(now())

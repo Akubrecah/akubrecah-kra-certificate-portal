@@ -45,9 +45,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    let allCyberInvoices: any[] = [];
+    if (typeof db.cyberInvoice?.findMany === "function") {
+      allCyberInvoices = await db.cyberInvoice.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      });
+    }
+
     const totalDownloadRevenue = allDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0);
     const totalSubRevenue = allSubscriptions.reduce((acc, curr) => acc + (Number(curr.amountPaid) || 0), 0);
-    const totalRevenue = totalDownloadRevenue + totalSubRevenue;
+    const totalCyberRevenue = allCyberInvoices.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    const totalRevenue = totalDownloadRevenue + totalSubRevenue + totalCyberRevenue;
 
     // Today's Revenue
     const todayDownloadRevenue = allDownloads
@@ -56,7 +65,10 @@ export async function GET(req: NextRequest) {
     const todaySubRevenue = allSubscriptions
       .filter((s) => new Date(s.createdAt) >= startOfToday)
       .reduce((acc, curr) => acc + (Number(curr.amountPaid) || 0), 0);
-    const todayRevenue = todayDownloadRevenue + todaySubRevenue;
+    const todayCyberRevenue = allCyberInvoices
+      .filter((ci) => new Date(ci.createdAt) >= startOfToday)
+      .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    const todayRevenue = todayDownloadRevenue + todaySubRevenue + todayCyberRevenue;
 
     // Last 7 & 30 Days Revenue
     const sevenDayRevenue = allDownloads
@@ -71,7 +83,7 @@ export async function GET(req: NextRequest) {
     const whatsappDownloads = allDownloads.filter((d) => d.clerkId?.startsWith("wa_"));
     const webDownloads = allDownloads.filter((d) => !d.clerkId?.startsWith("wa_"));
 
-    const whatsappRevenue = whatsappDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0);
+    const whatsappRevenue = whatsappDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0) + totalCyberRevenue;
     const webRevenue = webDownloads.reduce((acc, curr) => acc + (Number(curr.amountCharged) || 0), 0) + totalSubRevenue;
 
     // Gateway Revenue (Paystack vs Legacy M-Pesa)
@@ -339,6 +351,10 @@ export async function GET(req: NextRequest) {
           ? ((whatsappDownloads.length / totalBotUsers) * 100).toFixed(1) 
           : "0.0",
         recentConversations: recentBotConversations,
+      },
+      cyberCafes: {
+        invoicesCount: allCyberInvoices.length,
+        revenue: totalCyberRevenue,
       },
       transactions: {
         total: totalFilteredTransactions,
