@@ -165,6 +165,7 @@ export async function activateCyberCafeSubscription(params: {
   mpesaReceipt?: string;
   checkoutId?: string;
   amountKes?: number;
+  clerkUserId?: string;
 }): Promise<{
   success: boolean;
   cafe: any;
@@ -181,6 +182,7 @@ export async function activateCyberCafeSubscription(params: {
     mpesaReceipt = `CYBER-${Date.now()}`,
     checkoutId,
     amountKes = 500,
+    clerkUserId,
   } = params;
 
   const cleanWaPhone = formatKenyaPhone(whatsappPhone);
@@ -194,6 +196,7 @@ export async function activateCyberCafeSubscription(params: {
         OR: [
           { whatsappPhone: cleanWaPhone },
           { whatsappPhone: cleanWaPhone.startsWith('254') ? '0' + cleanWaPhone.substring(3) : cleanWaPhone },
+          ...(clerkUserId ? [{ clerkUserId }] : []),
         ],
       },
     });
@@ -227,6 +230,7 @@ export async function activateCyberCafeSubscription(params: {
           status: 'active',
           startsAt: newStartsAt,
           expiresAt: newExpiresAt,
+          clerkUserId: clerkUserId || existing.clerkUserId,
           updatedAt: now,
         },
       });
@@ -240,6 +244,7 @@ export async function activateCyberCafeSubscription(params: {
           status: 'active',
           startsAt: newStartsAt,
           expiresAt: newExpiresAt,
+          clerkUserId: clerkUserId || null,
           totalDownloads: 0,
           dailyDownloads: 0,
         },

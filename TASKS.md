@@ -96,3 +96,29 @@
   - [x] `npx tsc --noEmit` verified with 0 TypeScript errors.
   - [x] End-to-end integration test executed with 100% pass rate.
 
+## Feature 6: Cyber Cafe Web Subscription (Logged-In Users) & UI/UX Retrieval Portal Overhaul
+- [x] **Task 22: Design System Gate & Token Harmonization (`DESIGN.md`)**
+  - [x] Authored comprehensive `DESIGN.md` establishing GovTech Crimson Red (`#BA1A1A`), strict Purple Ban, zero hidden fonts, and WCAG AAA compliance.
+- [x] **Task 23: Database & Clerk User Association**
+  - [x] Updated `prisma/schema.prisma` with `clerkUserId` indexed field on `CyberCafe`.
+  - [x] Executed `npx prisma db push` and `npx prisma generate` to synchronize with PostgreSQL.
+- [x] **Task 24: Backend Web Subscription Engine & Invoice Streaming**
+  - [x] Created `app/api/cyber/user-status/route.ts` providing authenticated cyber status, days remaining, fair-use counts, and historical invoices.
+  - [x] Created `app/api/cyber/subscribe-web/route.ts` for automated M-Pesa STK Push (KES 500) and Paystack web checkout.
+  - [x] Created `app/api/cyber/invoice/[id]/route.ts` streaming official A4 Fiscal Tax Invoice PDFs directly.
+  - [x] Updated `lib/subscription.ts` and `app/api/certificate/check-access/route.ts` to grant 0-fee downloads to active cyber cafe subscribers on web.
+- [x] **Task 25: Form Filling & Radar Scanning HUD Redesign (`components/kra-portal.tsx`)**
+  - [x] Tactile high-contrast input fields (`bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 font-bold`).
+  - [x] High-contrast segmented switcher for National ID vs KRA PIN.
+  - [x] Arithmetic CAPTCHA redesign with clear GovTech security shield and zero font concealment.
+  - [x] Replaced generic spinner with real-time statutory Radar Scanning HUD with multi-stage registry handshake.
+- [x] **Task 26: Above-The-Fold Retrieval Portal Redesign (`app/retrieval-portal/page.tsx`)**
+  - [x] Eliminated bloated hero header; instituted split-screen workspace on desktop with `<KRAPortal hideHeader={true} />` positioned directly above the fold.
+  - [x] Integrated compact `CyberSubscriptionCard` at the top for logged-in users, displaying days remaining, active status, and one-click renewal.
+- [x] **Task 27: User Dashboard Integration (`app/dashboard/page.tsx`)**
+  - [x] Embedded full interactive `CyberSubscriptionCard` into the primary taxpayer compliance dashboard for logged-in users.
+- [x] **Task 28: Verification & Static Analysis**
+  - [x] `npx tsc --noEmit` passed with 0 compile errors.
+  - [x] `npm run lint` passed with 0 errors.
+
+

@@ -17,6 +17,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import prisma, { createSystemLog } from "@/lib/prisma";
 import ProfileWarningPopup from "@/components/profile-warning-popup";
+import { CyberSubscriptionCard } from "@/components/cyber-subscription-card";
 
 interface DashboardPageProps {
   searchParams?: Promise<{ notice?: string }>;
@@ -163,6 +164,19 @@ export default async function TaxpayerDashboard(props: DashboardPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Cyber Cafe Monthly Unlimited Package (KES 500/mo) */}
+      <section className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <div>
+            <h2 className="text-lg font-headline font-bold text-on-surface">Cyber Cafe & Agent Unlimited Package</h2>
+            <p className="text-xs text-on-surface-variant">
+              Unlimited KRA Certificate Retrievals, zero individual download fees, automated WhatsApp bot lookups, and official monthly tax invoices.
+            </p>
+          </div>
+        </div>
+        <CyberSubscriptionCard />
+      </section>
 
       {/* Primary Action Cards (Focused Compliance Hub) */}
       <div className={`grid grid-cols-1 ${isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6`}>

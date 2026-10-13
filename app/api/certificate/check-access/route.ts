@@ -10,9 +10,11 @@ const DOWNLOAD_FEE_KES = 20;
 export async function GET(req: NextRequest) {
   try {
     let isAdmin = false;
+    let userId: string | null = null;
     try {
       const session = await auth();
       if (session?.userId) {
+        userId = session.userId;
         isAdmin = await isAdminUser(session.userId);
       }
     } catch {
@@ -27,6 +29,20 @@ export async function GET(req: NextRequest) {
         feeKes: 0,
         subscription: null,
       });
+    }
+
+    // Active subscribers (including Cyber Cafe monthly KES 500 subscribers) bypass download fee
+    if (userId) {
+      const { getUserSubscriptionStatus } = await import('@/lib/subscription');
+      const subStatus = await getUserSubscriptionStatus(userId);
+      if (subStatus.isSubscribed && subStatus.subscription) {
+        return NextResponse.json({
+          success: true,
+          access: 'subscription',
+          feeKes: 0,
+          subscription: subStatus.subscription,
+        });
+      }
     }
 
     // Standard user or guest: strictly KES 20 per certificate download

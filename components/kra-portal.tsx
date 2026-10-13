@@ -50,7 +50,7 @@ import { useUser } from "@clerk/nextjs"
 import { maskPin, maskEmail, maskPhone } from "@/lib/masking"
 import { trackEvent } from "@/lib/analytics"
 
-export function KRAPortal() {
+export function KRAPortal({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const { isLoaded: authLoaded, isSignedIn, user } = useUser()
 
   // Derive admin status client-side from Clerk metadata
@@ -430,7 +430,20 @@ export function KRAPortal() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Access check failed')
       setAccessInfo(data)
-      setIsSubscribed(data.access === 'subscription' || data.access === 'admin')
+      const isSub = data.access === 'subscription' || data.access === 'admin'
+      setIsSubscribed(isSub)
+
+      // Active subscriber or admin bypasses payment completely!
+      if (isSub) {
+        toast.success(
+          data.subscription?.planName === 'cyber_monthly'
+            ? '⚡ Cyber Cafe Subscription Active · Free Download!'
+            : '🎉 Subscription Active · Free Download!'
+        )
+        await handleSubscriptionDownload()
+        return
+      }
+
       setPaymentStep("confirm")
       setPaymentError(null)
       setPaymentCheckoutId(null)
@@ -613,26 +626,28 @@ export function KRAPortal() {
     exit: { opacity: 0, x: -20 }
   }
 
-  // Ergonomic, auto-fitting input & button classes
-  const inputClass = "w-full bg-surface-container-lowest border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder-on-surface-variant/50 focus:ring-2 focus:ring-primary/20 focus:border-primary px-4 py-2.5 h-11 transition-all"
-  const labelClass = "block text-xs font-semibold text-on-surface mb-1.5"
-  const primaryButtonClass = "inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-xl bg-primary text-on-primary font-semibold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm cursor-pointer whitespace-nowrap"
-  const secondaryButtonClass = "inline-flex items-center justify-center gap-2 px-5 py-2.5 h-11 rounded-xl bg-surface-container border border-outline-variant text-on-surface font-semibold text-sm hover:bg-surface-variant/70 active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
+  // Ergonomic, high-contrast, auto-fitting input & button classes (WCAG AAA compliant, zero obscured fonts)
+  const inputClass = "w-full bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-bold text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-red-600 dark:focus:border-red-500 focus:ring-2 focus:ring-red-600/20 px-4 py-2.5 h-12 transition-all shadow-2xs"
+  const labelClass = "block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 uppercase tracking-wider"
+  const primaryButtonClass = "inline-flex items-center justify-center gap-2 px-6 py-2.5 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm active:scale-[0.98] transition-all shadow-md shadow-red-600/20 cursor-pointer whitespace-nowrap"
+  const secondaryButtonClass = "inline-flex items-center justify-center gap-2 px-5 py-2.5 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
 
   return (
     <div className="w-full">
-      <div className="mb-5 flex flex-col items-center justify-center text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-[11px] font-black text-primary uppercase tracking-widest shadow-xs">
-          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-          Official KRA Statutory Verification Engine
+      {!hideHeader && (
+        <div className="mb-4 flex flex-col items-center justify-center text-center space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-[11px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
+            Official KRA Statutory Verification Engine
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight">
+            Retrieve Tax Compliance Certificate
+          </h2>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-md leading-relaxed">
+            Instant verification by National ID or PIN · KES 20 download fee or Unlimited Cyber Plan
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-on-surface tracking-tight">
-          Retrieve Your Tax Compliance Certificate
-        </h1>
-        <p className="text-xs sm:text-sm text-on-surface-variant max-w-lg leading-relaxed">
-          Instant government-backed verification using your National ID or KRA PIN. Official PDF certificate download fee: <span className="text-primary font-black underline decoration-primary/40 underline-offset-2">KES 20 only</span>.
-        </p>
-      </div>
+      )}
 
       {isVerified && (
         <div className="w-full max-w-2xl mx-auto mb-4">
@@ -646,16 +661,18 @@ export function KRAPortal() {
       )}
 
       {/* Eye-Catching Step Progress Bar */}
-      <div className="w-full max-w-lg mx-auto mb-6 px-3">
+      <div className="w-full max-w-lg mx-auto mb-5 px-3">
         <div className="flex justify-between items-center text-[11px] font-black tracking-wide mb-2">
-          <span className={cn(currentStep >= 1 ? "text-primary" : "text-on-surface-variant/60")}>1. Identify</span>
-          <span className={cn(currentStep >= 2 ? "text-primary" : "text-on-surface-variant/60")}>2. Details</span>
-          <span className={cn(currentStep >= 3 ? "text-primary" : "text-on-surface-variant/60")}>3. Address</span>
-          <span className={cn(currentStep >= 4 ? "text-primary font-black" : "text-on-surface-variant/60")}>4. Download (KES 20)</span>
+          <span className={cn(currentStep >= 1 ? "text-red-600 dark:text-red-400 font-black" : "text-zinc-400")}>1. Identify</span>
+          <span className={cn(currentStep >= 2 ? "text-red-600 dark:text-red-400 font-black" : "text-zinc-400")}>2. Details</span>
+          <span className={cn(currentStep >= 3 ? "text-red-600 dark:text-red-400 font-black" : "text-zinc-400")}>3. Address</span>
+          <span className={cn(currentStep >= 4 ? "text-red-600 dark:text-red-400 font-black" : "text-zinc-400")}>
+            4. Download {isSubscribed ? "(Free)" : "(KES 20)"}
+          </span>
         </div>
-        <div className="h-2 w-full bg-surface-variant/50 rounded-full overflow-hidden relative border border-outline-variant/40">
+        <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden relative border border-zinc-200 dark:border-zinc-700">
           <motion.div 
-            className="h-full bg-gradient-to-r from-primary via-red-600 to-primary rounded-full shadow-xs"
+            className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-600 rounded-full shadow-xs"
             initial={{ width: "25%" }}
             animate={{ width: `${(currentStep / 4) * 100}%` }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -670,15 +687,48 @@ export function KRAPortal() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
         >
-          <div className="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/60 p-4 sm:p-6 relative overflow-hidden z-10 max-w-3xl mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800 p-5 sm:p-7 relative overflow-hidden z-10 max-w-3xl mx-auto">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
                 <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
                   
                   {idSearchStatus === "searching" ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                        <Loader2 className="animate-spin text-primary w-10 h-10 mb-4" />
-                        <p className="font-body-md text-body-md text-on-surface-variant">Connecting to KRA Database...</p>
+                    <div className="py-8 px-4 flex flex-col items-center justify-center text-center space-y-6">
+                      {/* High-Tech Statutory Radar Scanner HUD */}
+                      <div className="relative w-24 h-24 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full bg-red-600/10 animate-ping" />
+                        <div className="absolute inset-2 rounded-full border-2 border-dashed border-red-600/40 animate-spin [animation-duration:8s]" />
+                        <div className="absolute inset-4 rounded-full bg-red-600/15 animate-pulse" />
+                        <div className="relative z-10 w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-600/30">
+                          <ShieldCheck className="w-6 h-6 animate-pulse" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 max-w-sm">
+                        <h3 className="font-extrabold text-base sm:text-lg text-zinc-900 dark:text-zinc-50">
+                          Connecting to KRA Database
+                        </h3>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+                          Secure statutory handshake in progress. Verifying taxpayer identity credentials...
+                        </p>
+                      </div>
+
+                      {/* Live Verification Step HUD */}
+                      <div className="w-full max-w-sm bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-2xl p-4 text-left space-y-2.5">
+                        <div className="flex items-center gap-2.5 text-xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">GavaConnect Gateway Protocol</span>
+                          <span className="ml-auto text-[10px] font-mono font-bold text-emerald-600">LINKED</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-xs">
+                          <Loader2 className="w-3.5 h-3.5 text-red-600 animate-spin shrink-0" />
+                          <span className="font-semibold text-zinc-800 dark:text-zinc-200">Matching National ID & PIN Registry...</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          <span className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0" />
+                          <span>Generating Cryptographic Compliance Certificate</span>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
@@ -770,34 +820,49 @@ export function KRAPortal() {
                         </div>
                       </div>
 
-                      {/* Lookup Type Tabs */}
-                      <div className="flex p-1 bg-surface-variant rounded-lg mb-stack-lg max-w-sm mx-auto">
+                      {/* Lookup Type Segmented Switcher */}
+                      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-2xl mb-4 border border-zinc-200 dark:border-zinc-700 max-w-sm mx-auto shadow-2xs">
                           <button 
-                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "id" ? "bg-surface-container-lowest text-on-surface font-bold" : "text-on-surface-variant hover:text-on-surface")}
+                            type="button"
+                            className={cn(
+                              "flex-1 py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer", 
+                              activeTab === "id" 
+                                ? "bg-red-600 text-white font-extrabold shadow-xs" 
+                                : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white font-bold"
+                            )}
                             onClick={() => { setActiveTab("id"); handleInputChange('pin', ''); }}
                           >
-                              ID Number
+                              <BadgeIcon className="w-3.5 h-3.5" />
+                              National ID Number
                           </button>
                           <button 
-                            className={cn("flex-1 py-2 font-label-md text-label-md rounded shadow-sm transition-colors", activeTab === "pin" ? "bg-surface-container-lowest text-on-surface font-bold" : "text-on-surface-variant hover:text-on-surface")}
+                            type="button"
+                            className={cn(
+                              "flex-1 py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer", 
+                              activeTab === "pin" 
+                                ? "bg-red-600 text-white font-extrabold shadow-xs" 
+                                : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white font-bold"
+                            )}
                             onClick={() => { setActiveTab("pin"); handleInputChange('idNumber', ''); }}
                           >
+                              <MapPinIcon className="w-3.5 h-3.5" />
                               KRA PIN
                           </button>
                       </div>
 
-                      <form className="space-y-stack-md max-w-sm mx-auto" onSubmit={(e) => { e.preventDefault(); handleIdSearch(); }}>
+                      <form className="space-y-4 max-w-sm mx-auto" onSubmit={(e) => { e.preventDefault(); handleIdSearch(); }}>
                           {activeTab === "id" ? (
                             <div>
                                 <label className={labelClass}>National ID Number</label>
                                 <div className="relative">
-                                    <BadgeIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                                    <BadgeIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-600 w-5 h-5" />
                                     <input 
-                                      className={cn(inputClass, "pl-10")}
+                                      className={cn(inputClass, "pl-11 text-base tracking-wider font-extrabold")}
                                       placeholder="e.g. 12345678" 
                                       type="text" 
                                       value={formData.idNumber}
                                       onChange={(e) => handleInputChange('idNumber', e.target.value.toUpperCase())}
+                                      autoFocus
                                     />
                                 </div>
                             </div>
@@ -805,13 +870,14 @@ export function KRAPortal() {
                             <div>
                                 <label className={labelClass}>KRA PIN</label>
                                 <div className="relative">
-                                    <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                                    <MapPinIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-600 w-5 h-5" />
                                     <input 
-                                      className={cn(inputClass, "pl-10 uppercase")}
-                                      placeholder="e.g. A123456789Z" 
+                                      className={cn(inputClass, "pl-11 uppercase text-base tracking-wider font-extrabold")}
+                                      placeholder="e.g. A012345678Z" 
                                       type="text" 
                                       value={formData.pin}
                                       onChange={(e) => handleInputChange('pin', e.target.value.toUpperCase())}
+                                      autoFocus
                                     />
                                 </div>
                             </div>
@@ -821,29 +887,29 @@ export function KRAPortal() {
                           <AnimatePresence>
                             {captchaStatus === "loading" && (
                               <motion.div key="captcha-loading" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex flex-col items-center gap-2 py-2">
-                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                <span className="font-label-sm text-label-sm text-on-surface-variant">Loading verification...</span>
+                                <Loader2 className="w-5 h-5 animate-spin text-red-600" />
+                                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Loading security stamp...</span>
                               </motion.div>
                             )}
                             {captchaStatus === "ready" && captchaImage && (
-                              <motion.div key="captcha-ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex flex-col items-center gap-3 bg-surface-container rounded-lg p-4">
-                                <label className={labelClass}>Solve Verification Code</label>
+                              <motion.div key="captcha-ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex flex-col items-center gap-3 bg-zinc-50 dark:bg-zinc-800/80 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-700">
+                                <label className={labelClass}>Solve Arithmetic Question</label>
                                 <div className="relative">
-                                  <img src={captchaImage} alt="KRA CAPTCHA" className="rounded border border-outline-variant h-14 mx-auto object-contain bg-white" />
+                                  <img src={captchaImage} alt="KRA CAPTCHA" className="rounded-xl border-2 border-zinc-300 dark:border-zinc-600 h-14 mx-auto object-contain bg-white shadow-xs p-1" />
                                   <button
                                     type="button"
                                     onClick={loadCaptcha}
-                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-variant hover:bg-surface-container-high flex items-center justify-center transition-all border border-outline-variant"
+                                    className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center justify-center transition-all border border-zinc-300 dark:border-zinc-600 shadow-xs"
                                     title="Refresh CAPTCHA"
                                   >
-                                    <RefreshCw className="w-3 h-3 text-primary" />
+                                    <RefreshCw className="w-3.5 h-3.5 text-red-600" />
                                   </button>
                                 </div>
                                 <input 
                                   value={captchaAnswer}
                                   onChange={(e) => setCaptchaAnswer(e.target.value)}
-                                  placeholder="Enter the answer"
-                                  className={cn(inputClass, "text-center max-w-[160px]")}
+                                  placeholder="Enter answer"
+                                  className={cn(inputClass, "text-center max-w-[170px] text-base font-extrabold")}
                                   autoFocus
                                 />
                               </motion.div>
@@ -858,36 +924,36 @@ export function KRAPortal() {
                           )}
                           
                           {/* Consent checkbox — legally required */}
-                          <div className="flex items-start gap-2.5 text-left py-2">
+                          <div className="flex items-start gap-2.5 text-left py-2 bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700">
                             <input
                               type="checkbox"
                               id="kra-consent"
                               checked={hasConsented}
                               onChange={(e) => setHasConsented(e.target.checked)}
-                              className="mt-1 w-4 h-4 accent-primary rounded border-outline-muted cursor-pointer"
+                              className="mt-0.5 w-4 h-4 accent-red-600 rounded border-zinc-300 cursor-pointer"
                             />
-                            <label htmlFor="kra-consent" className="font-body-sm text-body-sm text-on-surface-variant cursor-pointer">
-                              I confirm I am the rightful owner of these credentials and I agree to the{" "}
-                              <a href="/legal/terms" target="_blank" className="text-primary hover:underline">Terms of Service</a>.
+                            <label htmlFor="kra-consent" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer leading-snug">
+                              I confirm I am the rightful owner or authorized agent for these credentials and I accept the{" "}
+                              <a href="/legal/terms" target="_blank" className="text-red-600 dark:text-red-400 font-bold hover:underline">Terms of Service</a>.
                             </label>
                           </div>
                           
                           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                               <button 
-                                className={cn(primaryButtonClass, "w-full sm:w-auto min-w-[170px] disabled:opacity-50")}
+                                className={cn(primaryButtonClass, "w-full sm:w-auto min-w-[200px] disabled:opacity-50")}
                                 type="button"
                                 onClick={handleIdSearch}
                                 disabled={!hasConsented || captchaStatus === "loading"}
                               >
                                   <Search className="w-4 h-4" />
-                                  {captchaStatus === "ready" ? "Submit" : "Retrieve Certificate"}
+                                  {captchaStatus === "ready" ? "Verify Security Code" : "Retrieve Certificate"}
                               </button>
                               <button 
-                                className="w-full sm:w-auto h-11 px-4 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/40 font-medium text-xs rounded-xl transition-all inline-flex justify-center items-center gap-1.5 cursor-pointer"
+                                className="w-full sm:w-auto h-12 px-4 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-bold text-xs rounded-xl transition-all inline-flex justify-center items-center gap-1.5 cursor-pointer"
                                 type="button"
                                 onClick={() => setCurrentStep(2)}
                               >
-                                Enter Details Manually
+                                Manual Entry
                               </button>
                           </div>
                       </form>
@@ -1096,32 +1162,34 @@ export function KRAPortal() {
 
                   {/* Official Verification Success Badge & KES 20 Notice */}
                   {(() => {
-                    const isRecordUnlocked = Boolean(verifiedDownloadId || isAdmin);
+                    const isRecordUnlocked = Boolean(verifiedDownloadId || isAdmin || isSubscribed);
                     return (
                       <>
-                        <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-primary/5 to-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-xs">
+                        <div className="w-full max-w-2xl mx-auto bg-gradient-to-r from-emerald-500/10 via-red-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-xs">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
                               <CheckCircle2 className="w-5 h-5" />
                             </div>
                             <div>
-                              <p className="text-xs sm:text-sm font-black text-on-surface flex items-center gap-2">
+                              <p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                                 {isRecordUnlocked ? "Compliance Certificate Ready" : "Official Compliance Record Ready"}
                                 <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-                                  {isRecordUnlocked ? "Paid & Unmasked" : "100% Verified"}
+                                  {isSubscribed ? "Cyber Plan Active" : isRecordUnlocked ? "Paid & Unmasked" : "100% Verified"}
                                 </span>
                               </p>
-                              <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                                {isRecordUnlocked 
+                              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed font-medium">
+                                {isSubscribed 
+                                  ? "Active Cyber Cafe Subscription. Full statutory details unmasked with zero per-certificate download fee."
+                                  : isRecordUnlocked 
                                   ? "Payment verified. Your official certificate is compiled and full taxpayer details are unmasked below." 
                                   : <>Taxpayer record matched directly with government registries. Confidential fields remain masked until you pay strictly <strong>KES 20 (20 bob)</strong> to unmask and download your official tamper-proof PDF.</>}
                               </p>
                             </div>
                           </div>
-                          <div className="shrink-0 bg-primary/10 border border-primary/25 rounded-xl px-3.5 py-2 text-center w-full sm:w-auto">
-                            <span className="block text-[10px] uppercase font-black text-primary tracking-wider">Download Fee</span>
-                            <span className="text-sm sm:text-base font-black text-primary">
-                              {isRecordUnlocked ? "PAID" : "KES 20 only"}
+                          <div className="shrink-0 bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-xl px-3.5 py-2 text-center w-full sm:w-auto">
+                            <span className="block text-[10px] uppercase font-black text-red-600 dark:text-red-400 tracking-wider">Download Fee</span>
+                            <span className="text-sm sm:text-base font-black text-red-600 dark:text-red-400">
+                              {isSubscribed ? "FREE (SUB)" : isRecordUnlocked ? "PAID" : "KES 20 only"}
                             </span>
                           </div>
                         </div>

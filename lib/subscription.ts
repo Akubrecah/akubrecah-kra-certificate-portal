@@ -34,6 +34,9 @@ export interface UserSubscriptionStatus {
     currency: string;
     expiresAt: Date;
     status: string;
+    daysRemaining?: number;
+    cafeName?: string;
+    ownerName?: string;
   } | null;
   userId: string | null;
 }
@@ -55,6 +58,35 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
 
   try {
     const db = prisma as any;
+
+    // 1. Check direct active CyberCafe subscription linked by clerkUserId
+    const cafeByClerk = await db.cyberCafe?.findFirst({
+      where: {
+        clerkUserId: clerkId,
+        status: 'active',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (cafeByClerk && cafeByClerk.expiresAt) {
+      const daysRemaining = Math.max(0, Math.ceil((new Date(cafeByClerk.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      return {
+        isSubscribed: true,
+        subscription: {
+          id: cafeByClerk.id,
+          planName: 'cyber_monthly',
+          amountPaid: 500,
+          currency: 'KES',
+          expiresAt: cafeByClerk.expiresAt,
+          status: cafeByClerk.status,
+          daysRemaining,
+          cafeName: cafeByClerk.cafeName,
+          ownerName: cafeByClerk.ownerName,
+        },
+        userId: clerkId,
+      };
+    }
+
     const dbUser = await db.users?.findFirst({
       where: { clerkId },
       include: {
@@ -69,13 +101,10 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
       },
     });
 
-    if (!dbUser) {
-      return { isSubscribed: false, subscription: null, userId: null };
-    }
-
-    const activeSub = dbUser.subscriptions?.[0] || null;
+    const activeSub = dbUser?.subscriptions?.[0] || null;
 
     if (activeSub) {
+      const daysRemaining = Math.max(0, Math.ceil((new Date(activeSub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
       return {
         isSubscribed: true,
         subscription: {
@@ -85,12 +114,13 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
           currency: activeSub.currency,
           expiresAt: activeSub.expiresAt,
           status: activeSub.status,
+          daysRemaining,
         },
         userId: dbUser.id,
       };
     }
 
-    // Check if user has an active Cyber Cafe monthly package
+    // 2. Check if user has an active Cyber Cafe monthly package by WhatsApp phone
     if (clerkId.startsWith('wa_')) {
       const waPhone = clerkId.replace(/^wa_/, '');
       const cafe = await db.cyberCafe?.findFirst({
@@ -100,7 +130,8 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
           expiresAt: { gt: new Date() },
         },
       });
-      if (cafe) {
+      if (cafe && cafe.expiresAt) {
+        const daysRemaining = Math.max(0, Math.ceil((new Date(cafe.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
         return {
           isSubscribed: true,
           subscription: {
@@ -110,8 +141,11 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
             currency: 'KES',
             expiresAt: cafe.expiresAt,
             status: cafe.status,
+            daysRemaining,
+            cafeName: cafe.cafeName,
+            ownerName: cafe.ownerName,
           },
-          userId: dbUser.id,
+          userId: dbUser?.id || clerkId,
         };
       }
     }
@@ -119,7 +153,7 @@ export async function getUserSubscriptionStatus(clerkId?: string | null): Promis
     return {
       isSubscribed: false,
       subscription: null,
-      userId: dbUser.id,
+      userId: dbUser?.id || clerkId,
     };
   } catch (error: any) {
     console.error('[getUserSubscriptionStatus] Error verifying subscription:', error.message);

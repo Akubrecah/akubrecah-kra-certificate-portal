@@ -295,11 +295,13 @@ model CyberCafe {
   dailyDownloads   Int            @default(0)
   lastDownloadDate String?        // "YYYY-MM-DD" for 100/day fair-use tracking
   notes            String?
+  clerkUserId      String?        // Optional link to Clerk web user account
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   invoices         CyberInvoice[]
 
   @@index([whatsappPhone])
+  @@index([clerkUserId])
   @@index([status])
   @@map("cyber_cafes")
 }

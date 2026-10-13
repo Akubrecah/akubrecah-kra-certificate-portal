@@ -157,6 +157,46 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ success: true, message: 'Cyber Cafe subscription callback processed successfully' });
         }
 
+        // 1c. Check if there is a pending CyberCafe subscription (e.g. initiated from web)
+        const pendingCafe = await db.cyberCafe?.findFirst({
+          where: {
+            OR: [
+              { notes: { contains: CheckoutRequestID } },
+              { paymentPhone: phoneNumber, status: 'pending' },
+            ],
+          },
+        });
+
+        if (pendingCafe && (amount >= 500 || amount === 0)) {
+          console.log(`[M-Pesa Callback] Activating Web Cyber Cafe subscription for ${pendingCafe.cafeName}`);
+          const { activateCyberCafeSubscription, deliverCyberInvoiceToWhatsApp } = await import('@/lib/cyber-subscription');
+          const activation = await activateCyberCafeSubscription({
+            cafeName: pendingCafe.cafeName,
+            ownerName: pendingCafe.ownerName,
+            whatsappPhone: pendingCafe.whatsappPhone,
+            paymentPhone: pendingCafe.paymentPhone,
+            mpesaReceipt,
+            checkoutId: CheckoutRequestID,
+            amountKes: Number(amount || 500),
+            clerkUserId: pendingCafe.clerkUserId,
+          });
+
+          if (activation.success && activation.invoice && activation.cafe) {
+            try {
+              await deliverCyberInvoiceToWhatsApp({
+                whatsappPhone: activation.cafe.whatsappPhone,
+                invoice: activation.invoice,
+                cafe: activation.cafe,
+                daysRemaining: activation.daysRemaining,
+              });
+            } catch (err: any) {
+              console.warn('[M-Pesa Callback] WhatsApp delivery notice:', err.message);
+            }
+          }
+
+          return NextResponse.json({ success: true, message: 'Web Cyber Cafe subscription processed successfully' });
+        }
+
         // 2. Create CertificateDownload record safely
         let dbUser: any = null;
         try {
