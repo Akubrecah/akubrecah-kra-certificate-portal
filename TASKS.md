@@ -38,6 +38,21 @@
 ## Feature 3: Enterprise CI/CD Pipeline
 - [x] **Task 9: Lint & Hook Cleanliness**
   - [x] Resolved React hook ordering bug in `app/admin/layout.tsx`.
+
+## Feature 4: ETR Receipt Dual-Branding, Subdomain Routing & Architecture Decoupling
+- [x] **Task 10: Dual-Branded ETR Receipt Generation**
+  - [x] Embedded Akubrecah Technologies and KRA logos side-by-side in 80mm thermal ETR PDF (`generateReceiptPdfBuffer`).
+  - [x] Rendered side-by-side logos via high-res data URIs in ETR receipt image slip (`generateEtrReceiptImageBuffer`).
+  - [x] Configured official verification URLs pointing to `kra.akubrecah.com`.
+- [x] **Task 11: Minimal Subdomain Architecture (`kra.akubrecah.com`)**
+  - [x] Configured reverse-proxy rewrite in `proxy.ts` routing root traffic on `kra.akubrecah.com` directly to `/retrieval-portal`.
+  - [x] Preserved full security headers and API rate limits across subdomains.
+- [x] **Task 12: Decouple Main Homepage (`akubrecah.com`)**
+  - [x] Removed in-house KRA products section from `app/page.tsx`, returning focus to engineering, mobile apps, and enterprise systems.
+  - [x] Maintained clean navigation sub-links to KRA compliance portal in site header and footer.
+- [x] **Task 13: WhatsApp Deliveries & Contrast Polish**
+  - [x] Streamlined WhatsApp certificate fulfillment to deliver certificate PDF with concise summary.
+  - [x] Resolved contrast on "Tax Filing Gateway" button in `/retrieval-portal`.
   - [x] Configured `.eslintrc.json` ignorePatterns and relaxed require imports for Tailwind plugin.
   - [x] Fixed all `prefer-const` and `no-var` declaration errors across codebase (`npm run lint -- --quiet` returns 0 errors).
 - [x] **Task 10: Pull Request Quality & Security Pipeline (`.github/workflows/ci.yml`)**

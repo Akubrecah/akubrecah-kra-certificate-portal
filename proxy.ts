@@ -169,7 +169,14 @@ export default clerkMiddleware(async (auth, request) => {
     return new NextResponse('Bad Request', { status: 400 });
   }
 
-  const response = NextResponse.next();
+  // 6. Subdomain routing (kra.akubrecah.com / kra.localhost -> rewrite '/' to '/retrieval-portal')
+  const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+  const isKraSubdomain = host.startsWith('kra.') || host.includes('kra.akubrecah.com');
+
+  const response = (isKraSubdomain && pathname === '/')
+    ? NextResponse.rewrite(new URL('/retrieval-portal', request.url))
+    : NextResponse.next();
+
   if (rateLimitHeaders) {
     for (const [headerKey, headerVal] of Object.entries(rateLimitHeaders)) {
       response.headers.set(headerKey, headerVal);

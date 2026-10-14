@@ -138,20 +138,6 @@ export async function POST(req: NextRequest) {
               cafe: activation.cafe,
               daysRemaining: activation.daysRemaining,
             });
-
-            await sendEvolutionTextMessage(
-              targetPhone,
-              `🎉 *CYBER CAFE SUBSCRIPTION ACTIVATED!*\n` +
-              `────────────────────────────────────\n` +
-              `• *Cyber Cafe:* ${activation.cafe.cafeName}\n` +
-              `• *Operator:* ${activation.cafe.ownerName}\n` +
-              `• *Activated WhatsApp:* ${activation.cafe.whatsappPhone}\n` +
-              `• *Package:* 30 Days Unlimited Retrieval\n` +
-              `• *Status:* 🟢 ACTIVE (*${activation.daysRemaining} Days Remaining*)\n` +
-              `• *M-Pesa Receipt:* \`${mpesaReceipt}\`\n` +
-              `• *Official Tax Invoice:* Delivered above as PDF\n\n` +
-              `⚡ *Instant Delivery Active:* Simply enter any client's National ID Number or KRA PIN anytime to receive instant PIN certificates!`
-            );
           }
 
           return NextResponse.json({ success: true, message: 'Cyber Cafe subscription callback processed successfully' });
@@ -317,12 +303,8 @@ export async function POST(req: NextRequest) {
             const instance = process.env.EVOLUTION_INSTANCE_NAME || 'akubrecah-kra';
 
             const failMsg =
-              `⚠️ *M-Pesa Payment Not Completed*\n\n` +
-              `${ResultDesc || 'Request cancelled or timed out'}.\n\n` +
-              `• Reply *RETRY* or *1* to resend the prompt\n` +
-              `• Send another phone number (e.g. *0712345678*)\n` +
-              `• Reply *3* to pay with Card/Bank link\n` +
-              `• Reply *0* to cancel.`;
+              `⚠️ M-Pesa payment not completed (${ResultDesc || 'timed out'}).\n` +
+              `Reply 1 to resend prompt, or 0 to cancel.`;
 
             await fetch(`${evolutionUrl}/message/sendText/${instance}`, {
               method: 'POST',

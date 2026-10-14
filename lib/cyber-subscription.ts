@@ -720,14 +720,7 @@ export async function deliverCyberInvoiceToWhatsApp(params: {
       phone: whatsappPhone,
       pdfBuffer: invoicePdf,
       fileName: `Tax_Invoice_${invoice.invoiceNumber}.pdf`,
-      caption:
-        `🧾 *Official Fiscal Tax Invoice (${invoice.invoiceNumber})*\n\n` +
-        `• *Cyber Cafe:* ${cafe.cafeName}\n` +
-        `• *Package:* 30-Day Unlimited Retrieval\n` +
-        `• *Amount Paid:* KES ${Number(invoice.amount).toFixed(2)}\n` +
-        `• *Receipt No:* ${invoice.mpesaReceipt}\n` +
-        `• *Status:* ACTIVE (${daysRemaining} Days Remaining)\n\n` +
-        `_Your invoice is attached above for accounting and tax records._`,
+      caption: `🧾 *Tax Invoice (${invoice.invoiceNumber})*\n• ${cafe.cafeName} | KES ${Number(invoice.amount).toFixed(2)}\n• Ref: ${invoice.mpesaReceipt} | Active: ${daysRemaining} days`,
     });
 
     return res.success;

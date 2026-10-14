@@ -258,7 +258,11 @@ export default function RetrievalPortalPage() {
               </Button>
             </Link>
             <Link href="/dashboard/filing">
-              <Button variant="outline" size="lg" className="h-12 px-8 rounded-xl border-2 border-white text-white hover:bg-white/10 font-bold text-sm">
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-12 px-8 rounded-xl border-2 border-white text-white bg-transparent hover:bg-white hover:text-primary font-bold text-sm transition-all shadow-sm"
+              >
                 Tax Filing Gateway
               </Button>
             </Link>

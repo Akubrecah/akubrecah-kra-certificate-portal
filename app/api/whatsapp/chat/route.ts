@@ -500,15 +500,7 @@ async function handleTaxpayerFoundFulfillment({
       taxpayerDetails: null,
     });
 
-    return (
-      `⚡ *Cyber Cafe Package: Instant Retrieval!*\n\n` +
-      `• *Taxpayer:* ${taxpayer.taxpayerName}\n` +
-      `• *PIN:* \`${cleanPin}\`\n` +
-      `• *Official Certificate:* Delivered above (PDF)\n` +
-      `• *Days Remaining:* ⚡ *${cyberStatus.daysRemaining} Days*\n` +
-      `• *Today's Quota:* *${cyberStatus.cafe.dailyDownloads + 1} / 100*\n\n` +
-      `_Enter another National ID Number or KRA PIN anytime for instant PIN certificates._`
-    );
+    return '';
   }
 
   // 2. Regular pay-per-download flow (KES 20 STK push)
@@ -535,33 +527,15 @@ async function handleTaxpayerFoundFulfillment({
 
   if (stkRes.success) {
     return (
-      `✅ *Taxpayer Record Found!*\n\n` +
-      `• *Name:* ${masked.taxpayerName}\n` +
-      `• *PIN:* \`${masked.pin}\`\n` +
-      `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
-      `📲 *M-PESA PAYMENT PROMPT SENT!*\n` +
-      `─────────────────────────────\n` +
-      `• *Amount:* KES ${downloadFee}.00\n` +
-      `• *Phone:* \`${stkRes.normalizedPhone}\`\n` +
-      `• *Ref:* \`${stkRes.checkoutRequestId || cleanPin}\`\n\n` +
-      `👉 *Check your handset screen now* and enter your M-Pesa PIN to complete payment.\n\n` +
-      `⚡ *Automatic Delivery:* Your *KRA PIN Certificate (PDF)* and *Official ETR Thermal Receipt (PDF & Image)* will be delivered right here in chat the moment you enter your PIN!\n\n` +
-      `_Options:_\n` +
-      `• Cyber Cafe? Send */cyber* for KES 500/Month unlimited package\n` +
-      `• Pay with different number? Send your Safaricom number (e.g. *0712345678*)\n` +
-      `• Didn't see prompt? Reply *1* or *RESEND*\n` +
-      `• Reply *0* to cancel`
+      `✅ *${masked.taxpayerName}* (\`${masked.pin}\`)\n` +
+      `📲 M-Pesa prompt sent to \`${stkRes.normalizedPhone}\` (KES ${downloadFee}). Enter PIN to receive your certificate.\n` +
+      `_Reply 1 to resend, or 0 to cancel._`
     );
   } else {
     return (
-      `✅ *Taxpayer Record Found!*\n\n` +
-      `• *Name:* ${masked.taxpayerName}\n` +
-      `• *PIN:* \`${masked.pin}\`\n` +
-      `• *Station:* ${taxpayer.station || 'KRA Main'}\n\n` +
-      `*Official Certificate Download:* KES ${downloadFee}.00\n\n` +
-      `⚠️ *M-Pesa STK Push:* ${stkRes.error || 'Could not send prompt to this number'}.\n\n` +
-      `👉 Please reply with your Safaricom M-Pesa number (e.g. *0712345678*) to trigger the payment prompt on that handset.\n\n` +
-      `_(Reply *0* to cancel)_`
+      `✅ *${masked.taxpayerName}* (\`${masked.pin}\`)\n` +
+      `⚠️ M-Pesa prompt failed: ${stkRes.error || 'Network error'}.\n` +
+      `👉 Send another Safaricom number (e.g. *0712345678*) or reply 0 to cancel.`
     );
   }
 }
@@ -727,20 +701,9 @@ export async function handleWhatsAppChat(params: {
 
         if (cyberCheck.isActive && cyberCheck.cafe) {
           replyText =
-            `🏢 *CYBER CAFE SUBSCRIPTION ACTIVE*\n` +
-            `────────────────────────────────────\n` +
-            `• *Cyber Cafe:* ${cyberCheck.cafe.cafeName}\n` +
-            `• *Operator:* ${cyberCheck.cafe.ownerName}\n` +
-            `• *Activated Line:* ${formatDisplayPhone(cyberCheck.cafe.whatsappPhone)}\n` +
-            `• *Status:* 🟢 ACTIVE\n` +
-            `• *Days Remaining:* ⚡ *${cyberCheck.daysRemaining} Days*\n` +
-            `• *Expires:* ${cyberCheck.cafe.expiresAt ? new Date(cyberCheck.cafe.expiresAt).toLocaleDateString('en-GB') : '30 days'}\n` +
-            `• *Today's Lookups:* *${cyberCheck.cafe.dailyDownloads} / 100*\n` +
-            `• *Total Downloads:* *${cyberCheck.cafe.totalDownloads}*\n\n` +
-            `_Quick Actions:_\n` +
-            `• Send any client's *National ID Number* or *KRA PIN* for instant certificate\n` +
-            `• Send */invoice* to receive your official Tax Invoice PDF\n` +
-            `• Reply *RENEW* to stack +30 days now (KES 500)`;
+            `🏢 *${cyberCheck.cafe.cafeName}* — 🟢 ACTIVE\n` +
+            `• ${cyberCheck.daysRemaining} days left | Today: ${cyberCheck.cafe.dailyDownloads}/100 lookups\n` +
+            `_Send National ID or PIN for instant certificate._`;
         } else {
           await saveConversationState('CYBER_REG_NAME', {
             activeSession: true,
@@ -751,12 +714,9 @@ export async function handleWhatsAppChat(params: {
           });
 
           replyText =
-            `🏢 *WELCOME TO CYBER CAFE MONTHLY PACKAGE*\n` +
-            `────────────────────────────────────\n` +
-            `• *Price:* KES 500.00 / Month (30 Days)\n` +
-            `• *Benefits:* Unlimited KRA PIN Certificate retrievals with *zero download fees*, instant WhatsApp delivery, and official Fiscal Tax Invoices.\n\n` +
-            `👉 *Step 1 of 4:* What is your *Cyber Cafe Business Name*? (e.g. *Apex Cyber Services*)\n\n` +
-            `_(Reply *0* or send */cancel* to exit)_`;
+            `🏢 *Cyber Cafe Package (KES 500/Month)*\n` +
+            `Step 1/4: What is your *Cyber Cafe Business Name*?\n` +
+            `_(Reply 0 to cancel)_`;
         }
       }
       // C. Status & Days Remaining: /status, /days, /sub
@@ -765,29 +725,17 @@ export async function handleWhatsAppChat(params: {
 
         if (cyberCheck.isActive && cyberCheck.cafe) {
           replyText =
-            `🏢 *CYBER CAFE PACKAGE STATUS*\n` +
-            `────────────────────────────────────\n` +
-            `• *Cyber Cafe:* ${cyberCheck.cafe.cafeName}\n` +
-            `• *Operator:* ${cyberCheck.cafe.ownerName}\n` +
-            `• *Activated WhatsApp:* ${formatDisplayPhone(cyberCheck.cafe.whatsappPhone)}\n` +
-            `• *Status:* 🟢 ACTIVE\n` +
-            `• *Days Remaining:* ⚡ *${cyberCheck.daysRemaining} Days*\n` +
-            `• *Expiry Date:* ${cyberCheck.cafe.expiresAt ? new Date(cyberCheck.cafe.expiresAt).toLocaleDateString('en-GB') : '30 days'}\n` +
-            `• *Today's Quota:* *${cyberCheck.cafe.dailyDownloads} / 100*\n` +
-            `• *Total Downloads:* *${cyberCheck.cafe.totalDownloads} certificates*\n\n` +
-            `_Send */invoice* for Tax Invoice PDF, or send any National ID number for instant certificate retrieval._`;
+            `🏢 *${cyberCheck.cafe.cafeName}* — 🟢 ACTIVE\n` +
+            `• ${cyberCheck.daysRemaining} days left | Today: ${cyberCheck.cafe.dailyDownloads}/100 lookups\n` +
+            `_Send National ID or PIN for instant certificate._`;
         } else if (cyberCheck.isRegistered && cyberCheck.cafe) {
           replyText =
-            `⚠️ *Cyber Cafe Subscription Expired*\n` +
-            `────────────────────────────────────\n` +
-            `• *Cyber Cafe:* ${cyberCheck.cafe.cafeName}\n` +
-            `• *Status:* 🔴 EXPIRED\n\n` +
-            `👉 Reply *RENEW* or send */cyber* to reactivate 30 days of unlimited PIN downloads for KES 500.`;
+            `⚠️ *Cyber Cafe Expired (${cyberCheck.cafe.cafeName})*\n` +
+            `Reply *RENEW* to reactivate 30 days unlimited for KES 500.`;
         } else {
           replyText =
-            `ℹ️ *No Active Cyber Cafe Subscription*\n\n` +
-            `The *KES 500/Month Cyber Cafe Package* gives your business 30 days of unlimited KRA PIN Certificate downloads without paying KES 20 per cert.\n\n` +
-            `👉 Send */cyber* or */subscribe* to register now!`;
+            `ℹ️ No active Cyber Cafe subscription.\n` +
+            `Send */cyber* to register for KES 500/Month unlimited package.`;
         }
       }
       // D. Send Latest Tax Invoice PDF: /invoice
@@ -900,10 +848,8 @@ export async function handleWhatsAppChat(params: {
           if (!isPin && !isId) {
             await saveConversationState('AWAITING_INPUT', { activeSession: true });
             replyText =
-              `⚠️ *Invalid Format*\n\n` +
-              `Please provide a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
-              `_Example: 12345678 or A012345678Z_\n` +
-              `Reply *0* or send */cancel* to exit.`;
+              `⚠️ Invalid format. Send valid National ID (6-9 digits) or KRA PIN (e.g. A012345678Z).\n` +
+              `_(Reply 0 to cancel)_`;
           } else {
             let taxpayer: any = null;
             try {
@@ -919,8 +865,8 @@ export async function handleWhatsAppChat(params: {
             if (!taxpayer || !taxpayer.taxpayerName) {
               await saveConversationState('AWAITING_INPUT', { activeSession: true });
               replyText =
-                `❌ *No record found* on KRA database for \`${cmdArgs}\`.\n\n` +
-                `Please send your correct *National ID Number* or *KRA PIN* to try again, or reply *0* to cancel.`;
+                `❌ No record found on KRA database for \`${cmdArgs}\`.\n` +
+                `Send another ID/PIN or reply 0 to cancel.`;
             } else {
               // Fulfill instantly if Cyber Cafe subscriber, else prompt KES 20
               replyText = await handleTaxpayerFoundFulfillment({
@@ -944,31 +890,18 @@ export async function handleWhatsAppChat(params: {
             suggestedPhone: null,
           });
 
-          const subBadge = cyberCheck.isActive
-            ? `\n⚡ *Cyber Cafe Package Active:* 🟢 *${cyberCheck.daysRemaining} Days Remaining* (Unlimited Retrievals)\n`
-            : '';
-
           replyText =
-            `👋 *Welcome to Akubrecah KRA Certificate Portal!*\n` +
-            `${subBadge}\n` +
-            `I can retrieve and verify official *KRA PIN Certificates* and *Fiscal ETR Receipts* right here on WhatsApp.\n\n` +
-            `👉 *Please reply with any National ID Number (e.g. 12345678) or KRA PIN (e.g. A012345678Z)* to look up details.\n\n` +
-            `_Quick Commands:_\n` +
-            `• */cyber* — Cyber Cafe KES 500/Month unlimited package\n` +
-            `• */status* — Check subscription days remaining\n` +
-            `• */invoice* — Download official Tax Invoice PDF\n` +
-            `• */cancel* — Exit bot session`;
+            `*Akubrecah KRA Portal*${cyberCheck.isActive ? ` (${cyberCheck.daysRemaining}d active)` : ''}\n` +
+            `Send National ID or KRA PIN to retrieve certificate.\n` +
+            `_Commands: /cyber (KES 500/mo), /status, /invoice, /cancel_`;
         }
       }
       // G. Other/Unknown slash commands
       else {
         replyText =
-          `🤖 *Akubrecah KRA Bot Commands:*\n\n` +
-          `• */kra* or */menu* — Open KRA Certificate Portal\n` +
-          `• */cyber* — Cyber Cafe KES 500/Month package\n` +
-          `• */status* — Check days remaining\n` +
-          `• */invoice* — Download latest Tax Invoice PDF\n` +
-          `• */cancel* — Exit bot session`;
+          `*Commands:*\n` +
+          `• Send National ID or PIN to look up\n` +
+          `• */cyber* (KES 500/mo) | */status* | */cancel*`;
       }
     }
     // 4. Step AWAITING_INPUT: User entered bot mode via /kra or /menu and sends their National ID or PIN without slashes
@@ -989,10 +922,8 @@ export async function handleWhatsAppChat(params: {
       } else if (!isPin && !isId) {
         await saveConversationState('AWAITING_INPUT', { activeSession: true });
         replyText =
-          `⚠️ *Invalid Format*\n\n` +
-          `Please reply with a valid *National ID Number* (6 to 9 digits) or *KRA PIN* (e.g., A012345678Z).\n\n` +
-          `_Example: 12345678 or A012345678Z_\n` +
-          `Reply *0* or send */cancel* to exit bot mode.`;
+          `⚠️ Invalid format. Send valid National ID (6-9 digits) or KRA PIN (e.g. A012345678Z).\n` +
+          `_(Reply 0 to cancel)_`;
       } else {
         let taxpayer: any = null;
         try {
@@ -1008,8 +939,8 @@ export async function handleWhatsAppChat(params: {
         if (!taxpayer || !taxpayer.taxpayerName) {
           await saveConversationState('AWAITING_INPUT', { activeSession: true });
           replyText =
-            `❌ *No record found* on KRA database for \`${incomingText}\`.\n\n` +
-            `Please check the number and send another National ID Number or KRA PIN, or reply *0* to exit.`;
+            `❌ No record found on KRA database for \`${incomingText}\`.\n` +
+            `Send another ID/PIN or reply 0 to cancel.`;
         } else {
           // Fulfill instantly if Cyber Cafe subscriber, else prompt KES 20
           replyText = await handleTaxpayerFoundFulfillment({
@@ -1049,11 +980,9 @@ export async function handleWhatsAppChat(params: {
           cyberOwnerName: ownerName,
         });
         replyText =
-          `👤 *Operator:* ${ownerName}\n\n` +
-          `👉 *Step 3 of 4:* Which *WhatsApp Phone Number* should be activated for unlimited downloads?\n\n` +
-          `• Reply *SAME* to activate this current WhatsApp number (${formatDisplayPhone(userPhone)})\n` +
-          `• Or send the WhatsApp number to activate (e.g. *0712345678*)\n\n` +
-          `_(Reply *0* to cancel)_`;
+          `👤 *Operator:* ${ownerName}\n` +
+          `Step 3/4: WhatsApp number to activate? (Reply *SAME* for ${formatDisplayPhone(userPhone)} or send number)\n` +
+          `_(Reply 0 to cancel)_`;
       }
     }
     else if (currentStep === 'CYBER_REG_WHATSAPP') {
@@ -1066,7 +995,7 @@ export async function handleWhatsAppChat(params: {
           const extracted = extractKenyanPhone(incomingText);
           if (!extracted) {
             replyText =
-              `⚠️ *Invalid Phone Number*\n\nPlease reply with *SAME* or enter a valid Kenyan Safaricom number (e.g. *0712345678*).\n\n_(Reply *0* to cancel)_`;
+              `⚠️ Invalid phone number. Reply *SAME* or enter Safaricom number (e.g. *0712345678*).\n_(Reply 0 to cancel)_`;
             return {
               success: true,
               userPhone,
@@ -1085,11 +1014,9 @@ export async function handleWhatsAppChat(params: {
         });
 
         replyText =
-          `📱 *Activated Line:* \`${formatDisplayPhone(targetWa)}\`\n\n` +
-          `👉 *Step 4 of 4:* Which *Safaricom M-Pesa Number* should receive the prompt for the *KES 500* payment?\n\n` +
-          `• Reply *SAME* to pay with \`${formatDisplayPhone(userPhone)}\`\n` +
-          `• Or send your M-Pesa number (e.g. *0712345678*)\n\n` +
-          `_(Reply *0* to cancel)_`;
+          `📱 *Activated Line:* \`${formatDisplayPhone(targetWa)}\`\n` +
+          `Step 4/4: Safaricom M-Pesa number to pay KES 500? (Reply *SAME* for ${formatDisplayPhone(userPhone)} or send number)\n` +
+          `_(Reply 0 to cancel)_`;
       }
     }
     else if (currentStep === 'CYBER_REG_PAYMENT') {
@@ -1102,7 +1029,7 @@ export async function handleWhatsAppChat(params: {
           const extracted = extractKenyanPhone(incomingText);
           if (!extracted) {
             replyText =
-              `⚠️ *Invalid Phone Number*\n\nPlease reply with *SAME* or enter a valid Kenyan Safaricom number (e.g. *0712345678*).\n\n_(Reply *0* to cancel)_`;
+              `⚠️ Invalid phone number. Reply *SAME* or enter Safaricom number (e.g. *0712345678*).\n_(Reply 0 to cancel)_`;
             return {
               success: true,
               userPhone,
@@ -1139,28 +1066,12 @@ export async function handleWhatsAppChat(params: {
 
         if (stkRes.success) {
           replyText =
-            `📲 *M-PESA PAYMENT PROMPT SENT (KES 500.00)*\n` +
-            `─────────────────────────────────────────\n` +
-            `• *Cyber Cafe:* ${cafeName}\n` +
-            `• *Activated WhatsApp:* ${formatDisplayPhone(waPhone)}\n` +
-            `• *Payment Handset:* \`${stkRes.normalizedPhone}\`\n` +
-            `• *Package:* 30 Days Unlimited Retrieval\n` +
-            `• *Amount:* KES 500.00\n` +
-            `• *Reference:* \`${stkRes.checkoutRequestId || 'CYBER-SUB'}\`\n\n` +
-            `👉 *Check that handset screen now* and enter your M-Pesa PIN.\n\n` +
-            `⚡ *Instant Activation:*\n` +
-            `• Your 30-day package activates automatically.\n` +
-            `• Your official Fiscal Tax Invoice PDF will be delivered right here in chat.\n` +
-            `• You can enter any client's ID number anytime to receive instant PIN certificates!\n\n` +
-            `_Options:_\n` +
-            `• Didn't see prompt? Reply *1* or *RESEND*\n` +
-            `• Pay with different number? Send your Safaricom number (e.g. *0712345678*)\n` +
-            `• Reply *0* to cancel`;
+            `📲 M-Pesa prompt (KES 500) sent to \`${stkRes.normalizedPhone}\` for *${cafeName}*.\n` +
+            `Enter PIN to activate. Reply 1 to resend, 0 to cancel.`;
         } else {
           replyText =
-            `⚠️ *Could not send prompt to ${stkRes.normalizedPhone}:*\n` +
-            `${stkRes.error || 'Please ensure this is an active Safaricom line'}.\n\n` +
-            `👉 Please reply with another Safaricom number (e.g. *0712345678*) or reply *0* to cancel.`;
+            `⚠️ Could not send prompt to ${stkRes.normalizedPhone}: ${stkRes.error || 'Network error'}.\n` +
+            `Reply with another Safaricom number or 0 to cancel.`;
         }
       }
     }
@@ -1287,25 +1198,13 @@ export async function handleWhatsAppChat(params: {
             });
           }
 
-          replyText =
-            `🎉 *CYBER CAFE SUBSCRIPTION ACTIVATED!*\n` +
-            `────────────────────────────────────\n` +
-            `• *Cyber Cafe:* ${cafeName}\n` +
-            `• *Operator:* ${ownerName}\n` +
-            `• *Activated WhatsApp:* ${formatDisplayPhone(waPhone)}\n` +
-            `• *Package:* 30 Days Unlimited Retrieval\n` +
-            `• *Status:* 🟢 ACTIVE (*${activation.daysRemaining} Days Remaining*)\n` +
-            `• *M-Pesa Receipt:* \`${verifiedReceipt}\`\n` +
-            `• *Official Tax Invoice:* Delivered above as PDF\n\n` +
-            `⚡ *Instant Delivery Active:* Simply enter any client's National ID Number or KRA PIN anytime to receive instant PIN certificates!`;
+          replyText = '';
         } else {
           await saveConversationState('CYBER_AWAITING_PAYMENT', { activeSession: true });
           replyText =
-            `⏳ *Waiting for M-Pesa PIN...*\n\n` +
-            `We have not yet received payment confirmation for *KES 500.00* on \`${formatDisplayPhone(activePayPhone)}\`.\n\n` +
-            `• *Entered PIN already?* Please allow 3-5 seconds for Safaricom confirmation, then reply *PAID*.\n` +
-            `• *Prompt didn't show up?* Reply *1* or *RESEND* to trigger it again.\n` +
-            `• *Different phone?* Send your Safaricom number (e.g. *0712345678*).\n` +
+            `⏳ *Waiting for M-Pesa PIN (KES 500) on \`${formatDisplayPhone(activePayPhone)}\`*\n` +
+            `• Entered PIN? Wait 3-5s then reply *PAID*.\n` +
+            `• No prompt? Reply *1* to resend, or send another number.\n` +
             `• Reply *0* to cancel.`;
         }
       }
@@ -1355,19 +1254,9 @@ export async function handleWhatsAppChat(params: {
         });
 
         if (stkRes.success) {
-          replyText =
-            `📲 *M-PESA PAYMENT PROMPT SENT!*\n` +
-            `─────────────────────────────\n` +
-            `• *Amount:* KES ${downloadFee}.00\n` +
-            `• *Target Phone:* \`${stkRes.normalizedPhone}\`\n` +
-            `• *Reference:* \`${stkRes.checkoutRequestId || pinToDownload}\`\n\n` +
-            `👉 *Check that phone's screen now* and enter your M-Pesa PIN.\n\n` +
-            `⚡ Documents will arrive in this chat immediately after payment!\n\n` +
-            `_(Reply *1* or *RESEND* to try again, or *0* to cancel)_`;
+          replyText = `📲 M-Pesa prompt (KES ${downloadFee}) sent to \`${stkRes.normalizedPhone}\`. Enter PIN to complete.`;
         } else {
-          replyText =
-            `⚠️ *Could not send prompt to ${stkRes.normalizedPhone}:*\n${stkRes.error || 'Please ensure this is a valid Safaricom line'}.\n\n` +
-            `👉 Please enter another Safaricom phone number (e.g. *0712345678*) or reply *0* to cancel.`;
+          replyText = `⚠️ Could not send prompt to ${stkRes.normalizedPhone}. Send another number or reply 0 to cancel.`;
         }
       }
       // C. User requests resending the STK Push
@@ -1389,15 +1278,9 @@ export async function handleWhatsAppChat(params: {
         });
 
         if (stkRes.success) {
-          replyText =
-            `📲 *M-PESA PROMPT RESENT!*\n\n` +
-            `A fresh payment prompt for *KES ${downloadFee}.00* was sent to \`${stkRes.normalizedPhone}\`.\n\n` +
-            `👉 Enter your M-Pesa PIN to complete payment.\n\n` +
-            `⚡ Delivery happens automatically right here!`;
+          replyText = `📲 M-Pesa prompt (KES ${downloadFee}) resent to \`${stkRes.normalizedPhone}\`. Enter PIN to complete.`;
         } else {
-          replyText =
-            `⚠️ *Could not resend prompt:*\n${stkRes.error || 'Temporary network issue'}.\n\n` +
-            `👉 Send an alternative Safaricom number (e.g. *0712345678*) to pay with another phone, or reply *0* to cancel.`;
+          replyText = `⚠️ Could not resend prompt: ${stkRes.error || 'Network error'}. Send another number or reply 0 to cancel.`;
         }
       }
       // D. Verification check (e.g. "PAID", or general text)
@@ -1468,19 +1351,14 @@ export async function handleWhatsAppChat(params: {
             taxpayerDetails: metadata.taxpayerDetails,
           });
 
-          replyText =
-            `🎉 *Payment Confirmed!*\n\n` +
-            `Your official *KRA PIN Certificate (PDF)* and *Official ETR Thermal Receipt (PDF & Image)* have been delivered to your chat above.\n\n` +
-            `Send */kra* or */menu* anytime to perform another lookup.`;
+          replyText = '';
         } else {
           await saveConversationState('AWAITING_PAYMENT', { activeSession: true });
 
           replyText =
-            `⏳ *Waiting for M-Pesa PIN...*\n\n` +
-            `We have not yet received payment confirmation for \`${activePayPhone}\`.\n\n` +
-            `• *Entered PIN already?* Please allow 3-5 seconds for Safaricom confirmation, then reply *PAID*.\n` +
-            `• *Prompt didn't show up?* Reply *1* or *RESEND* to trigger it again.\n` +
-            `• *Different phone?* Send your Safaricom number (e.g. *0712345678*).\n` +
+            `⏳ *Payment Pending for \`${activePayPhone}\`*\n` +
+            `• Entered PIN? Wait 3-5s then reply *PAID*.\n` +
+            `• No prompt? Reply *1* to resend, or send another number.\n` +
             `• Reply *0* to cancel.`;
         }
       }

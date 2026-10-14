@@ -7,11 +7,8 @@ import {
   Smartphone, 
   Cloud, 
   Layers, 
-  FileCheck2, 
   ShieldCheck, 
-  Send, 
   CheckCircle2, 
-  Sparkles,
   Code2,
   Zap,
   Globe,
@@ -202,28 +199,6 @@ export default function Home() {
         }
       ] as GithubRepo[])
 
-  const inHouseTools = [
-    {
-      title: "KRA Certificate Retrieval Portal",
-      badge: "KES 20 · Instant Download",
-      description: "Instant official KRA compliance document retrieval by National ID or PIN. Automated PDF generation, verified in seconds for only KES 20.",
-      href: "/retrieval-portal",
-      icon: FileCheck2,
-      ctaText: "Retrieve Certificate (KES 20)",
-      color: "text-primary"
-    },
-
-    {
-      title: "Automated Tax Filing",
-      badge: "Compliance",
-      description: "Streamlined nil returns and statutory submission pipeline with automated validation and receipt generation.",
-      href: "/dashboard/filing",
-      icon: Send,
-      ctaText: "File Returns",
-      color: "text-emerald-600"
-    }
-  ]
-
   const capabilities = [
     { icon: Laptop, label: "Web Engineering", desc: "Next.js, React, TypeScript", href: "/services" },
     { icon: Smartphone, label: "Mobile Apps", desc: "iOS, Android, React Native", href: "/services" },
@@ -314,78 +289,6 @@ export default function Home() {
               )
             })}
           </motion.div>
-        </section>
-
-
-        {/* ============================= IN-HOUSE TOOLS ============================= */}
-        <section id="products" className="space-y-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary uppercase tracking-widest">
-                <Sparkles className="h-3.5 w-3.5" />
-                In-House Products
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
-                Live Statutory Automation Suite
-              </h2>
-              <p className="text-sm text-on-surface-variant max-w-xl">
-                Our flagship in-house systems power thousands of daily verified tax compliance 
-                operations across Kenya — built on the same engineering standards we deliver to clients.
-              </p>
-            </div>
-            <Link href="/products">
-              <Button variant="outline" size="sm" className="h-10 px-5 rounded-xl font-bold text-xs gap-2 shrink-0">
-                All Products <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {inHouseTools.map((tool) => {
-              const Icon = tool.icon
-              const isFlagship = tool.href === "/retrieval-portal"
-              return (
-                <div 
-                  key={tool.title} 
-                  className={`group p-7 rounded-3xl bg-surface-container-lowest border transition-all duration-300 flex flex-col ${
-                    isFlagship 
-                      ? 'border-primary/40 ring-1 ring-primary/25 shadow-lg shadow-primary/5 hover:border-primary hover:shadow-2xl hover:shadow-primary/10' 
-                      : 'border-outline-variant hover:border-primary/40 shadow-soft hover:shadow-xl'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-5">
-                    <div className={`p-3 rounded-xl transition-colors ${
-                      isFlagship 
-                        ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                        : `bg-surface-container ${tool.color} group-hover:bg-primary group-hover:text-white`
-                    }`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
-                      isFlagship 
-                        ? 'bg-primary/10 text-primary border-primary/30 font-black' 
-                        : 'bg-surface-container text-on-surface-variant border-outline-variant'
-                    }`}>
-                      {tool.badge}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-on-surface mb-2 group-hover:text-primary transition-colors">{tool.title}</h3>
-                  <p className="text-xs text-on-surface-variant leading-relaxed flex-1">{tool.description}</p>
-                  <div className="pt-5 mt-4 border-t border-outline-variant/60">
-                    <Link href={tool.href}>
-                      <Button className={`w-full h-11 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                        isFlagship 
-                          ? 'bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20' 
-                          : 'bg-surface-container group-hover:bg-primary text-on-surface group-hover:text-white'
-                      }`}>
-                        {tool.ctaText} <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
         </section>
 
         {/* ============================= FEATURED PROJECTS & CASE STUDIES ============================= */}
