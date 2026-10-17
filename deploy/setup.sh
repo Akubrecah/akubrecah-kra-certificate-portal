@@ -35,9 +35,14 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# 3. Pull / Build & Start containers
+# 3. Clean up any previous conflicting standalone containers
+echo "Cleaning up any old conflicting containers..."
+docker rm -f evolution_postgres evolution_redis evolution_api caddy_proxy redis_cache akubrecah_app 2>/dev/null || true
+
+# 4. Start containers (passing root .env)
 echo "Starting production services with Docker Compose..."
-docker compose -f deploy/docker-compose.yml up -d --build
+cp -f .env deploy/.env 2>/dev/null || true
+docker compose --env-file .env -f deploy/docker-compose.yml up -d
 
 echo "Waiting for services to become healthy..."
 sleep 10

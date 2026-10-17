@@ -39,11 +39,11 @@ COPY . .
 # Install Playwright browser dependencies
 RUN npx playwright install chromium --with-deps
 
-# Provide dummy build-time fallback values so next build / prisma generate succeeds even before live env is mounted
+# Provide build-time values so next build / prisma generate succeeds
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
 ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_live_placeholder_for_build"
-ENV CLERK_SECRET_KEY="sk_live_placeholder_for_build"
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_c2VsZWN0LWRvdmUtNDMuY2xlcmsuYWNjb3VudHMuZGV2JA"
+ENV CLERK_SECRET_KEY="sk_test_kmMzDkMjYzfsbjXBY0qsvwCOlwlezRbITL3DTNlJj8"
 
 # Generate Prisma client and build Next.js production bundle
 RUN npx prisma generate
