@@ -42,17 +42,25 @@ docker rm -f evolution_postgres evolution_redis evolution_api caddy_proxy redis_
 # 4. Start containers (passing root .env)
 echo "Starting production services with Docker Compose..."
 cp -f .env deploy/.env 2>/dev/null || true
-docker compose --env-file .env -f deploy/docker-compose.yml up -d
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
+
+# 5. Reload reverse proxy if host Caddy container exists
+if docker ps --format '{{.Names}}' | grep -q 'n8n-caddy-1'; then
+    echo "Host Caddy reverse proxy detected (n8n-caddy-1). Updating routing..."
+    if [ -f "./update_caddy.sh" ]; then
+        bash ./update_caddy.sh || true
+    fi
+fi
 
 echo "Waiting for services to become healthy..."
 sleep 10
 
-# 4. Verification
+# 6. Verification
 echo "Verifying local service health..."
-if curl -s http://localhost/api/health > /dev/null 2>&1 || curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
-    echo "✅ Akubrecah App is HEALTHY and responding!"
+if curl -s http://localhost:3005/api/health > /dev/null 2>&1 || curl -s http://localhost/api/health > /dev/null 2>&1; then
+    echo "✅ Akubrecah App is HEALTHY and responding on port 3005!"
 else
-    echo "ℹ️ Stack is still initializing. Check logs with: docker compose -f deploy/docker-compose.yml logs -f"
+    echo "ℹ️ Stack is still initializing. Check logs with: docker compose -f deploy/docker-compose.yml logs -f akubrecah-app"
 fi
 
 echo ""
@@ -65,5 +73,5 @@ echo "  WhatsApp Gateway: https://wa.akubrecah.com"
 echo ""
 echo "  To view logs:"
 echo "    docker compose -f deploy/docker-compose.yml logs -f akubrecah-app"
-echo "    docker compose -f deploy/docker-compose.yml logs -f caddy"
+echo "    docker compose -f deploy/docker-compose.yml logs -f evolution"
 echo "=========================================================="
