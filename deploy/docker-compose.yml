@@ -25,6 +25,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-pk_live_Y2xlcmsuYWt1YnJlY2FoLmNvbSQ}
     container_name: akubrecah_app
     restart: unless-stopped
     ports:
