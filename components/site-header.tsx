@@ -55,6 +55,25 @@ interface NavItem {
   footer?: { label: string; href: string }
 }
 
+const kraNavData: NavItem[] = [
+  {
+    label: "Certificate Retrieval",
+    href: "/",
+    groups: null,
+  },
+  {
+    label: "Cyber Subscription (KES 500)",
+    href: "/#cyber-sub",
+    badge: "Unlimited",
+    groups: null,
+  },
+  {
+    label: "Agency Home ↗",
+    href: "https://akubrecah.com",
+    groups: null,
+  },
+]
+
 const navData: NavItem[] = [
   {
     label: "About",
@@ -63,7 +82,7 @@ const navData: NavItem[] = [
   },
   {
     label: "KRA PIN to Retrieval",
-    href: "/retrieval-portal",
+    href: "https://kra.akubrecah.com",
     badge: "KES 20",
     groups: [
       {
@@ -72,7 +91,7 @@ const navData: NavItem[] = [
           {
             title: "Certificate Retrieval",
             desc: "Instant compliance document download by PIN or ID",
-            href: "/retrieval-portal",
+            href: "https://kra.akubrecah.com",
             icon: FileCheck2,
             badge: "KES 20",
           },
@@ -85,7 +104,7 @@ const navData: NavItem[] = [
         ],
       },
     ],
-    footer: { label: "Launch Retrieval Portal (KES 20) →", href: "/retrieval-portal" },
+    footer: { label: "Launch Dedicated KRA Portal (kra.akubrecah.com) →", href: "https://kra.akubrecah.com" },
   },
   {
     label: "Services",
@@ -502,6 +521,14 @@ export function SiteHeader() {
   const { isLoaded, isSignedIn, user } = useUser()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isKra, setIsKra] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      setIsKra(host.startsWith("kra.") || host.includes("kra.akubrecah.com"))
+    }
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10)
@@ -528,6 +555,8 @@ export function SiteHeader() {
     userRole === "Super Admin" ||
     userRole === "Admin"
 
+  const currentNav = isKra ? kraNavData : navData
+
   return (
     <>
       <header
@@ -540,17 +569,36 @@ export function SiteHeader() {
         <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 xl:gap-4 flex-nowrap min-w-0">
 
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <Logo width={140} height={42} className="h-8 md:h-9 w-auto transition-transform group-hover:scale-[1.02]" />
-            <div className="hidden 2xl:flex flex-col border-l border-outline-variant pl-2.5 py-0.5">
-              <span className="text-[10px] font-black tracking-widest text-primary uppercase leading-tight">Technologies</span>
-              <span className="text-[9px] text-on-surface-variant font-medium leading-tight">Software Engineering</span>
-            </div>
-          </Link>
+          {isKra ? (
+            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+              <div className="p-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-black tracking-wide text-on-surface uppercase">
+                    KRA Portal
+                  </span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                    Statutory
+                  </span>
+                </div>
+                <span className="text-[10px] text-on-surface-variant font-medium">Akubrecah Compliance</span>
+              </div>
+            </Link>
+          ) : (
+            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+              <Logo width={140} height={42} className="h-8 md:h-9 w-auto transition-transform group-hover:scale-[1.02]" />
+              <div className="hidden 2xl:flex flex-col border-l border-outline-variant pl-2.5 py-0.5">
+                <span className="text-[10px] font-black tracking-widest text-primary uppercase leading-tight">Technologies</span>
+                <span className="text-[9px] text-on-surface-variant font-medium leading-tight">Software Engineering</span>
+              </div>
+            </Link>
+          )}
 
           {/* Desktop Nav — hierarchical (lg screens and above) */}
           <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
-            {navData.map((item) => (
+            {currentNav.map((item) => (
               <DesktopNavItem key={item.label} item={item} pathname={pathname} />
             ))}
           </nav>
@@ -582,15 +630,24 @@ export function SiteHeader() {
             ) : isLoaded && !isSignedIn ? (
               <div className="hidden sm:flex items-center gap-2 flex-nowrap">
                 <Link href="/sign-in">
-                  <Button variant="ghost" size="sm" className="h-9 px-3.5 rounded-xl text-xs font-semibold text-on-surface hover:text-primary shrink-0">
+                  <Button variant={isKra ? "default" : "ghost"} size="sm" className={`h-9 px-3.5 rounded-xl text-xs font-bold ${isKra ? "bg-primary text-white hover:bg-primary/90" : "text-on-surface hover:text-primary"} shrink-0`}>
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/contact" className="hidden xl:block">
-                  <Button size="sm" className="h-9 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/95 shadow-sm flex items-center gap-1.5 shrink-0">
-                    Start a Project <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
+                {isKra ? (
+                  <a href="https://akubrecah.com" className="hidden xl:block">
+                    <Button variant="outline" size="sm" className="h-9 px-3 rounded-xl border-outline-variant text-xs font-semibold text-on-surface hover:text-primary flex items-center gap-1.5 shrink-0">
+                      <span>Agency Home</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </a>
+                ) : (
+                  <Link href="/contact" className="hidden xl:block">
+                    <Button size="sm" className="h-9 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/95 shadow-sm flex items-center gap-1.5 shrink-0">
+                      Start a Project <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : null}
 
@@ -635,15 +692,21 @@ export function SiteHeader() {
                   <Link href="/sign-in" className="w-full" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" size="sm" className="w-full h-10 text-xs font-semibold rounded-xl">Sign In</Button>
                   </Link>
-                  <Link href="/contact" className="w-full" onClick={() => setMobileMenuOpen(false)}>
-                    <Button size="sm" className="w-full h-10 text-xs font-bold bg-primary text-white rounded-xl">Start a Project</Button>
-                  </Link>
+                  {isKra ? (
+                    <a href="https://akubrecah.com" className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                      <Button size="sm" className="w-full h-10 text-xs font-bold bg-primary text-white rounded-xl">Agency Home</Button>
+                    </a>
+                  ) : (
+                    <Link href="/contact" className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                      <Button size="sm" className="w-full h-10 text-xs font-bold bg-primary text-white rounded-xl">Start a Project</Button>
+                    </Link>
+                  )}
                 </div>
               )}
 
               {/* Hierarchical nav sections */}
               <div className="space-y-2">
-                {navData.map((item) => (
+                {currentNav.map((item) => (
                   <MobileNavSection key={item.label} item={item} onClose={() => setMobileMenuOpen(false)} />
                 ))}
               </div>

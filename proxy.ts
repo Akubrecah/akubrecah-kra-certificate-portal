@@ -174,13 +174,53 @@ export default clerkMiddleware(async (auth, request) => {
     return new NextResponse('Bad Request', { status: 400 });
   }
 
-  // 6. Subdomain routing (kra.akubrecah.com / kra.localhost -> rewrite '/' to '/retrieval-portal')
+  // 6. Subdomain routing & Strict Domain Isolation
   const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
   const isKraSubdomain = host.startsWith('kra.') || host.includes('kra.akubrecah.com');
 
-  const response = (isKraSubdomain && pathname === '/')
-    ? NextResponse.rewrite(new URL('/retrieval-portal', request.url))
-    : NextResponse.next();
+  // Case A: Accessing KRA routes on the main domain -> redirect to kra.akubrecah.com
+  if (!isKraSubdomain) {
+    if (
+      pathname === '/retrieval-portal' ||
+      pathname.startsWith('/retrieval-portal/') ||
+      pathname === '/pin-checker' ||
+      pathname.startsWith('/pin-checker/')
+    ) {
+      const targetUrl = new URL(pathname === '/retrieval-portal' ? '/' : pathname, 'https://kra.akubrecah.com');
+      targetUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(targetUrl, 307);
+    }
+  }
+
+  // Case B: Accessing on kra.akubrecah.com
+  let response: NextResponse;
+  if (isKraSubdomain) {
+    // 1. Root '/' rewrites to the retrieval portal
+    if (pathname === '/') {
+      response = NextResponse.rewrite(new URL('/retrieval-portal', request.url));
+    }
+    // 2. Clean URL: redirect '/retrieval-portal' to root '/' on the subdomain
+    else if (pathname === '/retrieval-portal' || pathname === '/retrieval-portal/') {
+      const cleanUrl = new URL('/', request.url);
+      cleanUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(cleanUrl, 307);
+    }
+    // 3. Redirect marketing & agency routes back to the main domain
+    else if (
+      pathname.startsWith('/about') ||
+      pathname.startsWith('/projects') ||
+      pathname.startsWith('/articles') ||
+      pathname.startsWith('/services') ||
+      pathname.startsWith('/careers')
+    ) {
+      const agencyUrl = new URL(pathname + request.nextUrl.search, 'https://akubrecah.com');
+      return NextResponse.redirect(agencyUrl, 307);
+    } else {
+      response = NextResponse.next();
+    }
+  } else {
+    response = NextResponse.next();
+  }
 
   if (rateLimitHeaders) {
     for (const [headerKey, headerVal] of Object.entries(rateLimitHeaders)) {
