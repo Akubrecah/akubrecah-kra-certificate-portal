@@ -3,9 +3,9 @@ set -euo pipefail
 
 echo "=== 1. Checking Cloudflare Origin Certificates ==="
 if [ -f "/var/www/akubrecah/deploy/certs/origin.pem" ] && [ -f "/var/www/akubrecah/deploy/certs/origin.key" ]; then
-    echo "Copying Cloudflare Origin Certificates into Caddy container..."
-    docker cp /var/www/akubrecah/deploy/certs/origin.pem n8n-caddy-1:/etc/caddy/origin.pem
-    docker cp /var/www/akubrecah/deploy/certs/origin.key n8n-caddy-1:/etc/caddy/origin.key
+    echo "Writing Cloudflare Origin Certificates into Caddy container..."
+    docker exec -i n8n-caddy-1 sh -c 'cat > /etc/caddy/origin.pem' < /var/www/akubrecah/deploy/certs/origin.pem
+    docker exec -i n8n-caddy-1 sh -c 'cat > /etc/caddy/origin.key' < /var/www/akubrecah/deploy/certs/origin.key
 else
     echo "Origin certs already present in Caddy container or stored in Caddy volumes."
 fi
@@ -93,7 +93,7 @@ wa.akubrecah.com {
 CADDY_CONFIG
 
 echo "=== 3. Reloading Caddy in n8n-caddy-1 ==="
-docker cp /root/n8n/Caddyfile n8n-caddy-1:/etc/caddy/Caddyfile
+docker exec -i n8n-caddy-1 sh -c 'cat > /etc/caddy/Caddyfile' < /root/n8n/Caddyfile
 docker exec n8n-caddy-1 caddy reload -c /etc/caddy/Caddyfile
 
 echo "=== 4. Testing local HTTPS handshakes ==="
