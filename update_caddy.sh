@@ -93,6 +93,7 @@ wa.akubrecah.com {
 CADDY_CONFIG
 
 echo "=== 3. Reloading Caddy in n8n-caddy-1 ==="
+docker cp /root/n8n/Caddyfile n8n-caddy-1:/etc/caddy/Caddyfile
 docker exec n8n-caddy-1 caddy reload -c /etc/caddy/Caddyfile
 
 echo "=== 4. Testing local HTTPS handshakes ==="
