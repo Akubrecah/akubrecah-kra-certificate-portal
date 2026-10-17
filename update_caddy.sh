@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== 1. Copying Cloudflare Origin Certificates into Caddy container ==="
-docker cp /var/www/akubrecah/deploy/certs/origin.pem n8n-caddy-1:/etc/caddy/origin.pem
-docker cp /var/www/akubrecah/deploy/certs/origin.key n8n-caddy-1:/etc/caddy/origin.key
+echo "=== 1. Checking Cloudflare Origin Certificates ==="
+if [ -f "/var/www/akubrecah/deploy/certs/origin.pem" ] && [ -f "/var/www/akubrecah/deploy/certs/origin.key" ]; then
+    echo "Copying Cloudflare Origin Certificates into Caddy container..."
+    docker cp /var/www/akubrecah/deploy/certs/origin.pem n8n-caddy-1:/etc/caddy/origin.pem
+    docker cp /var/www/akubrecah/deploy/certs/origin.key n8n-caddy-1:/etc/caddy/origin.key
+else
+    echo "Origin certs already present in Caddy container or stored in Caddy volumes."
+fi
 
 echo "=== 2. Writing Caddyfile with all domains and certificates ==="
 cat << 'CADDY_CONFIG' > /root/n8n/Caddyfile
@@ -17,8 +22,8 @@ n8n.vybeafrica.org {
     }
 }
 
-# --- Webmail Proxy (Mailcow) ---
-mail.vybeafrica.org, mail.akubrecah.com {
+# --- Webmail Proxy (Mailcow vybeafrica.org) ---
+mail.vybeafrica.org {
     reverse_proxy https://mailcowdockerized-nginx-mailcow-1:8443 {
         transport http {
             tls_insecure_skip_verify
@@ -57,6 +62,20 @@ wa.akubrecah.com {
     tls /etc/caddy/origin.pem /etc/caddy/origin.key
     encode zstd gzip
     reverse_proxy 172.23.0.1:8085
+}
+
+# --- Webmail Proxy (Mailcow akubrecah.com) ---
+mail.akubrecah.com {
+    tls /etc/caddy/origin.pem /etc/caddy/origin.key
+    reverse_proxy https://mailcowdockerized-nginx-mailcow-1:8443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Port 443
+    }
 }
 CADDY_CONFIG
 
