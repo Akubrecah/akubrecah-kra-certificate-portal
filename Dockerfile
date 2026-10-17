@@ -21,30 +21,39 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libnspr4 \
     libnss3 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package files
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --omit=dev || npm install
+# Install full dependencies (including devDependencies required for Next.js and Prisma compilation)
+RUN npm ci || npm install
 
-# Copy project files
+# Copy application source code
 COPY . .
 
-# Install Playwright browsers
+# Install Playwright browser dependencies
 RUN npx playwright install chromium --with-deps
 
-# Build the application
+# Provide dummy build-time fallback values so next build / prisma generate succeeds even before live env is mounted
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
+ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_live_placeholder_for_build"
+ENV CLERK_SECRET_KEY="sk_live_placeholder_for_build"
+
+# Generate Prisma client and build Next.js production bundle
+RUN npx prisma generate
 RUN npm run build
 
-# Expose port
+# Expose Next.js server port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Container healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Start the application

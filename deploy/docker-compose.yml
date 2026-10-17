@@ -1,35 +1,84 @@
 services:
-  evolution_postgres:
-    image: postgres:15-alpine
-    container_name: evolution_postgres
+  # Caddy Reverse Proxy & Automatic SSL/TLS Manager
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy_proxy
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: evolution
-      POSTGRES_PASSWORD: evolution_secret_password
-      POSTGRES_DB: evolution
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - evolution_postgres_data:/var/lib/postgresql/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - akubrecah-app
+      - evolution
     networks:
-      - evolution_net
+      - akubrecah_net
 
-  evolution_redis:
+  # Main Next.js Application (akubrecah.com & kra.akubrecah.com)
+  akubrecah-app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: akubrecah_app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://akubrecah.com}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - EVOLUTION_API_URL=http://evolution:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-akubrecah_secret_whatsapp_key_2026}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME:-akubrecah-kra}
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - HMAC_SECRET=${HMAC_SECRET}
+      - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
+      - NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=${NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY}
+      - PAYSTACK_SUBSCRIPTION_AMOUNT_KES=${PAYSTACK_SUBSCRIPTION_AMOUNT_KES:-499}
+      - PAYSTACK_DOWNLOAD_FEE_KES=${PAYSTACK_DOWNLOAD_FEE_KES:-30}
+      - KRA_API_BASE_URL=${KRA_API_BASE_URL:-https://api.kra.go.ke}
+      - KRA_PIN_CONSUMER_KEY=${KRA_PIN_CONSUMER_KEY}
+      - KRA_PIN_CONSUMER_SECRET=${KRA_PIN_CONSUMER_SECRET}
+      - KRA_ID_CONSUMER_KEY=${KRA_ID_CONSUMER_KEY}
+      - KRA_ID_CONSUMER_SECRET=${KRA_ID_CONSUMER_SECRET}
+    depends_on:
+      - redis
+    networks:
+      - akubrecah_net
+
+  # In-memory store for rate-limiting and session deduplication
+  redis:
     image: redis:7-alpine
-    container_name: evolution_redis
+    container_name: redis_cache
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - evolution_redis_data:/data
+      - redis_data:/data
     networks:
-      - evolution_net
+      - akubrecah_net
 
+  # Evolution API for WhatsApp notifications & dispatch
   evolution:
     image: evoapicloud/evolution-api:latest
     container_name: evolution_api
     restart: unless-stopped
-    ports:
-      - "8085:8080"
+    expose:
+      - "8080"
     environment:
-      - SERVER_URL=${SERVER_URL:-http://localhost:8085}
+      - SERVER_URL=${SERVER_URL:-https://wa.akubrecah.com}
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-akubrecah_secret_whatsapp_key_2026}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       - DEL_INSTANCE=false
@@ -42,9 +91,9 @@ services:
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
       - REDIS_ENABLED=true
-      - REDIS_URI=redis://evolution_redis:6379
+      - REDIS_URI=redis://redis:6379
       - REDIS_PREFIX_KEY=evolution
-      - WEBHOOK_GLOBAL_URL=${VERCEL_WEBHOOK_URL:-https://akubrecah-kra-certificate-portal.vercel.app/api/whatsapp/webhook}
+      - WEBHOOK_GLOBAL_URL=${WEBHOOK_GLOBAL_URL:-https://akubrecah.com/api/whatsapp/webhook}
       - WEBHOOK_GLOBAL_ENABLED=true
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
       - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
@@ -54,15 +103,31 @@ services:
       - evolution_instances:/evolution/instances
     depends_on:
       - evolution_postgres
-      - evolution_redis
+      - redis
     networks:
-      - evolution_net
+      - akubrecah_net
+
+  # Dedicated Postgres for Evolution WhatsApp instance state
+  evolution_postgres:
+    image: postgres:15-alpine
+    container_name: evolution_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution_secret_password
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    networks:
+      - akubrecah_net
 
 volumes:
-  evolution_postgres_data:
-  evolution_redis_data:
+  caddy_data:
+  caddy_config:
+  redis_data:
   evolution_instances:
+  evolution_postgres_data:
 
 networks:
-  evolution_net:
+  akubrecah_net:
     driver: bridge

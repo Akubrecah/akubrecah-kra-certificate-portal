@@ -18,6 +18,7 @@ const isPublicRoute = createRouteMatcher([
   '/privacy(.*)',
   '/careers(.*)',
   '/api/public(.*)',
+  '/api/health(.*)',
   '/api/projects(.*)',
   '/api/articles(.*)',
   '/api/kra(.*)',
@@ -58,6 +59,10 @@ const MAX_BUCKETS = 5000;
 const rateBuckets = new Map<string, RateBucket>();
 
 function getTierLimit(pathname: string): { limit: number; windowMs: number; tierKey: string } {
+  // Health checks: internal monitoring and load balancers
+  if (pathname.startsWith('/api/health')) {
+    return { limit: 1200, windowMs: 60 * 1000, tierKey: 'health' };
+  }
   // Strictest tier: Financial triggers, browser automation, and file uploads
   if (
     pathname.startsWith('/api/mpesa/stkpush') ||

@@ -1,7 +1,39 @@
-# Optional Caddy Reverse Proxy for Free Auto-SSL
-# Replace wa.yourdomain.com with your actual subdomain (e.g., wa.vybeafrica.org)
-wa.vybeafrica.org {
-    reverse_proxy localhost:8080 {
+{
+    # Automatically manages Let's Encrypt / ZeroSSL certificates
+    email poweldayck@gmail.com
+}
+
+# Main Agency & Technology Portal
+akubrecah.com, www.akubrecah.com {
+    encode gzip zstd
+
+    reverse_proxy akubrecah-app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+# Dedicated KRA Compliance & Statutory Retrieval Portal
+kra.akubrecah.com {
+    encode gzip zstd
+
+    reverse_proxy akubrecah-app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+# Evolution WhatsApp Automation API Gateway
+wa.akubrecah.com {
+    encode gzip zstd
+
+    reverse_proxy evolution:8080 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
