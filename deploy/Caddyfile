@@ -53,3 +53,25 @@ wa.akubrecah.com {
         header_up X-Forwarded-Proto {scheme}
     }
 }
+
+# n8n Automation Engine
+n8n.akubrecah.com {
+    encode gzip zstd
+
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+
+# Mailcow Webmail Portal
+mail.akubrecah.com {
+    reverse_proxy https://mailcowdockerized-nginx-mailcow-1:8443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Port 443
+    }
+}
