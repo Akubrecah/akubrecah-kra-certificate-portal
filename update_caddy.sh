@@ -64,9 +64,9 @@ wa.akubrecah.com {
     reverse_proxy 172.23.0.1:8085
 }
 
-# --- Webmail Proxy (Mailcow akubrecah.com) ---
+# --- Webmail Proxy (Mailcow akubrecah.com - Let's Encrypt SSL) ---
 mail.akubrecah.com {
-    tls /etc/caddy/origin.pem /etc/caddy/origin.key
+    tls poweldayck@gmail.com
     reverse_proxy https://mailcowdockerized-nginx-mailcow-1:8443 {
         transport http {
             tls_insecure_skip_verify
