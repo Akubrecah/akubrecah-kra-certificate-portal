@@ -12,11 +12,13 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   const { user, isLoaded } = useUser()
 
   const [isKraDomain, setIsKraDomain] = useState(false)
+  const [isAdminDomain, setIsAdminDomain] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const host = window.location.hostname.toLowerCase()
       setIsKraDomain(host.startsWith("kra.") || host.includes("kra.akubrecah.com"))
+      setIsAdminDomain(host.startsWith("admin.") || host.includes("admin.akubrecah.com"))
     }
   }, [])
 
@@ -28,7 +30,8 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     pathname?.startsWith('/dashboard') ||
     pathname === '/retrieval-portal' ||
     pathname?.startsWith('/retrieval-portal') ||
-    isKraDomain
+    isKraDomain ||
+    isAdminDomain
 
   const hasName = !!(user?.firstName && user?.lastName) || !!user?.fullName
   const hasPhone = (user?.phoneNumbers && user?.phoneNumbers.length > 0) || !!user?.publicMetadata?.phoneNumber

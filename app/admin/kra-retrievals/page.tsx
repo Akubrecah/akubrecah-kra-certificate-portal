@@ -531,7 +531,7 @@ export default function KraRetrievalsAdminPage() {
                             onClick={() => handleAdminDownloadPdf(t)}
                             disabled={isGeneratingPdf === t.pin}
                             className="h-8 px-3 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 transition-colors"
-                            title="Generate official KRA certificate PDF (Admin Free)"
+                            title="Generate official KRA certificate PDF"
                           >
                             <Download className={`w-3.5 h-3.5 ${isGeneratingPdf === t.pin ? "animate-bounce" : ""}`} />
                             <span>Download PDF</span>

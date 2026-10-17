@@ -1271,10 +1271,8 @@ export function KRAPortal({ hideHeader = false }: { hideHeader?: boolean } = {})
                       onClick={handleDownload}
                     >
                       <Download className="w-4 h-4" /> {
-                        isAdmin 
-                          ? "Download Certificate (Admin Free)" 
-                          : verifiedDownloadId 
-                          ? "Download Certificate (Paid)" 
+                        (isAdmin || verifiedDownloadId)
+                          ? "Download Certificate" 
                           : "Pay KES 20 & Download Certificate"
                       }
                     </button>

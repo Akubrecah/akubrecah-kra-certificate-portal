@@ -58,6 +58,12 @@ kra.akubrecah.com {
     reverse_proxy 172.23.0.1:3005
 }
 
+admin.akubrecah.com {
+    tls /etc/caddy/origin.pem /etc/caddy/origin.key
+    encode zstd gzip
+    reverse_proxy 172.23.0.1:3005
+}
+
 wa.akubrecah.com {
     tls /etc/caddy/origin.pem /etc/caddy/origin.key
     encode zstd gzip

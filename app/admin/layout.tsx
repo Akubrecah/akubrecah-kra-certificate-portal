@@ -29,27 +29,69 @@ import {
   KeyRound,
   Lock,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Globe,
+  Building2,
+  Smartphone,
+  Server
 } from "lucide-react";
 
-interface NavLinkItem {
+interface NavItem {
   href: string;
   label: string;
   icon: any;
+  isExternal?: boolean;
   badge?: string;
 }
 
-const navLinks: NavLinkItem[] = [
-  { href: "/admin", label: "Executive Overview", icon: LayoutDashboard },
-  { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: Mail },
-  { href: "/admin/projects", label: "Projects & Repositories", icon: FolderGit2 },
-  { href: "/admin/articles", label: "Articles & Field Notes", icon: BookOpen },
-  { href: "/admin/kra-retrievals", label: "KRA Retrievals", icon: FileCheck2 },
-  { href: "/admin/system-health", label: "System Health", icon: Activity },
-  { href: "/admin/user-management", label: "User Management", icon: Users },
-  { href: "/admin/role-access", label: "Role Access", icon: ShieldCheck },
-  { href: "/admin/system-logs", label: "System Logs", icon: Terminal },
-  { href: "/admin/settings", label: "Website Settings", icon: Settings },
+interface NavSection {
+  title: string;
+  badge?: string;
+  badgeClass?: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    title: "Executive",
+    items: [
+      { href: "/admin", label: "Executive Overview", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "CMS Engine",
+    badge: "Content",
+    badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    items: [
+      { href: "/admin/articles", label: "Articles & Field Notes", icon: BookOpen },
+      { href: "/admin/projects", label: "Projects & Portfolio", icon: FolderGit2 },
+      { href: "/admin/inquiries", label: "Client Inquiries & CRM", icon: Mail },
+      { href: "/admin/settings", label: "Website & SEO Settings", icon: Settings },
+    ],
+  },
+  {
+    title: "cPanel & Infrastructure",
+    badge: "Operations",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    items: [
+      { href: "/admin/system-health", label: "System Health & Vitals", icon: Activity },
+      { href: "/admin/system-logs", label: "Server & Audit Logs", icon: Terminal },
+      { href: "/admin/user-management", label: "User Management", icon: Users },
+      { href: "/admin/role-access", label: "Role & RBAC Access", icon: ShieldCheck },
+      { href: "/admin/kra-retrievals", label: "KRA Tax Retrievals", icon: FileCheck2 },
+    ],
+  },
+  {
+    title: "cPanel Service Launchers",
+    badge: "Hub",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    items: [
+      { href: "https://mail.akubrecah.com", label: "Mailcow Webmail", icon: Mail, isExternal: true },
+      { href: "https://wa.akubrecah.com", label: "WhatsApp Gateway", icon: Smartphone, isExternal: true },
+      { href: "https://kra.akubrecah.com", label: "KRA Taxpayer Hub", icon: Building2, isExternal: true },
+      { href: "https://akubrecah.com", label: "Main Agency Website", icon: Globe, isExternal: true },
+    ],
+  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -428,62 +470,116 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Brand / Logo */}
         <div className={`mb-6 px-1 flex items-center gap-3 transition-all ${isCollapsed ? "justify-center" : ""}`}>
           <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-xs">
-            <Shield className="w-5 h-5" />
+            <Server className="w-5 h-5" />
           </div>
           {!isCollapsed && (
             <div className="min-w-0">
-              <h1 className="text-sm font-extrabold text-on-surface tracking-tight leading-tight truncate">
-                Admin Central
-              </h1>
-              <p className="text-[10px] text-on-surface-variant truncate">
-                KRA Portal System v2.1
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm font-extrabold text-on-surface tracking-tight leading-tight truncate">
+                  Admin Console
+                </h1>
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  CMS · cPanel
+                </span>
+              </div>
+              <p className="text-[10px] font-mono text-on-surface-variant truncate">
+                admin.akubrecah.com
               </p>
             </div>
           )}
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto space-y-1 pr-0.5">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            // Precise active link detection: Only the single matching route is highlighted
-            const isActive = link.href === "/admin" 
-              ? pathname === "/admin" 
-              : pathname === link.href || pathname.startsWith(link.href + "/");
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center rounded-xl transition-all duration-150 text-xs font-semibold group relative focus:outline-none ${
-                  isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5"
-                } ${
-                  isActive
-                    ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
-                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
-                }`}
-                title={isCollapsed ? link.label : undefined}
-              >
-                <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? "text-white" : "group-hover:scale-110"}`} />
-
-                {!isCollapsed && (
-                  <span className="truncate whitespace-nowrap">{link.label}</span>
-                )}
-
-                {/* Pulsing Active Indicator Dot */}
-                {isActive && !isCollapsed && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
-                )}
-
-                {/* Collapsed Tooltip */}
-                {isCollapsed && (
-                  <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-neutral-950 text-white text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">
-                    {link.label}
+        {/* Navigation Links Grouped into CMS & cPanel */}
+        <nav className="flex-1 overflow-y-auto space-y-4 pr-0.5">
+          {navSections.map((section, sIdx) => (
+            <div key={section.title} className="space-y-1">
+              {!isCollapsed ? (
+                <div className="flex items-center justify-between px-3 pt-1 pb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">
+                    {section.title}
                   </span>
-                )}
-              </Link>
-            );
-          })}
+                  {section.badge && (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${section.badgeClass}`}>
+                      {section.badge}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                sIdx > 0 && <div className="h-px bg-outline-variant/60 my-2 mx-2" />
+              )}
+
+              {section.items.map((link) => {
+                const Icon = link.icon;
+                const isExternal = link.isExternal;
+                const isActive = !isExternal && (
+                  link.href === "/admin" 
+                    ? pathname === "/admin" 
+                    : pathname === link.href || pathname.startsWith(link.href + "/")
+                );
+
+                if (isExternal) {
+                  return (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center rounded-xl transition-all duration-150 text-xs font-semibold group relative focus:outline-none ${
+                        isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2"
+                      } text-on-surface-variant hover:text-on-surface hover:bg-surface-container`}
+                      title={isCollapsed ? `${link.label} (External Link)` : undefined}
+                    >
+                      <Icon className="w-4 h-4 shrink-0 text-on-surface-variant group-hover:text-primary transition-transform group-hover:scale-110" />
+                      {!isCollapsed && (
+                        <>
+                          <span className="truncate whitespace-nowrap">{link.label}</span>
+                          <ExternalLink className="w-3 h-3 ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+                        </>
+                      )}
+                      {isCollapsed && (
+                        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-neutral-950 text-white text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                          {link.label} ↗
+                        </span>
+                      )}
+                    </a>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center rounded-xl transition-all duration-150 text-xs font-semibold group relative focus:outline-none ${
+                      isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2"
+                    } ${
+                      isActive
+                        ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
+                        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                    }`}
+                    title={isCollapsed ? link.label : undefined}
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? "text-white" : "group-hover:scale-110"}`} />
+
+                    {!isCollapsed && (
+                      <span className="truncate whitespace-nowrap">{link.label}</span>
+                    )}
+
+                    {/* Pulsing Active Indicator Dot */}
+                    {isActive && !isCollapsed && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+                    )}
+
+                    {/* Collapsed Tooltip */}
+                    {isCollapsed && (
+                      <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-neutral-950 text-white text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                        {link.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer */}
@@ -529,11 +625,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center justify-between pb-4 mb-3 border-b border-outline-variant/60">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                  <Shield className="w-5 h-5" />
+                  <Server className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold text-on-surface leading-tight">Admin Central</h2>
-                  <p className="text-[10px] text-on-surface-variant">System Navigation</p>
+                  <h2 className="text-sm font-extrabold text-on-surface leading-tight">Admin Console</h2>
+                  <p className="text-[10px] font-mono text-on-surface-variant">CMS & cPanel Operations</p>
                 </div>
               </div>
 
@@ -547,32 +643,67 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
 
             {/* Nav list */}
-            <nav className="flex-1 overflow-y-auto space-y-1 pr-1">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = link.href === "/admin" 
-                  ? pathname === "/admin" 
-                  : pathname === link.href || pathname.startsWith(link.href + "/");
-
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileDrawerOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      isActive
-                        ? "bg-primary text-white shadow-md shadow-primary/20"
-                        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{link.label}</span>
-                    {isActive && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+            <nav className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {navSections.map((section) => (
+                <div key={section.title} className="space-y-1">
+                  <div className="flex items-center justify-between px-3 pt-1 pb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">
+                      {section.title}
+                    </span>
+                    {section.badge && (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${section.badgeClass}`}>
+                        {section.badge}
+                      </span>
                     )}
-                  </Link>
-                );
-              })}
+                  </div>
+
+                  {section.items.map((link) => {
+                    const Icon = link.icon;
+                    const isExternal = link.isExternal;
+                    const isActive = !isExternal && (
+                      link.href === "/admin" 
+                        ? pathname === "/admin" 
+                        : pathname === link.href || pathname.startsWith(link.href + "/")
+                    );
+
+                    if (isExternal) {
+                      return (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+                        >
+                          <Icon className="w-4 h-4 shrink-0 text-on-surface-variant" />
+                          <span className="truncate">{link.label}</span>
+                          <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-50" />
+                        </a>
+                      );
+                    }
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileDrawerOpen(false)}
+                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                          isActive
+                            ? "bg-primary text-white shadow-md shadow-primary/20"
+                            : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{link.label}</span>
+                        {isActive && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white ml-auto shrink-0 shadow-xs animate-pulse" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
 
             {/* Bottom Actions */}
@@ -617,8 +748,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm text-primary tracking-tight">Admin Central</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-sm text-primary tracking-tight">Console</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 uppercase">
+                CMS + cPanel
+              </span>
             </div>
           </div>
 
@@ -628,9 +762,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
                 className="w-full bg-surface-container-lowest border border-outline-variant rounded-full py-2 pl-10 pr-4 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Search telemetry, KRA records, logs, users..."
+                placeholder="Search CMS posts, telemetry, KRA records, logs, users..."
               />
             </div>
+          </div>
+
+          {/* Desktop Status Badges for CMS & cPanel */}
+          <div className="hidden xl:flex items-center gap-2 ml-4">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              CMS Engine
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              cPanel Active
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-on-surface-variant bg-surface-container border border-outline-variant">
+              admin.akubrecah.com
+            </span>
           </div>
 
           {/* Right Header Badges & Actions */}

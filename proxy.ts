@@ -129,6 +129,14 @@ export default clerkMiddleware(async (auth, request) => {
 
   // 2. Redirect signed-in users away from auth pages
   if (userId && (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up'))) {
+    const redirectUrl = request.nextUrl.searchParams.get('redirect_url');
+    if (redirectUrl) {
+      try {
+        return NextResponse.redirect(new URL(redirectUrl, request.url));
+      } catch {
+        // Fallback to home
+      }
+    }
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -177,8 +185,18 @@ export default clerkMiddleware(async (auth, request) => {
   // 6. Subdomain routing & Strict Domain Isolation
   const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
   const isKraSubdomain = host.startsWith('kra.') || host.includes('kra.akubrecah.com');
+  const isAdminSubdomain = host.startsWith('admin.') || host.includes('admin.akubrecah.com');
 
-  // Case A: Accessing KRA routes on the main domain -> redirect to kra.akubrecah.com
+  // Case A: Accessing /admin routes on main domain or KRA domain -> redirect to admin.akubrecah.com
+  if (!isAdminSubdomain) {
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+      const targetAdminUrl = new URL(pathname === '/admin' ? '/' : pathname, 'https://admin.akubrecah.com');
+      targetAdminUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(targetAdminUrl, 307);
+    }
+  }
+
+  // Case B: Accessing KRA routes on the main domain or admin domain -> redirect to kra.akubrecah.com
   if (!isKraSubdomain) {
     if (
       pathname === '/retrieval-portal' ||
@@ -196,9 +214,50 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 
-  // Case B: Accessing on kra.akubrecah.com
+  // Case C: Accessing on admin.akubrecah.com
   let response: NextResponse;
-  if (isKraSubdomain) {
+  if (isAdminSubdomain) {
+    // 1. Root '/' rewrites to the executive admin dashboard
+    if (pathname === '/') {
+      response = NextResponse.rewrite(new URL('/admin', request.url));
+    }
+    // 2. Clean URL: redirect '/admin' to root '/' on admin subdomain
+    else if (pathname === '/admin' || pathname === '/admin/') {
+      const cleanUrl = new URL('/', request.url);
+      cleanUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(cleanUrl, 307);
+    }
+    // 3. Clean sub-paths: allow accessing /articles, /projects, /system-health directly
+    else if (
+      pathname === '/articles' || pathname.startsWith('/articles/') ||
+      pathname === '/projects' || pathname.startsWith('/projects/') ||
+      pathname === '/inquiries' || pathname.startsWith('/inquiries/') ||
+      pathname === '/system-health' || pathname.startsWith('/system-health/') ||
+      pathname === '/system-logs' || pathname.startsWith('/system-logs/') ||
+      pathname === '/user-management' || pathname.startsWith('/user-management/') ||
+      pathname === '/role-access' || pathname.startsWith('/role-access/') ||
+      pathname === '/settings' || pathname.startsWith('/settings/') ||
+      pathname === '/kra-retrievals' || pathname.startsWith('/kra-retrievals/')
+    ) {
+      response = NextResponse.rewrite(new URL('/admin' + pathname, request.url));
+    }
+    // 4. Redirect marketing & agency routes back to the main domain
+    else if (
+      pathname.startsWith('/about') ||
+      pathname.startsWith('/services') ||
+      pathname.startsWith('/careers') ||
+      pathname.startsWith('/products') ||
+      pathname === '/faq' ||
+      pathname === '/contact'
+    ) {
+      const agencyUrl = new URL(pathname + request.nextUrl.search, 'https://akubrecah.com');
+      return NextResponse.redirect(agencyUrl, 307);
+    } else {
+      response = NextResponse.next();
+    }
+  }
+  // Case D: Accessing on kra.akubrecah.com
+  else if (isKraSubdomain) {
     // 1. Authentication Gating: User must be signed in to access the KRA portal
     const isPublicAuthRoute =
       pathname.startsWith('/sign-in') ||
