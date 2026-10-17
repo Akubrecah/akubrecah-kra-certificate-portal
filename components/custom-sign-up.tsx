@@ -28,7 +28,21 @@ export function CustomSignUp() {
   const { isLoaded, signUp, setActive } = useSignUp()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectUrl = searchParams.get("redirect_url") || "/dashboard"
+
+  const [isKra, setIsKra] = useState(false)
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      setIsKra(
+        host.startsWith("kra.") ||
+        host.includes("kra.akubrecah.com") ||
+        searchParams.get("portal") === "kra"
+      )
+    }
+  }, [searchParams])
+
+  const redirectUrl = searchParams.get("redirect_url") || (isKra ? "/" : "/dashboard")
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -139,24 +153,33 @@ export function CustomSignUp() {
         <div className="relative z-10 space-y-8 max-w-lg my-auto py-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
             <UserPlus className="w-4 h-4 text-red-400" />
-            <span>Fast & Secure Citizen Registration</span>
+            <span>{isKra ? "Fast & Secure Citizen Registration" : "Developer & Client Registration"}</span>
           </div>
 
           <div className="space-y-4">
             <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              Create Your KRA Portal Account.
+              {isKra ? "Create Your KRA Portal Account." : "Create Your Akubrecah Account."}
             </h1>
             <p className="text-zinc-400 text-base leading-relaxed">
-              Join thousands of Kenyan citizens automating their compliance certificates, filing Nil returns, and verifying taxpayer records.
+              {isKra
+                ? "Join thousands of Kenyan citizens automating their compliance certificates, filing Nil returns, and verifying taxpayer records."
+                : "Join engineering teams and clients building full-scale web platforms, mobile apps, and enterprise automated systems."}
             </p>
           </div>
 
           <div className="space-y-3.5 pt-2">
-            {[
-              { text: "Instant PIN & Compliance Certificate Downloads", icon: Zap },
-              { text: "Compliant with Kenya Data Protection Act 2019", icon: ShieldCheck },
-              { text: "ATS Professional CV Builder Suite", icon: CheckCircle2 },
-            ].map((feature, idx) => (
+            {(isKra
+              ? [
+                  { text: "Instant PIN & Compliance Certificate Downloads", icon: Zap },
+                  { text: "Compliant with Kenya Data Protection Act 2019", icon: ShieldCheck },
+                  { text: "Automated Nil & Income Tax Returns Filing", icon: CheckCircle2 },
+                ]
+              : [
+                  { text: "Full-Stack Web & Mobile Engineering Platforms", icon: Zap },
+                  { text: "Enterprise Cloud & Microservices Infrastructure", icon: ShieldCheck },
+                  { text: "Engineering Observability & Client Consoles", icon: CheckCircle2 },
+                ]
+            ).map((feature, idx) => (
               <div key={idx} className="flex items-center gap-3 text-sm text-zinc-300">
                 <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <feature.icon className="w-3.5 h-3.5" />
@@ -169,7 +192,7 @@ export function CustomSignUp() {
 
         {/* Footer info */}
         <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-          <span>© {new Date().getFullYear()} KRA Certificate Portal</span>
+          <span>© {new Date().getFullYear()} {isKra ? "KRA Certificate Portal" : "Akubrecah Technologies"}</span>
           <div className="flex items-center gap-4">
             <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/legal/terms" className="hover:text-white transition-colors">Terms</Link>

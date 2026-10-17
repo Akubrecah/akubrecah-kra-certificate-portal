@@ -184,7 +184,11 @@ export default clerkMiddleware(async (auth, request) => {
       pathname === '/retrieval-portal' ||
       pathname.startsWith('/retrieval-portal/') ||
       pathname === '/pin-checker' ||
-      pathname.startsWith('/pin-checker/')
+      pathname.startsWith('/pin-checker/') ||
+      pathname === '/filing-success' ||
+      pathname.startsWith('/filing-success/') ||
+      pathname === '/dashboard/filing' ||
+      pathname.startsWith('/dashboard/filing/')
     ) {
       const targetUrl = new URL(pathname === '/retrieval-portal' ? '/' : pathname, 'https://kra.akubrecah.com');
       targetUrl.search = request.nextUrl.search;
@@ -195,23 +199,48 @@ export default clerkMiddleware(async (auth, request) => {
   // Case B: Accessing on kra.akubrecah.com
   let response: NextResponse;
   if (isKraSubdomain) {
-    // 1. Root '/' rewrites to the retrieval portal
+    // 1. Authentication Gating: User must be signed in to access the KRA portal
+    const isPublicAuthRoute =
+      pathname.startsWith('/sign-in') ||
+      pathname.startsWith('/sign-up') ||
+      pathname.startsWith('/api/') ||
+      pathname.startsWith('/session-tasks') ||
+      pathname.startsWith('/legal/') ||
+      pathname === '/privacy' ||
+      pathname === '/terms' ||
+      pathname.startsWith('/favicon') ||
+      pathname.startsWith('/robots') ||
+      pathname.startsWith('/sitemap');
+
+    if (!userId && !isPublicAuthRoute) {
+      const signInUrl = new URL('/sign-in', request.url);
+      signInUrl.searchParams.set('redirect_url', request.url);
+      return NextResponse.redirect(signInUrl, 307);
+    }
+
+    // 2. Root '/' rewrites to the flagship portal hub
     if (pathname === '/') {
       response = NextResponse.rewrite(new URL('/retrieval-portal', request.url));
     }
-    // 2. Clean URL: redirect '/retrieval-portal' to root '/' on the subdomain
+    // 3. Clean URL: redirect '/retrieval-portal' to root '/' on the subdomain
     else if (pathname === '/retrieval-portal' || pathname === '/retrieval-portal/') {
       const cleanUrl = new URL('/', request.url);
       cleanUrl.search = request.nextUrl.search;
       return NextResponse.redirect(cleanUrl, 307);
     }
-    // 3. Redirect marketing & agency routes back to the main domain
+    // 4. Filing shortcut: redirect '/dashboard/filing' to root with filing view
+    else if (pathname === '/dashboard/filing' || pathname === '/dashboard/filing/') {
+      const filingUrl = new URL('/?view=filing', request.url);
+      return NextResponse.redirect(filingUrl, 307);
+    }
+    // 5. Redirect marketing & agency routes back to the main domain
     else if (
       pathname.startsWith('/about') ||
       pathname.startsWith('/projects') ||
       pathname.startsWith('/articles') ||
       pathname.startsWith('/services') ||
-      pathname.startsWith('/careers')
+      pathname.startsWith('/careers') ||
+      pathname.startsWith('/products')
     ) {
       const agencyUrl = new URL(pathname + request.nextUrl.search, 'https://akubrecah.com');
       return NextResponse.redirect(agencyUrl, 307);

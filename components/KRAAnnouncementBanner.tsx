@@ -8,7 +8,13 @@ export default function KRAAnnouncementBanner() {
   const pathname = usePathname()
   const [announcement, setAnnouncement] = useState<string | null>(null)
 
+  const [isKra, setIsKra] = useState(false)
+
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      setIsKra(host.startsWith("kra.") || host.includes("kra.akubrecah.com"))
+    }
     // Set the KRA announcement message
     // This message is based on current KRA policy (March 2026)
     const currentDate = new Date()
@@ -21,7 +27,7 @@ export default function KRAAnnouncementBanner() {
     }
   }, [])
 
-  if (!announcement || pathname?.startsWith('/admin') || pathname?.startsWith('/dashboard')) return null
+  if (!isKra || !announcement || pathname?.startsWith('/admin') || pathname?.startsWith('/dashboard')) return null
 
   return (
     <div role="alert" aria-live="polite" className="sticky top-0 z-[60] w-full bg-primary text-white border-b border-white/10 shadow-none">

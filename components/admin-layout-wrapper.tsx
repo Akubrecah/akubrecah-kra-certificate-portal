@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { useUser } from '@clerk/nextjs'
@@ -11,12 +11,24 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
   const router = useRouter()
   const { user, isLoaded } = useUser()
 
-  const isAuthPage = 
+  const [isKraDomain, setIsKraDomain] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      setIsKraDomain(host.startsWith("kra.") || host.includes("kra.akubrecah.com"))
+    }
+  }, [])
+
+  const isStandalonePage = 
     pathname?.startsWith('/sign-in') || 
     pathname?.startsWith('/sign-up') || 
     pathname?.startsWith('/onboarding') || 
     pathname?.startsWith('/admin') ||
-    pathname?.startsWith('/dashboard')
+    pathname?.startsWith('/dashboard') ||
+    pathname === '/retrieval-portal' ||
+    pathname?.startsWith('/retrieval-portal') ||
+    isKraDomain
 
   const hasName = !!(user?.firstName && user?.lastName) || !!user?.fullName
   const hasPhone = (user?.phoneNumbers && user?.phoneNumbers.length > 0) || !!user?.publicMetadata?.phoneNumber
@@ -45,7 +57,7 @@ export function AdminLayoutWrapper({ children }: { children: React.ReactNode }) 
     }
   }, [pathname, router, user, isLoaded, isProfileComplete])
 
-  if (isAuthPage) {
+  if (isStandalonePage) {
     return <main className="flex-grow flex flex-col w-full min-h-screen min-w-0">{children}</main>
   }
 

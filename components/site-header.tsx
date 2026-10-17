@@ -81,32 +81,6 @@ const navData: NavItem[] = [
     groups: null,   // simple link — no dropdown
   },
   {
-    label: "KRA PIN to Retrieval",
-    href: "https://kra.akubrecah.com",
-    badge: "KES 20",
-    groups: [
-      {
-        heading: "Statutory Retrieval Suite",
-        items: [
-          {
-            title: "Certificate Retrieval",
-            desc: "Instant compliance document download by PIN or ID",
-            href: "https://kra.akubrecah.com",
-            icon: FileCheck2,
-            badge: "KES 20",
-          },
-          {
-            title: "Automated Tax Filing",
-            desc: "Nil returns & statutory submission pipeline",
-            href: "/dashboard/filing",
-            icon: Send,
-          },
-        ],
-      },
-    ],
-    footer: { label: "Launch Dedicated KRA Portal (kra.akubrecah.com) →", href: "https://kra.akubrecah.com" },
-  },
-  {
     label: "Services",
     href: "/services",          // parent page
     groups: [
@@ -147,25 +121,24 @@ const navData: NavItem[] = [
     href: "/products",
     groups: [
       {
-        heading: "In-House Products",
+        heading: "Enterprise Platforms",
         items: [
           {
-            title: "KRA Certificate Portal",
-            desc: "Instant compliance certificate retrieval by ID or PIN",
-            href: "/retrieval-portal",
-            icon: FileCheck2,
-            badge: "KES 20",
+            title: "Akubrecah API Gateway",
+            desc: "High-throughput microservice routing & event bus",
+            href: "/products",
+            icon: Layers,
           },
           {
-            title: "Automated Tax Filing",
-            desc: "Nil returns & statutory submission pipeline",
-            href: "/dashboard/filing",
-            icon: Send,
+            title: "Client & Engineering Console",
+            desc: "Full observability, deployment pipeline & monitoring hub",
+            href: "/dashboard",
+            icon: LayoutDashboard,
           },
         ],
       },
     ],
-    footer: { label: "All Products →", href: "/products" },
+    footer: { label: "All Engineering Products →", href: "/products" },
   },
   {
     label: "Solutions",

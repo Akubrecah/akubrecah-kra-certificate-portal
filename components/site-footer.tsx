@@ -77,27 +77,27 @@ export function SiteFooter(): JSX.Element {
             </ul>
           </div>
 
-          {/* Col 4: In-House Products & Tools */}
+          {/* Col 4: Enterprise Platforms & Tools */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider">
-              In-House Products
+              Platforms & Tools
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/retrieval-portal" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/products" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  KRA Certificate Retrieval
+                  API Gateway & Integrations
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/filing" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Link href="/dashboard" className="hover:text-primary transition-colors flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Automated Nil Returns Filing
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard" className="hover:text-primary transition-colors">
                   Client & Engineering Console
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#cloud" className="hover:text-primary transition-colors">
+                  Cloud & Infrastructure Manager
                 </Link>
               </li>
             </ul>
