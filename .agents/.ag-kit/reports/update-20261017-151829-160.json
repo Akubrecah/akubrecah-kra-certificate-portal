@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261017-151829-160",
+  "strategy": "merge",
+  "toolkitVersion": "2026.8.31",
+  "createdAt": "2026-10-17T15:18:29.655Z",
+  "backupDir": "/home/akubrecah/Mac_Desktop/Akubrecah KRA/.ag-kit-backups/20261017-151829-160",
+  "summary": {
+    "actions": 0,
+    "conflicts": 0,
+    "preserved": 2,
+    "unchanged": 219
+  },
+  "actions": [],
+  "conflicts": [],
+  "preserved": [
+    {
+      "file": "memory/MEMORY.md",
+      "reason": "changed locally only"
+    },
+    {
+      "file": "memory/tech-decisions.md",
+      "reason": "changed locally only"
+    }
+  ]
+}
